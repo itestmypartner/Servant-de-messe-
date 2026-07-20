@@ -9,22 +9,43 @@
 <body class="inscription-page">
  <div class="Contenaire">
  <div class="logo">
- <img src="logoservantdemesse.jpg" alt="logo des servant de messe">
+   <picture>
+     <source srcset="logoservantdemesse.webp" type="image/webp">
+     <img src="logoservantdemesse.jpg" alt="logo des servant de messe" width="300" height="300" loading="lazy">
+   </picture>
  </div>
  <h1>Groupe des Servants de Messe</h1>
  <p class="Sous-titre">Paroisse Saint Bernard</p>
- <form action="">
- <label for="nom">Nom</label>
- <input type="text" id="nom" required>
- <label for="prenom">Prenom</label>
- <input type="text" id="prenom" required>
- <label for="age">Âge</label>
- <input type="number" id="age" min="1" max="99" required>
- <label for="tel"> Numéro de téléphone d'un parent</label>
- <input type="tel" id="tel" required>
- <button type="submit">S'inscrire</button>
+ <form action="/api/inscriptions" method="post" novalidate>
+   <div class="form-row">
+     <div class="form-group">
+       <label for="nom">Nom</label>
+       <input type="text" id="nom" name="nom" inputmode="text" placeholder="Ex: Koffi" required aria-required="true" autofocus>
+     </div>
+     <div class="form-group">
+       <label for="prenom">Prénom</label>
+       <input type="text" id="prenom" name="prenom" inputmode="text" placeholder="Ex: Jean" required aria-required="true">
+     </div>
+   </div>
+
+   <div class="form-row">
+     <div class="form-group">
+       <label for="age">Âge</label>
+       <input type="number" id="age" name="age" inputmode="numeric" min="1" max="99" placeholder="Âge" required aria-required="true">
+     </div>
+     <div class="form-group">
+       <label for="tel">Numéro de téléphone d'un parent</label>
+       <input type="tel" id="tel" name="tel" inputmode="tel" pattern="\+?\d{8,15}" placeholder="+225 01 23 45 67 89" required aria-required="true">
+     </div>
+   </div>
+
+   <button type="submit" class="submit-btn">
+     <span class="btn-text">S'inscrire</span>
+     <span class="btn-spinner" aria-hidden="true"></span>
+   </button>
  </form>
- <p class="message" id="message">Merci pour votre inscription</p>
+
+ <p class="message" id="message" role="status" aria-live="polite">Merci pour votre inscription</p>
  </div>
 
  <script>
