@@ -6,33 +6,23 @@
  <title>Document</title>
  <link rel="stylesheet" href="style.css">
 </head>
-<body class="inscription-page">
+<body>
  <div class="Contenaire">
  <div class="logo">
-   <img src="logoservantdemesse.jpg" alt="logo des servant de messe">
+ <img src="logoservantdemesse.jpg" alt="logo des servant de messe">
  </div>
  <h1>Groupe des Servants de Messe</h1>
  <p class="Sous-titre">Paroisse Saint Bernard</p>
- <form action="" novalidate>
-   <div class="form-row">
-     <div class="form-group">
-       <label for="nom">Nom</label>
-       <input type="text" id="nom" placeholder="Ex: Koffi" required>
-     </div>
-     <div class="form-group">
-       <label for="prenom">Prénom</label>
-       <input type="text" id="prenom" placeholder="Ex: Jean" required>
-     </div>
-   </div>
-   <div class="form-group">
-     <label for="age">Âge</label>
-     <input type="number" id="age" min="1" max="99" placeholder="Âge" required>
-   </div>
-   <div class="form-group">
-     <label for="tel">Numéro de téléphone d'un parent</label>
-     <input type="tel" id="tel" placeholder="+225 01 23 45 67 89" required>
-   </div>
-   <button type="submit">S'inscrire</button>
+ <form action="">
+ <label for="nom">Nom</label>
+ <input type="text" id="nom" required>
+ <label for="prenom">Prenom</label>
+ <input type="text" id="prenom" required>
+ <label for="age">Âge</label>
+ <input type="number" id="age" min="1" max="99" required>
+ <label for="tel"> Numéro de téléphone d'un parent</label>
+ <input type="tel" id="tel" required>
+ <button type="submit">S'inscrire</button>
  </form>
  <p class="message" id="message">Merci pour votre inscription</p>
  </div>
