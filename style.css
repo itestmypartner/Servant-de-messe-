@@ -426,68 +426,75 @@ a:hover {
   }
 }
 
-/* Styles page inscription */
-*{
+/* Styles page inscription - isolés pour ne pas affecter le reste du site */
+.inscription-page {
  margin: 0;
  padding: 0;
  box-sizing: border-box;
-}
-body{
  display: flex;
  align-items: center;
  justify-content: center;
  min-height: 100vh;
  padding: 24px;
 }
+
 .Contenaire{
  border: 2px solid #16487a;
  border-radius: 16px;
  padding: 32px 28px;
  max-width: 420px;
- width: 500px;
+ width: 100%;
  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
-.logo{
+
+.Contenaire .logo{
  display: flex;
  width: 125px;
  height: 125px;
  margin-bottom: 14px;
- margin-left: 125px;
+ margin-left: auto;
+ margin-right: auto;
  object-fit: contain;
 }
-h1{
+
+.Contenaire h1{
  color: #0d3258;
  text-align: center;
  font-size: 20px;
  margin: 24px;
  letter-spacing: 2px;
 }
+
 .Sous-titre{
  text-align: center;
  color: #16487a;
  font-size: 13px;
  align-items: 0.5px;
 }
-label{
+
+.Contenaire label{
  display: block;
  color: #0d3258;
  font-weight: 600;
  font-size: 14px;
  margin: 16px 0 6px;
 }
-input{
+
+.Contenaire input{
  width: 100%;
  padding: 10px 12px;
  border: 2px solid #0d3258;
  border-radius: 8px;
  font-size: 15px;
 }
-input:focus{
+
+.Contenaire input:focus{
  outline: none;
  border-color: #0d3258;
  box-shadow: 0 0 0 3px rgba(22, 72, 122, 0.15);
 }
-button{
+
+.Contenaire button{
  width: 100%;
  margin-top: 26px;
  background: #16487a;
@@ -498,12 +505,30 @@ button{
  font-weight: 600;
  cursor: pointer;
 }
-button:hover{
+
+.Contenaire button:hover{
  background: #0d3258;
 }
-.message{
+
+.Contenaire .message{
  display: flex;
  text-align: center;
  color: #0d3258;
  margin-top: 18px;
+}
+
+@media (max-width: 640px) {
+ .inscription-page {
+   padding: 16px;
+ }
+ 
+ .Contenaire {
+   width: 100%;
+   padding: 20px 16px;
+ }
+ 
+ .Contenaire .logo {
+   width: 100px;
+   height: 100px;
+ }
 }
