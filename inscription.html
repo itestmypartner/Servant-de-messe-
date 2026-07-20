@@ -6,7 +6,7 @@
  <title>Document</title>
  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="inscription-page">
  <div class="Contenaire">
  <div class="logo">
  <img src="logoservantdemesse.jpg" alt="logo des servant de messe">
@@ -26,7 +26,34 @@
  </form>
  <p class="message" id="message">Merci pour votre inscription</p>
  </div>
- 
- 
+
+ <script>
+ // Afficher message de confirmation sans recharger
+ (function(){
+   var form = document.querySelector('.Contenaire form');
+   var message = document.getElementById('message');
+   if(!form) return;
+   form.addEventListener('submit', function(e){
+     e.preventDefault();
+     // validation minimale
+     var nom = document.getElementById('nom').value.trim();
+     var prenom = document.getElementById('prenom').value.trim();
+     var age = document.getElementById('age').value.trim();
+     var tel = document.getElementById('tel').value.trim();
+     if(!nom || !prenom || !age || !tel){
+       message.textContent = 'Veuillez remplir tous les champs.';
+       message.style.color = '#c23b3b';
+       message.classList.add('show');
+       return;
+     }
+     // succès
+     message.textContent = 'Merci pour votre inscription — nous vous contacterons bientôt.';
+     message.style.color = '#0d8a3f';
+     message.classList.add('show');
+     form.reset();
+   });
+ })();
+ </script>
+
 </body>
 </html>
