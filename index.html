@@ -107,8 +107,21 @@
       <div class="container">
         <h2 class="section-title">Galerie</h2>
         <p class="section-intro">Quelques moments partagés avec notre communauté.</p>
-        <div class="gallery">
-          <img src="photosdetouslegroupe.jpg" alt="Photo de groupe des Servants de Messe" class="gallery-photo">
+        <div class="gallery-slider" aria-label="Galerie photo des Servants de Messe">
+          <button class="gallery-btn gallery-btn-prev" type="button" aria-label="Photo précédente">&#10094;</button>
+          <div class="gallery-track">
+            <img src="galerie-1.jpeg" alt="Servants de messe dans l'église" class="gallery-photo is-active">
+            <img src="galerie-2.jpeg" alt="Groupe de servants de messe avec le père" class="gallery-photo">
+            <img src="galerie-3.jpeg" alt="Procession des servants de messe" class="gallery-photo">
+            <img src="galerie-4.jpeg" alt="Entrée en procession des servants de messe" class="gallery-photo">
+          </div>
+          <button class="gallery-btn gallery-btn-next" type="button" aria-label="Photo suivante">&#10095;</button>
+          <div class="gallery-dots" aria-hidden="true">
+            <button class="gallery-dot is-active" type="button" data-slide="0" aria-label="Aller à la photo 1"></button>
+            <button class="gallery-dot" type="button" data-slide="1" aria-label="Aller à la photo 2"></button>
+            <button class="gallery-dot" type="button" data-slide="2" aria-label="Aller à la photo 3"></button>
+            <button class="gallery-dot" type="button" data-slide="3" aria-label="Aller à la photo 4"></button>
+          </div>
         </div>
       </div>
     </section>
@@ -180,6 +193,73 @@
       links[i].onclick = function () {
         nav.classList.remove('nav-open');
       };
+    }
+
+    var photos = document.querySelectorAll('.gallery-photo');
+    var dots = document.querySelectorAll('.gallery-dot');
+    var prevBtn = document.querySelector('.gallery-btn-prev');
+    var nextBtn = document.querySelector('.gallery-btn-next');
+    var slider = document.querySelector('.gallery-slider');
+    var activeIndex = 0;
+    var autoSlideTimer;
+
+    function showSlide(index) {
+      if (!photos.length) {
+        return;
+      }
+
+      activeIndex = (index + photos.length) % photos.length;
+
+      for (var j = 0; j < photos.length; j++) {
+        photos[j].classList.toggle('is-active', j === activeIndex);
+      }
+
+      for (var k = 0; k < dots.length; k++) {
+        dots[k].classList.toggle('is-active', k === activeIndex);
+      }
+    }
+
+    function startAutoSlide() {
+      autoSlideTimer = setInterval(function () {
+        showSlide(activeIndex + 1);
+      }, 4500);
+    }
+
+    function resetAutoSlide() {
+      clearInterval(autoSlideTimer);
+      startAutoSlide();
+    }
+
+    if (prevBtn && nextBtn && photos.length > 1) {
+      prevBtn.onclick = function () {
+        showSlide(activeIndex - 1);
+        resetAutoSlide();
+      };
+
+      nextBtn.onclick = function () {
+        showSlide(activeIndex + 1);
+        resetAutoSlide();
+      };
+
+      for (var m = 0; m < dots.length; m++) {
+        dots[m].onclick = function () {
+          var slideIndex = parseInt(this.getAttribute('data-slide'), 10);
+          showSlide(slideIndex);
+          resetAutoSlide();
+        };
+      }
+
+      if (slider) {
+        slider.onmouseenter = function () {
+          clearInterval(autoSlideTimer);
+        };
+
+        slider.onmouseleave = function () {
+          startAutoSlide();
+        };
+      }
+
+      startAutoSlide();
     }
   </script>
 
