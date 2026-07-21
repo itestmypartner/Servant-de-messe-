@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Inscriptions</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-page">
+  <div class="admin-login" id="loginContainer">
+    <div class="admin-card">
+      <h1>Accès Admin</h1>
+      <p class="admin-subtitle">Entrez le mot de passe pour accéder aux inscriptions</p>
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" name="password" placeholder="••••••" required autofocus>
+        </div>
+        <button type="submit" class="admin-btn">Accéder</button>
+      </form>
+      <div id="loginError" class="error-message"></div>
+    </div>
+  </div>
+
+  <div class="admin-dashboard" id="dashboardContainer" style="display:none;">
+    <div class="admin-header">
+      <h1>📋 Inscriptions - Servants de Messe</h1>
+      <div class="admin-actions">
+        <button id="exportBtn" class="admin-btn-secondary">📥 Télécharger CSV</button>
+        <button id="settingsBtn" class="admin-btn-secondary">⚙️ Paramètres</button>
+        <button id="logoutBtn" class="admin-btn-danger">🚪 Déconnexion</button>
+      </div>
+    </div>
+
+    <div class="admin-stats">
+      <div class="stat-card">
+        <div class="stat-number" id="totalCount">0</div>
+        <div class="stat-label">Total inscriptions</div>
+      </div>
+    </div>
+
+    <div class="admin-table-container">
+      <table class="admin-table" id="inscriptionsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Âge</th>
+            <th>Téléphone</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="7" style="text-align:center;color:#999;">Aucune inscription</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Paramètres -->
+  <div class="modal" id="settingsModal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Paramètres Admin</h2>
+        <button class="modal-close" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3>Changer le mot de passe</h3>
+          <form id="passwordForm" novalidate>
+            <div class="form-group">
+              <label for="currentPassword">Mot de passe actuel</label>
+              <input type="password" id="currentPassword" placeholder="••••••" required>
+            </div>
+            <div class="form-group">
+              <label for="newPassword">Nouveau mot de passe</label>
+              <input type="password" id="newPassword" placeholder="••••••" required>
+            </div>
+            <div class="form-group">
+              <label for="confirmPassword">Confirmer mot de passe</label>
+              <input type="password" id="confirmPassword" placeholder="••••••" required>
+            </div>
+            <button type="submit" class="admin-btn">Mettre à jour</button>
+          </form>
+          <div id="passwordMessage" class="message"></div>
+        </div>
+
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid #e0e0e0;">
+
+        <div class="settings-section">
+          <h3>Supprimer les données</h3>
+          <p style="color:#666; margin-bottom:12px;">Cette action est irréversible.</p>
+          <button id="clearDataBtn" class="admin-btn-danger">Supprimer toutes les inscriptions</button>
+          <div id="clearMessage" class="message"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      // Configuration
+      var DEFAULT_PASSWORD = '200700';
+      var PASSWORD_KEY = 'admin_password';
+      var INSCRIPTIONS_KEY = 'inscriptions';
+      var SESSION_KEY = 'admin_session';
+
+      // Éléments DOM
+      var loginContainer = document.getElementById('loginContainer');
+      var dashboardContainer = document.getElementById('dashboardContainer');
+      var loginForm = document.getElementById('loginForm');
+      var passwordInput = document.getElementById('password');
+      var loginError = document.getElementById('loginError');
+
+      var exportBtn = document.getElementById('exportBtn');
+      var settingsBtn = document.getElementById('settingsBtn');
+      var logoutBtn = document.getElementById('logoutBtn');
+      var settingsModal = document.getElementById('settingsModal');
+      var closeModal = document.getElementById('closeModal');
+      var passwordForm = document.getElementById('passwordForm');
+      var passwordMessage = document.getElementById('passwordMessage');
+      var clearDataBtn = document.getElementById('clearDataBtn');
+      var clearMessage = document.getElementById('clearMessage');
+
+      // Vérifier session existante
+      if(sessionStorage.getItem(SESSION_KEY) === 'true'){
+        showDashboard();
+      }
+
+      // Login
+      loginForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        var pwd = passwordInput.value;
+        var storedPassword = localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
+
+        if(pwd === storedPassword){
+          sessionStorage.setItem(SESSION_KEY, 'true');
+          showDashboard();
+        } else {
+          loginError.textContent = '❌ Mot de passe incorrect';
+          passwordInput.value = '';
+        }
+      });
+
+      // Logout
+      logoutBtn.addEventListener('click', function(){
+        sessionStorage.removeItem(SESSION_KEY);
+        loginContainer.style.display = 'block';
+        dashboardContainer.style.display = 'none';
+        loginForm.reset();
+        loginError.textContent = '';
+      });
+
+      // Afficher dashboard
+      function showDashboard(){
+        loginContainer.style.display = 'none';
+        dashboardContainer.style.display = 'block';
+        displayInscriptions();
+      }
+
+      // Afficher inscriptions
+      function displayInscriptions(){
+        var inscriptions = JSON.parse(localStorage.getItem(INSCRIPTIONS_KEY) || '[]');
+        var tbody = document.getElementById('tableBody');
+        var totalCount = document.getElementById('totalCount');
+
+        totalCount.textContent = inscriptions.length;
+
+        if(inscriptions.length === 0){
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">Aucune inscription</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        inscriptions.forEach(function(insc, index){
+          var row = document.createElement('tr');
+          row.innerHTML = 
+            '<td>' + (index + 1) + '</td>' +
+            '<td>' + escapeHtml(insc.nom) + '</td>' +
+            '<td>' + escapeHtml(insc.prenom) + '</td>' +
+            '<td>' + escapeHtml(insc.age) + '</td>' +
+            '<td>' + escapeHtml(insc.tel) + '</td>' +
+            '<td>' + escapeHtml(insc.date) + '</td>' +
+            '<td><button class="delete-btn" data-id="' + insc.id + '">Supprimer</button></td>';
+          
+          row.querySelector('.delete-btn').addEventListener('click', function(){
+            deleteInscription(insc.id);
+          });
+
+          tbody.appendChild(row);
+        });
+      }
+
+      // Supprimer une inscription
+      function deleteInscription(id){
+        if(confirm('Êtes-vous sûr de vouloir supprimer cette inscription ?')){
+          var inscriptions = JSON.parse(localStorage.getItem(INSCRIPTIONS_KEY) || '[]');
+          inscriptions = inscriptions.filter(function(i){ return i.id !== id; });
+          localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(inscriptions));
+          displayInscriptions();
+        }
+      }
+
+      // Export CSV
+      exportBtn.addEventListener('click', function(){
+        var inscriptions = JSON.parse(localStorage.getItem(INSCRIPTIONS_KEY) || '[]');
+        if(inscriptions.length === 0){
+          alert('Aucune inscription à exporter');
+          return;
+        }
+
+        var csv = 'Nom,Prénom,Âge,Téléphone,Date\n';
+        inscriptions.forEach(function(insc){
+          csv += '"' + insc.nom + '","' + insc.prenom + '","' + insc.age + '","' + insc.tel + '","' + insc.date + '"\n';
+        });
+
+        var blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'inscriptions-' + new Date().toISOString().split('T')[0] + '.csv';
+        link.click();
+      });
+
+      // Paramètres
+      settingsBtn.addEventListener('click', function(){
+        settingsModal.style.display = 'flex';
+      });
+
+      closeModal.addEventListener('click', function(){
+        settingsModal.style.display = 'none';
+      });
+
+      settingsModal.addEventListener('click', function(e){
+        if(e.target === settingsModal) settingsModal.style.display = 'none';
+      });
+
+      // Changer mot de passe
+      passwordForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        var current = document.getElementById('currentPassword').value;
+        var newPwd = document.getElementById('newPassword').value;
+        var confirm = document.getElementById('confirmPassword').value;
+
+        var storedPassword = localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
+
+        if(current !== storedPassword){
+          showMessage(passwordMessage, '❌ Mot de passe actuel incorrect', 'error');
+          return;
+        }
+
+        if(newPwd.length < 4){
+          showMessage(passwordMessage, '❌ Le mot de passe doit faire au moins 4 caractères', 'error');
+          return;
+        }
+
+        if(newPwd !== confirm){
+          showMessage(passwordMessage, '❌ Les mots de passe ne correspondent pas', 'error');
+          return;
+        }
+
+        localStorage.setItem(PASSWORD_KEY, newPwd);
+        showMessage(passwordMessage, '✓ Mot de passe mis à jour avec succès !', 'success');
+        passwordForm.reset();
+
+        setTimeout(function(){
+          settingsModal.style.display = 'none';
+        }, 2000);
+      });
+
+      // Supprimer données
+      clearDataBtn.addEventListener('click', function(){
+        if(confirm('ATTENTION : Cette action supprimera TOUTES les inscriptions. Confirmez-vous ?')){
+          localStorage.removeItem(INSCRIPTIONS_KEY);
+          displayInscriptions();
+          showMessage(clearMessage, '✓ Toutes les inscriptions ont été supprimées', 'success');
+        }
+      });
+
+      // Helper
+      function showMessage(element, text, type){
+        element.textContent = text;
+        element.className = 'message ' + type;
+        if(type === 'success'){
+          setTimeout(function(){
+            element.textContent = '';
+            element.className = 'message';
+          }, 3000);
+        }
+      }
+
+      function escapeHtml(text){
+        var map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m){ return map[m]; });
+      }
+    })();
+  </script>
+
+</body>
+</html>

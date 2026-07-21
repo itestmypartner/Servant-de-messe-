@@ -28,7 +28,7 @@
     <h1>Groupe des Servants de Messe</h1>
     <p class="Sous-titre">Paroisse Saint Bernard</p>
 
-    <form action="https://formspree.io/f/XXXXXXXXXX" method="post" novalidate id="inscriptionForm">
+    <form novalidate id="inscriptionForm">
       <div class="form-row">
         <div class="form-group">
           <label for="nom">Nom</label>
@@ -61,7 +61,7 @@
   </div>
 
   <script>
-    // Formspree + Mask téléphone + Toast
+    // Stockage localStorage des inscriptions + Mask téléphone + Toast
     (function(){
       var form = document.getElementById('inscriptionForm');
       var telInput = document.getElementById('tel');
@@ -85,34 +85,47 @@
         setTimeout(function(){ toast.classList.remove('show'); }, 4000);
       }
 
-      // Form submission avec validation et toast
+      // Form submission : sauvegarder en localStorage
       form.addEventListener('submit', function(e){
+        e.preventDefault();
+        
         var nom = document.getElementById('nom').value.trim();
         var prenom = document.getElementById('prenom').value.trim();
         var age = document.getElementById('age').value.trim();
         var tel = document.getElementById('tel').value.trim();
         
         if(!nom || !prenom || !age || !tel){
-          e.preventDefault();
           showToast('Veuillez remplir tous les champs.', 'error');
           return;
         }
 
+        // Créer objet inscription avec timestamp
+        var inscription = {
+          id: Date.now(),
+          nom: nom,
+          prenom: prenom,
+          age: age,
+          tel: tel,
+          date: new Date().toLocaleString('fr-FR')
+        };
+
+        // Récupérer inscriptions existantes
+        var inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
+        inscriptions.push(inscription);
+        localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+
         document.querySelector('.submit-btn').classList.add('loading');
-        // Formspree gère le reste
         setTimeout(function(){
-          showToast('✓ Inscription réussie ! Nous vous contacterons bientôt.', 'success');
+          showToast('✓ Inscription réussie !', 'success');
           form.reset();
           document.querySelector('.submit-btn').classList.remove('loading');
         }, 1500);
-      });
 
-      // Track form interactions with GA
-      if(typeof gtag !== 'undefined'){
-        form.addEventListener('submit', function(){
+        // Track form interactions with GA
+        if(typeof gtag !== 'undefined'){
           gtag('event', 'generate_lead', {value: 1});
-        });
-      }
+        }
+      });
     })();
   </script>
 

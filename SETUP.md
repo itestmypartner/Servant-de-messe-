@@ -7,62 +7,88 @@ Pour activer le déploiement automatique sur GitHub Pages :
 3. Choisis **Source**: branch `main`
 4. Clique sur **Save**
 
-La page sera accessible à : `https://itestmypartner.github.io/Servant-de-messe-`
+La page sera accessible à : `https://itestmypartner.github.io/Servant-de-messe`
 
 ---
 
-# Configuration Formspree
+# Page d'inscription
 
-Pour recevoir les inscriptions par email :
+**Adresse** : `/inscription.html`
 
-1. Va sur https://formspree.io
-2. Crée un compte gratuit
-3. Ajoute un nouveau formulaire pour `https://itestmypartner.github.io/Servant-de-messe-/inscription.html`
-4. Récupère l'ID du formulaire (exemple: `f/abc123def`)
-5. Remplace `XXXXXXXXXX` dans le fichier `inscription.html` ligne 38 par cet ID
+Les inscriptions sont **stockées en local** dans le navigateur (localStorage).
 
-Exemple :
-```html
-<form action="https://formspree.io/f/mkyzvwdz" method="post">
-```
+### Fonctionnalités
+- Formulaire avec nom, prénom, âge, téléphone
+- Validation des champs
+- Toast notifications (succès/erreur)
+- Mask téléphone automatique (+225 XXXXXXXXXX)
+- Lien de retour à l'accueil
 
 ---
 
-# Configuration Google Analytics
+# Page Admin (CACHÉ)
 
-Pour suivre les visiteurs et les inscriptions :
+**Adresse** : `/admin.html`
 
-1. Va sur https://analytics.google.com
-2. Crée une propriété pour le dépôt
-3. Récupère ton ID de mesure (format: `G-XXXXXXXXXX`)
-4. Remplace `G-XXXXXXXXXX` dans `inscription.html` aux lignes 11 et 12
+**Mot de passe par défaut** : `200700`
+
+### Accès
+- La page est **accessible publiquement** mais protégée par un mot de passe
+- L'URL n'est **pas mentionnée** sur le site principal (reste caché)
+- Chaque navigateur conserve sa session (déconnexion avec bouton "Déconnexion")
+
+### Fonctionnalités de l'admin
+- ✅ Affichage de toutes les inscriptions dans un tableau
+- ✅ Suppression individuelle d'une inscription
+- ✅ Export CSV des inscriptions (téléchargement)
+- ✅ Changement du mot de passe (paramètres)
+- ✅ Suppression de toutes les inscriptions (paramètres)
+- ✅ Compteur total d'inscriptions
+
+### Utilisation
+1. Va sur `https://itestmypartner.github.io/Servant-de-messe/admin.html`
+2. Entre le mot de passe : `200700`
+3. Clique sur "Accéder"
+4. Gère les inscriptions
 
 ---
 
-# Optimisation image
+# Changer le mot de passe
 
-Pour générer une version WebP du logo :
+Dans la page admin :
+1. Clique sur le bouton ⚙️ **Paramètres**
+2. Dans la section "Changer le mot de passe"
+3. Entre le mot de passe actuel, puis le nouveau
+4. Confirme et clique "Mettre à jour"
 
-```bash
-# Avec ImageMagick (installé)
-convert logoservantdemesse.jpg -quality 80 logoservantdemesse.webp
-
-# Ou utiliser un outil online: https://convertio.co/jpg-webp/
-```
-
-Puis pousse le fichier `logoservantdemesse.webp` dans le dépôt.
+Le nouveau mot de passe est **sauvegardé localement** et persiste.
 
 ---
 
-# Améliorations appliquées
+# Télécharger les inscriptions (CSV)
 
-✅ 1. Formspree intégré (sans backend)
-✅ 2. Mask du téléphone (+225 XXXXXXXXXX) en temps réel
-✅ 3. Toast notifications (succès/erreur, visible bottom-right)
-✅ 4. Ombre réduite de la carte (plus moderne)
-✅ 5. Image responsive avec WebP fallback
-✅ 6. Lien "Retour à l'accueil"
-✅ 7. Meta title/description et Open Graph
-✅ 8. Autocomplete sur tous les inputs
-✅ 9. Google Analytics intégré (événement `generate_lead`)
-✅ 10. GitHub Pages prêt (instructions ci-dessus)
+Dans la page admin :
+1. Clique sur le bouton 📥 **Télécharger CSV**
+2. Un fichier `inscriptions-YYYY-MM-DD.csv` se télécharge
+3. Ouvre avec Excel, Google Sheets ou tout logiciel compatible
+
+---
+
+# Notes importantes
+
+⚠️ **Limitation actuelle** : Les données sont stockées **dans le navigateur** de chaque ordinateur/appareil.
+- Si on accède à l'admin depuis un autre PC, les inscriptions ne seront pas visibles
+- Seules les inscriptions collectées sur **cet ordinateur** s'affichent
+
+**Solution future** (optionnelle) :
+- Utiliser une base de données (Firebase, Supabase, etc.)
+- Mettre en place un backend avec Node.js/Python
+- Pour maintenant, c'est stocké localement et fonctionne bien sur un poste admin unique
+
+---
+
+# Autres
+
+- ✅ Formspree supprimé
+- ✅ Google Analytics placeholder conservé (à configurer si besoin)
+- ✅ Lien admin **non visible** sur la page d'accueil (reste secret)
