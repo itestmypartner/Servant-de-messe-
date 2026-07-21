@@ -106,6 +106,12 @@
       var PASSWORD_KEY = 'admin_password';
       var INSCRIPTIONS_KEY = 'inscriptions';
       var SESSION_KEY = 'admin_session';
+      var SESSION_EXPIRES_KEY = 'admin_session_expires_at';
+      var LOGIN_ATTEMPTS_KEY = 'admin_login_attempts';
+      var LOGIN_LOCK_UNTIL_KEY = 'admin_login_lock_until';
+      var SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
+      var MAX_LOGIN_ATTEMPTS = 5;
+      var LOCK_DURATION_MS = 15 * 60 * 1000;
 
       // Éléments DOM
       var loginContainer = document.getElementById('loginContainer');
@@ -125,28 +131,45 @@
       var clearMessage = document.getElementById('clearMessage');
 
       // Vérifier session existante
-      if(sessionStorage.getItem(SESSION_KEY) === 'true'){
+      if(hasActiveSession()){
         showDashboard();
       }
 
       // Login
       loginForm.addEventListener('submit', function(e){
         e.preventDefault();
+        var lockUntil = Number(localStorage.getItem(LOGIN_LOCK_UNTIL_KEY) || 0);
+        if(lockUntil > Date.now()){
+          loginError.textContent = "⏳ Trop d'essais. Réessayez dans quelques minutes.";
+          return;
+        }
+
         var pwd = passwordInput.value;
-        var storedPassword = localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
+        var storedPassword = getStoredPassword();
 
         if(pwd === storedPassword){
-          sessionStorage.setItem(SESSION_KEY, 'true');
+          startSession();
+          localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+          localStorage.removeItem(LOGIN_LOCK_UNTIL_KEY);
+          loginError.textContent = '';
           showDashboard();
         } else {
-          loginError.textContent = '❌ Mot de passe incorrect';
+          var attempts = Number(localStorage.getItem(LOGIN_ATTEMPTS_KEY) || 0) + 1;
+          localStorage.setItem(LOGIN_ATTEMPTS_KEY, String(attempts));
+          if(attempts >= MAX_LOGIN_ATTEMPTS){
+            localStorage.setItem(LOGIN_LOCK_UNTIL_KEY, String(Date.now() + LOCK_DURATION_MS));
+            localStorage.setItem(LOGIN_ATTEMPTS_KEY, '0');
+            loginError.textContent = "⏳ Trop d'essais. Réessayez dans 15 minutes.";
+          } else {
+            loginError.textContent = '❌ Mot de passe incorrect';
+          }
           passwordInput.value = '';
         }
       });
 
       // Logout
       logoutBtn.addEventListener('click', function(){
-        sessionStorage.removeItem(SESSION_KEY);
+        clearSession();
         loginContainer.style.display = 'block';
         dashboardContainer.style.display = 'none';
         loginForm.reset();
@@ -162,7 +185,7 @@
 
       // Afficher inscriptions
       function displayInscriptions(){
-        var inscriptions = JSON.parse(localStorage.getItem(INSCRIPTIONS_KEY) || '[]');
+        var inscriptions = getInscriptions();
         var tbody = document.getElementById('tableBody');
         var totalCount = document.getElementById('totalCount');
 
@@ -182,7 +205,7 @@
             '<td>' + escapeHtml(insc.prenom) + '</td>' +
             '<td>' + escapeHtml(insc.age) + '</td>' +
             '<td>' + escapeHtml(insc.tel) + '</td>' +
-            '<td>' + escapeHtml(insc.date) + '</td>' +
+            '<td>' + escapeHtml(insc.date || '') + '</td>' +
             '<td><button class="delete-btn" data-id="' + insc.id + '">Supprimer</button></td>';
           
           row.querySelector('.delete-btn').addEventListener('click', function(){
@@ -196,16 +219,17 @@
       // Supprimer une inscription
       function deleteInscription(id){
         if(confirm('Êtes-vous sûr de vouloir supprimer cette inscription ?')){
-          var inscriptions = JSON.parse(localStorage.getItem(INSCRIPTIONS_KEY) || '[]');
-          inscriptions = inscriptions.filter(function(i){ return i.id !== id; });
-          localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(inscriptions));
+          var inscriptions = getInscriptions().filter(function(i){
+            return String(i.id) !== String(id);
+          });
+          saveInscriptions(inscriptions);
           displayInscriptions();
         }
       }
 
       // Export CSV
       exportBtn.addEventListener('click', function(){
-        var inscriptions = JSON.parse(localStorage.getItem(INSCRIPTIONS_KEY) || '[]');
+        var inscriptions = getInscriptions();
         if(inscriptions.length === 0){
           alert('Aucune inscription à exporter');
           return;
@@ -213,7 +237,13 @@
 
         var csv = 'Nom,Prénom,Âge,Téléphone,Date\n';
         inscriptions.forEach(function(insc){
-          csv += '"' + insc.nom + '","' + insc.prenom + '","' + insc.age + '","' + insc.tel + '","' + insc.date + '"\n';
+          csv += toCsvRow([
+            insc.nom || '',
+            insc.prenom || '',
+            insc.age || '',
+            insc.tel || '',
+            insc.date || ''
+          ]) + '\n';
         });
 
         var blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
@@ -243,15 +273,20 @@
         var newPwd = document.getElementById('newPassword').value;
         var confirm = document.getElementById('confirmPassword').value;
 
-        var storedPassword = localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
+        var storedPassword = getStoredPassword();
 
         if(current !== storedPassword){
           showMessage(passwordMessage, '❌ Mot de passe actuel incorrect', 'error');
           return;
         }
 
-        if(newPwd.length < 4){
-          showMessage(passwordMessage, '❌ Le mot de passe doit faire au moins 4 caractères', 'error');
+        if(newPwd.length < 6){
+          showMessage(passwordMessage, '❌ Le mot de passe doit faire au moins 6 caractères', 'error');
+          return;
+        }
+
+        if(/\s/.test(newPwd)){
+          showMessage(passwordMessage, "❌ Le mot de passe ne doit pas contenir d'espaces", 'error');
           return;
         }
 
@@ -291,6 +326,7 @@
       }
 
       function escapeHtml(text){
+        var safeText = String(text == null ? '' : text);
         var map = {
           '&': '&amp;',
           '<': '&lt;',
@@ -298,7 +334,94 @@
           '"': '&quot;',
           "'": '&#039;'
         };
-        return text.replace(/[&<>"']/g, function(m){ return map[m]; });
+        return safeText.replace(/[&<>"']/g, function(m){ return map[m]; });
+      }
+
+      function getStoredPassword(){
+        var stored = localStorage.getItem(PASSWORD_KEY);
+        if(stored && stored.trim()){
+          return stored;
+        }
+        return DEFAULT_PASSWORD;
+      }
+
+      function hasActiveSession(){
+        var active = sessionStorage.getItem(SESSION_KEY) === 'true';
+        if(!active){
+          return false;
+        }
+        var expiresAt = Number(sessionStorage.getItem(SESSION_EXPIRES_KEY) || 0);
+        if(expiresAt > Date.now()){
+          return true;
+        }
+        clearSession();
+        return false;
+      }
+
+      function startSession(){
+        sessionStorage.setItem(SESSION_KEY, 'true');
+        sessionStorage.setItem(SESSION_EXPIRES_KEY, String(Date.now() + SESSION_DURATION_MS));
+      }
+
+      function clearSession(){
+        sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_EXPIRES_KEY);
+      }
+
+      function getInscriptions(){
+        var raw = localStorage.getItem(INSCRIPTIONS_KEY);
+        if(!raw){
+          return [];
+        }
+        try {
+          var parsed = JSON.parse(raw);
+          if(!Array.isArray(parsed)){
+            showMessage(clearMessage, '⚠️ Données invalides détectées puis réinitialisées.', 'error');
+            localStorage.removeItem(INSCRIPTIONS_KEY);
+            return [];
+          }
+          return parsed
+            .map(normalizeInscription)
+            .filter(function(item){ return item !== null; })
+            .sort(function(a, b){
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+        } catch (error) {
+          showMessage(clearMessage, '⚠️ Données corrompues détectées puis réinitialisées.', 'error');
+          localStorage.removeItem(INSCRIPTIONS_KEY);
+          return [];
+        }
+      }
+
+      function normalizeInscription(entry){
+        if(!entry || typeof entry !== 'object'){
+          return null;
+        }
+        var fallbackTimestamp = Number(entry.id) || Date.now();
+        var createdAt = entry.createdAt;
+        if(!createdAt || Number.isNaN(new Date(createdAt).getTime())){
+          createdAt = new Date(fallbackTimestamp).toISOString();
+        }
+        return {
+          id: entry.id || String(fallbackTimestamp),
+          nom: String(entry.nom || ''),
+          prenom: String(entry.prenom || ''),
+          age: String(entry.age || ''),
+          tel: String(entry.tel || ''),
+          date: String(entry.date || new Date(createdAt).toLocaleString('fr-FR')),
+          createdAt: createdAt
+        };
+      }
+
+      function saveInscriptions(items){
+        localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(items));
+      }
+
+      function toCsvRow(values){
+        return values.map(function(value){
+          var escaped = String(value).replace(/"/g, '""');
+          return '"' + escaped + '"';
+        }).join(',');
       }
     })();
   </script>

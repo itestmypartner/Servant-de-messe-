@@ -43,11 +43,11 @@
       <div class="form-row">
         <div class="form-group">
           <label for="age">Âge</label>
-          <input type="number" id="age" name="age" inputmode="numeric" min="1" max="99" placeholder="Âge" required aria-required="true">
+          <input type="number" id="age" name="age" inputmode="numeric" min="8" max="15" placeholder="8 à 15" required aria-required="true">
         </div>
         <div class="form-group">
           <label for="tel">Numéro de téléphone d'un parent</label>
-          <input type="tel" id="tel" name="tel" inputmode="tel" pattern="\+?\d{8,15}" placeholder="+225 XXXXXXXXXX" required aria-required="true" autocomplete="tel">
+          <input type="tel" id="tel" name="tel" inputmode="tel" pattern="^\+225\s?\d{10}$" placeholder="+225 XXXXXXXXXX" required aria-required="true" autocomplete="tel">
         </div>
       </div>
 
@@ -66,16 +66,19 @@
       var form = document.getElementById('inscriptionForm');
       var telInput = document.getElementById('tel');
       var toast = document.getElementById('toast');
+      var submitBtn = document.querySelector('.submit-btn');
+      var INSCRIPTIONS_KEY = 'inscriptions';
       
       if(!form) return;
 
       // Mask téléphone: +225 XXXXXXXXXX
       telInput.addEventListener('input', function(){
         var val = this.value.replace(/\D/g, '');
-        if(val.length === 0) { this.value = ''; return; }
-        if(val.length <= 3) { this.value = '+' + val; }
-        else if(val.length <= 11) { this.value = '+' + val.slice(0, 3) + ' ' + val.slice(3); }
-        else { this.value = '+' + val.slice(0, 3) + ' ' + val.slice(3, 11); }
+        if(val.length === 0) {
+          this.value = '';
+          return;
+        }
+        this.value = formatPhoneDigits(val);
       });
 
       // Toast helper
@@ -83,6 +86,46 @@
         toast.textContent = message;
         toast.className = 'toast show ' + type;
         setTimeout(function(){ toast.classList.remove('show'); }, 4000);
+      }
+
+      function formatPhoneDigits(digits){
+        var normalizedDigits = digits;
+        if(digits.slice(0, 3) !== '225'){
+          normalizedDigits = '225' + digits;
+        }
+        normalizedDigits = normalizedDigits.slice(0, 13);
+        if(normalizedDigits.length <= 3) return '+' + normalizedDigits;
+        return '+' + normalizedDigits.slice(0, 3) + ' ' + normalizedDigits.slice(3);
+      }
+
+      function normalizePhone(rawValue){
+        var digits = rawValue.replace(/\D/g, '');
+        if(digits.length === 10){
+          digits = '225' + digits;
+        }
+        if(digits.slice(0, 3) !== '225' || digits.length !== 13){
+          return null;
+        }
+        return '+' + digits.slice(0, 3) + ' ' + digits.slice(3);
+      }
+
+      function isValidName(value){
+        return /^[A-Za-zÀ-ÖØ-öø-ÿ' -]{2,40}$/.test(value);
+      }
+
+      function getInscriptions(){
+        var raw = localStorage.getItem(INSCRIPTIONS_KEY);
+        if(!raw){
+          return [];
+        }
+        try {
+          var parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          showToast('Les données locales sont corrompues. Réinitialisation.', 'error');
+          localStorage.removeItem(INSCRIPTIONS_KEY);
+          return [];
+        }
       }
 
       // Form submission : sauvegarder en localStorage
@@ -99,26 +142,57 @@
           return;
         }
 
+        if(!isValidName(nom) || !isValidName(prenom)){
+          showToast('Nom/Prénom invalides (2 à 40 lettres).', 'error');
+          return;
+        }
+
+        var ageNumber = Number(age);
+        if(!Number.isInteger(ageNumber) || ageNumber < 8 || ageNumber > 15){
+          showToast("L'âge doit être compris entre 8 et 15 ans.", 'error');
+          return;
+        }
+
+        var normalizedPhone = normalizePhone(tel);
+        if(!normalizedPhone){
+          showToast('Numéro invalide. Format attendu: +225 suivi de 10 chiffres.', 'error');
+          return;
+        }
+
+        var inscriptions = getInscriptions();
+        var duplicate = inscriptions.some(function(item){
+          return (
+            String(item.nom || '').toLowerCase() === nom.toLowerCase() &&
+            String(item.prenom || '').toLowerCase() === prenom.toLowerCase() &&
+            String(item.tel || '') === normalizedPhone
+          );
+        });
+        if(duplicate){
+          showToast('Cette inscription existe déjà.', 'error');
+          return;
+        }
+
         // Créer objet inscription avec timestamp
         var inscription = {
-          id: Date.now(),
+          id: (window.crypto && window.crypto.randomUUID)
+            ? window.crypto.randomUUID()
+            : String(Date.now()) + '-' + String(Math.floor(Math.random() * 100000)),
           nom: nom,
           prenom: prenom,
-          age: age,
-          tel: tel,
-          date: new Date().toLocaleString('fr-FR')
+          age: ageNumber,
+          tel: normalizedPhone,
+          date: new Date().toLocaleString('fr-FR'),
+          createdAt: new Date().toISOString()
         };
 
-        // Récupérer inscriptions existantes
-        var inscriptions = JSON.parse(localStorage.getItem('inscriptions') || '[]');
         inscriptions.push(inscription);
-        localStorage.setItem('inscriptions', JSON.stringify(inscriptions));
+        localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(inscriptions));
 
-        document.querySelector('.submit-btn').classList.add('loading');
+        submitBtn.classList.add('loading');
         setTimeout(function(){
           showToast('✓ Inscription réussie !', 'success');
           form.reset();
-          document.querySelector('.submit-btn').classList.remove('loading');
+          submitBtn.classList.remove('loading');
         }, 1500);
 
         // Track form interactions with GA

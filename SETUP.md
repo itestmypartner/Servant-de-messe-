@@ -44,6 +44,8 @@ Les inscriptions sont **stockées en local** dans le navigateur (localStorage).
 - ✅ Changement du mot de passe (paramètres)
 - ✅ Suppression de toutes les inscriptions (paramètres)
 - ✅ Compteur total d'inscriptions
+- ✅ Blocage temporaire après plusieurs tentatives de mot de passe incorrectes
+- ✅ Session admin avec expiration automatique
 
 ### Utilisation
 1. Va sur `https://itestmypartner.github.io/Servant-de-messe/admin.html`
@@ -62,6 +64,7 @@ Dans la page admin :
 4. Confirme et clique "Mettre à jour"
 
 Le nouveau mot de passe est **sauvegardé localement** et persiste.
+Le nouveau mot de passe doit contenir **au moins 6 caractères** et sans espaces.
 
 ---
 
