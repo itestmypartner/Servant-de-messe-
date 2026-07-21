@@ -9,8 +9,9 @@
 <body class="admin-page">
   <div class="admin-login" id="loginContainer">
     <div class="admin-card">
+      <div class="admin-badge">Accès sécurisé</div>
       <h1>Accès Admin</h1>
-      <p class="admin-subtitle">Entrez le mot de passe pour accéder aux inscriptions</p>
+      <p class="admin-subtitle">Entrez le mot de passe pour gérer les inscriptions depuis un écran propre et lisible.</p>
       <form id="loginForm" novalidate>
         <div class="form-group">
           <label for="password">Mot de passe</label>
@@ -23,8 +24,15 @@
   </div>
 
   <div class="admin-dashboard" id="dashboardContainer" style="display:none;">
+    <section class="admin-hero">
+      <div>
+        <p class="admin-badge admin-badge-inline">Tableau de bord</p>
+        <h1>Inscriptions</h1>
+        <p class="admin-hero-text">Consulte, exporte et supprime les demandes depuis une interface claire et adaptée aux petits écrans.</p>
+      </div>
+    </section>
+
     <div class="admin-header">
-      <h1>📋 Inscriptions</h1>
       <div class="admin-actions">
         <button id="exportBtn" class="admin-btn-secondary">📥 Exporter CSV</button>
         <button id="settingsBtn" class="admin-btn-secondary">⚙️ Paramètres</button>
@@ -200,13 +208,13 @@
         inscriptions.forEach(function(insc, index){
           var row = document.createElement('tr');
           row.innerHTML = 
-            '<td>' + (index + 1) + '</td>' +
-            '<td>' + escapeHtml(insc.nom) + '</td>' +
-            '<td>' + escapeHtml(insc.prenom) + '</td>' +
-            '<td>' + escapeHtml(insc.age) + '</td>' +
-            '<td>' + escapeHtml(insc.tel) + '</td>' +
-            '<td>' + escapeHtml(insc.date || '') + '</td>' +
-            '<td><button class="delete-btn" data-id="' + insc.id + '">Supprimer</button></td>';
+            '<td data-label="#">' + (index + 1) + '</td>' +
+            '<td data-label="Nom">' + escapeHtml(insc.nom) + '</td>' +
+            '<td data-label="Prénom">' + escapeHtml(insc.prenom) + '</td>' +
+            '<td data-label="Âge">' + escapeHtml(insc.age) + '</td>' +
+            '<td data-label="Téléphone">' + escapeHtml(insc.tel) + '</td>' +
+            '<td data-label="Date d\'inscription">' + escapeHtml(insc.date || '') + '</td>' +
+            '<td data-label="Action"><button class="delete-btn" data-id="' + insc.id + '">Supprimer</button></td>';
           
           row.querySelector('.delete-btn').addEventListener('click', function(){
             deleteInscription(insc.id);
