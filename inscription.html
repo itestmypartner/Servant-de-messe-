@@ -1,80 +1,123 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Document</title>
- <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Formulaire d'inscription pour les Servants de Messe de la Paroisse Saint-Bernard d'Adiopodoumé.">
+  <meta property="og:title" content="Inscription - Servants de Messe">
+  <meta property="og:description" content="Rejoignez le groupe des Servants de Messe. Remplissez ce formulaire pour vous inscrire.">
+  <title>Inscription - Groupe des Servants de Messe</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
 </head>
 <body class="inscription-page">
- <div class="Contenaire">
- <div class="logo">
-   <picture>
-     <source srcset="https://raw.githubusercontent.com/itestmypartner/Servant-de-messe-/main/logoservantdemesse.webp" type="image/webp">
-     <img src="https://raw.githubusercontent.com/itestmypartner/Servant-de-messe-/main/logoservantdemesse.jpg" alt="Logo des Servants de Messe" width="300" height="300" loading="lazy">
-   </picture>
- </div>
- <h1>Groupe des Servants de Messe</h1>
- <p class="Sous-titre">Paroisse Saint Bernard</p>
- <form action="/api/inscriptions" method="post" novalidate>
-   <div class="form-row">
-     <div class="form-group">
-       <label for="nom">Nom</label>
-       <input type="text" id="nom" name="nom" inputmode="text" placeholder="Ex: Koffi" required aria-required="true" autofocus>
-     </div>
-     <div class="form-group">
-       <label for="prenom">Prénom</label>
-       <input type="text" id="prenom" name="prenom" inputmode="text" placeholder="Ex: Jean" required aria-required="true">
-     </div>
-   </div>
+  <div class="Contenaire">
+    <a href="index.html" class="back-link">← Retour à l'accueil</a>
 
-   <div class="form-row">
-     <div class="form-group">
-       <label for="age">Âge</label>
-       <input type="number" id="age" name="age" inputmode="numeric" min="1" max="99" placeholder="Âge" required aria-required="true">
-     </div>
-     <div class="form-group">
-       <label for="tel">Numéro de téléphone d'un parent</label>
-       <input type="tel" id="tel" name="tel" inputmode="tel" pattern="\+?\d{8,15}" placeholder="+225 XXXXXXXXXX" required aria-required="true">
-     </div>
-   </div>
+    <div class="logo">
+      <picture>
+        <source srcset="https://raw.githubusercontent.com/itestmypartner/Servant-de-messe-/main/logoservantdemesse.webp" type="image/webp">
+        <img src="https://raw.githubusercontent.com/itestmypartner/Servant-de-messe-/main/logoservantdemesse.jpg" alt="Logo des Servants de Messe" width="300" height="300" loading="lazy">
+      </picture>
+    </div>
 
-   <button type="submit" class="submit-btn">
-     <span class="btn-text">S'inscrire</span>
-     <span class="btn-spinner" aria-hidden="true"></span>
-   </button>
- </form>
+    <h1>Groupe des Servants de Messe</h1>
+    <p class="Sous-titre">Paroisse Saint Bernard</p>
 
- <p class="message" id="message" role="status" aria-live="polite">Merci pour votre inscription</p>
- </div>
+    <form action="https://formspree.io/f/XXXXXXXXXX" method="post" novalidate id="inscriptionForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="nom">Nom</label>
+          <input type="text" id="nom" name="nom" inputmode="text" placeholder="Ex: Koffi" required aria-required="true" autocomplete="family-name" autofocus>
+        </div>
+        <div class="form-group">
+          <label for="prenom">Prénom</label>
+          <input type="text" id="prenom" name="prenom" inputmode="text" placeholder="Ex: Jean" required aria-required="true" autocomplete="given-name">
+        </div>
+      </div>
 
- <script>
- // Afficher message de confirmation sans recharger
- (function(){
-   var form = document.querySelector('.Contenaire form');
-   var message = document.getElementById('message');
-   if(!form) return;
-   form.addEventListener('submit', function(e){
-     e.preventDefault();
-     // validation minimale
-     var nom = document.getElementById('nom').value.trim();
-     var prenom = document.getElementById('prenom').value.trim();
-     var age = document.getElementById('age').value.trim();
-     var tel = document.getElementById('tel').value.trim();
-     if(!nom || !prenom || !age || !tel){
-       message.textContent = 'Veuillez remplir tous les champs.';
-       message.style.color = '#c23b3b';
-       message.classList.add('show');
-       return;
-     }
-     // succès
-     message.textContent = 'Merci pour votre inscription — nous vous contacterons bientôt.';
-     message.style.color = '#0d8a3f';
-     message.classList.add('show');
-     form.reset();
-   });
- })();
- </script>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="age">Âge</label>
+          <input type="number" id="age" name="age" inputmode="numeric" min="1" max="99" placeholder="Âge" required aria-required="true">
+        </div>
+        <div class="form-group">
+          <label for="tel">Numéro de téléphone d'un parent</label>
+          <input type="tel" id="tel" name="tel" inputmode="tel" pattern="\+?\d{8,15}" placeholder="+225 XXXXXXXXXX" required aria-required="true" autocomplete="tel">
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">
+        <span class="btn-text">S'inscrire</span>
+        <span class="btn-spinner" aria-hidden="true"></span>
+      </button>
+    </form>
+
+    <div class="toast" id="toast" role="alert" aria-live="assertive"></div>
+  </div>
+
+  <script>
+    // Formspree + Mask téléphone + Toast
+    (function(){
+      var form = document.getElementById('inscriptionForm');
+      var telInput = document.getElementById('tel');
+      var toast = document.getElementById('toast');
+      
+      if(!form) return;
+
+      // Mask téléphone: +225 XXXXXXXXXX
+      telInput.addEventListener('input', function(){
+        var val = this.value.replace(/\D/g, '');
+        if(val.length === 0) { this.value = ''; return; }
+        if(val.length <= 3) { this.value = '+' + val; }
+        else if(val.length <= 11) { this.value = '+' + val.slice(0, 3) + ' ' + val.slice(3); }
+        else { this.value = '+' + val.slice(0, 3) + ' ' + val.slice(3, 11); }
+      });
+
+      // Toast helper
+      function showToast(message, type){
+        toast.textContent = message;
+        toast.className = 'toast show ' + type;
+        setTimeout(function(){ toast.classList.remove('show'); }, 4000);
+      }
+
+      // Form submission avec validation et toast
+      form.addEventListener('submit', function(e){
+        var nom = document.getElementById('nom').value.trim();
+        var prenom = document.getElementById('prenom').value.trim();
+        var age = document.getElementById('age').value.trim();
+        var tel = document.getElementById('tel').value.trim();
+        
+        if(!nom || !prenom || !age || !tel){
+          e.preventDefault();
+          showToast('Veuillez remplir tous les champs.', 'error');
+          return;
+        }
+
+        document.querySelector('.submit-btn').classList.add('loading');
+        // Formspree gère le reste
+        setTimeout(function(){
+          showToast('✓ Inscription réussie ! Nous vous contacterons bientôt.', 'success');
+          form.reset();
+          document.querySelector('.submit-btn').classList.remove('loading');
+        }, 1500);
+      });
+
+      // Track form interactions with GA
+      if(typeof gtag !== 'undefined'){
+        form.addEventListener('submit', function(){
+          gtag('event', 'generate_lead', {value: 1});
+        });
+      }
+    })();
+  </script>
 
 </body>
 </html>
