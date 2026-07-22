@@ -354,12 +354,12 @@
       // Helper
       function showMessage(element, text, type){
         element.textContent = text;
-        element.className = 'message ' + type;
+        element.className = 'message ' + type + ' show';
         if(type === 'success'){
           setTimeout(function(){
             element.textContent = '';
             element.className = 'message';
-          }, 3000);
+          }, 3500);
         }
       }
 
