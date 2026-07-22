@@ -27,6 +27,7 @@
 .admin-news .form-group label{display:block;color:var(--news-accent);font-weight:600;font-size:13px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em}
 
 /* === TEXT INPUTS === */
+.admin-news .form-group input,
 .admin-news .form-group input[type="text"],
 .admin-news .form-group input[type="email"],
 .admin-news .form-group input[type="password"],
@@ -40,6 +41,7 @@
   transition:all 0.2s ease;
   background:#fafbfc
 }
+.admin-news .form-group input:focus,
 .admin-news .form-group input[type="text"]:focus,
 .admin-news .form-group input[type="email"]:focus,
 .admin-news .form-group input[type="password"]:focus,
