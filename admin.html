@@ -61,7 +61,11 @@
           <div class="form-group"><label for="newsImage">Image (optionnel)</label><input id="newsImage" name="newsImage" type="file" accept="image/*"></div>
           <div class="form-group"><label for="newsExcerpt">Extrait</label><textarea id="newsExcerpt" name="newsExcerpt" rows="2"></textarea></div>
           <div class="form-group"><label for="newsContent">Contenu</label><textarea id="newsContent" name="newsContent" rows="6"></textarea></div>
-          <button class="admin-btn" id="publishNews">Publier</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="admin-btn" id="publishNews">Publier</button>
+            <button class="admin-btn-secondary" id="publishPublic">Publier publiquement</button>
+            <button class="admin-btn-secondary" id="exportJson">Exporter JSON</button>
+          </div>
         </form>
       </div>
       <div class="news-list-card">
@@ -577,6 +581,40 @@
 
       // initial render
       renderNewsList();
+
+      // Publish to GitHub (requires a personal access token with 'repo' scope)
+      var publishPublicBtn = document.getElementById('publishPublic');
+      var exportJsonBtn = document.getElementById('exportJson');
+
+      function exportNewsJson(){
+        var data = getNews();
+        var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'data-news.json'; a.click();
+      }
+
+      if(exportJsonBtn) exportJsonBtn.addEventListener('click', function(e){ e.preventDefault(); exportNewsJson(); });
+
+      async function publishToGithubWithToken(token){
+        try{
+          var owner='itestmypartner', repo='Servant-de-messe-';
+          var path='data/news.json';
+          var data = getNews();
+          var content = JSON.stringify(data, null, 2);
+          var b64 = btoa(unescape(encodeURIComponent(content)));
+          var headers = { 'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json' };
+          // get existing file to obtain sha
+          var getRes = await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path, {headers: headers});
+          var sha = null;
+          if(getRes.ok){ var js = await getRes.json(); sha = js.sha; }
+          var body = { message: 'Publish news via admin', content: b64, branch: 'main' };
+          if(sha) body.sha = sha;
+          var putRes = await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path, { method: 'PUT', headers: Object.assign({'Content-Type':'application/json'}, headers), body: JSON.stringify(body) });
+          if(!putRes.ok){ var err = await putRes.json().catch(()=>({message:putRes.statusText})); throw new Error(err.message||'Erreur'); }
+          showMessage(passwordMessage, '✓ Actualités publiées publiquement', 'success');
+        }catch(err){ showMessage(clearMessage, 'Erreur pendant la publication: '+err.message, 'error'); }
+      }
+
+      if(publishPublicBtn){ publishPublicBtn.addEventListener('click', function(e){ e.preventDefault(); var token = prompt('Collez un token GitHub (scope repo). Il sera utilisé une seule fois pour publier:'); if(!token) return; publishToGithubWithToken(token); }); }
 
     })();
   </script>
