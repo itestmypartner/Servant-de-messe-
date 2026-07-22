@@ -1,6 +1,10 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+
+// Servir les fichiers statiques du repo
+app.use(express.static(path.join(__dirname, '..')));
 
 const OWNER = 'itestmypartner';
 const REPO = 'Servant-de-messe-';
@@ -11,7 +15,7 @@ function getToken(){
   return process.env.NEWS_PUBLISH_TOKEN || process.env.GITHUB_TOKEN || null;
 }
 
-app.get('/', (req,res)=> res.send('Publish-news service is running'));
+app.get('/api/health', (req,res)=> res.json({ status: 'ok', service: 'publish-news' }));
 
 app.post('/api/publish-news', async (req,res)=>{
   try{
@@ -58,3 +62,4 @@ app.post('/api/publish-news', async (req,res)=>{
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, ()=> console.log('Publish-news service listening on', PORT));
+
