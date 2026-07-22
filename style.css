@@ -608,6 +608,51 @@ a:hover {
   box-shadow: 0 6px 18px rgba(22,72,122,0.06);
 }
 
+/* Date input styling */
+.Contenaire input[type="date"]{
+  cursor: pointer;
+  color: #0d3258;
+}
+.Contenaire input[type="date"]::-webkit-calendar-picker-indicator{
+  cursor: pointer;
+  filter: invert(0.3);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+.Contenaire input[type="date"]:hover::-webkit-calendar-picker-indicator{
+  opacity: 1;
+}
+
+/* File input styling */
+.Contenaire input[type="file"]{
+  padding: 0;
+  border: 2px dashed #16487a;
+  background: linear-gradient(135deg, rgba(22,72,122,0.05) 0%, rgba(22,72,122,0.02) 100%);
+  cursor: pointer;
+}
+.Contenaire input[type="file"]::file-selector-button{
+  padding: 10px 16px;
+  margin: 6px;
+  background: linear-gradient(135deg, #16487a, #0d3258);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+.Contenaire input[type="file"]::file-selector-button:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22,72,122,0.2);
+}
+.Contenaire input[type="file"]:focus{
+  outline: none;
+  border-color: #16487a;
+  background: linear-gradient(135deg, rgba(22,72,122,0.1) 0%, rgba(22,72,122,0.05) 100%);
+  box-shadow: 0 6px 18px rgba(22,72,122,0.06);
+}
+
 .Contenaire .form-row{
   display: flex;
   gap: 12px;
@@ -1380,5 +1425,103 @@ button.loading .btn-text{ opacity: 0.9; }
   .modal-header {
     padding-top: 18px;
     padding-bottom: 18px;
+  }
+}
+
+/* === MOBILE SMALL (< 480px) === */
+@media (max-width: 480px) {
+  .admin-dashboard {
+    padding: 12px 8px 20px;
+  }
+
+  .admin-hero {
+    padding: 14px 12px;
+    margin-bottom: 10px;
+  }
+
+  .admin-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .admin-hero-text {
+    font-size: 13px;
+  }
+
+  .admin-header {
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .admin-header h1 {
+    font-size: 18px;
+  }
+
+  .admin-actions {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .admin-actions button {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .admin-card {
+    padding: 20px 16px;
+  }
+
+  .admin-card h1 {
+    font-size: 22px;
+  }
+
+  .admin-card .form-group {
+    margin-bottom: 12px;
+  }
+
+  .admin-card .form-group label {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .admin-card .form-group input,
+  .admin-card .form-group textarea {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .admin-btn, .admin-btn-secondary, .admin-btn-danger {
+    padding: 10px 14px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  .modal-content {
+    border-radius: 16px;
+  }
+
+  .modal-header,
+  .modal-body {
+    padding: 14px;
+  }
+
+  .modal-body .form-group input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .admin-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-number {
+    font-size: 32px;
   }
 }
