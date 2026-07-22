@@ -7,6 +7,7 @@
   <title>Servants de Messe — Paroisse Saint-Bernard d'Adiopodoumé</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="news.css">
 </head>
 <body>
 
@@ -129,11 +130,102 @@
     <section class="section" id="actualites">
       <div class="container">
         <h2 class="section-title">Actualités</h2>
-        <p class="section-intro">
-          Les dernières nouvelles du groupe seront bientôt publiées ici. Revenez régulièrement pour suivre nos activités.
-        </p>
+        <p class="section-intro">Dernières nouvelles et événements.</p>
+
+        <div id="newsGrid" class="news-grid">
+          <!-- Les cartes sont injectées ici par JS -->
+        </div>
+
+        <div class="news-footer">
+          <a href="/archive.html" class="btn btn-primary">Voir toutes les actualités</a>
+        </div>
       </div>
+
+      <!-- Modal lecture -->
+      <div id="newsModal" class="modal" style="display:none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 id="modalTitle"></h2>
+            <button class="modal-close" id="modalClose">&times;</button>
+          </div>
+          <div class="modal-body" id="modalBody"></div>
+        </div>
+      </div>
+
     </section>
+
+    <script>
+    (function(){
+      // Try localStorage news first, then fallback to /data/news.json
+      var NEWS_KEY = 'news_items';
+      var grid = document.getElementById('newsGrid');
+      var modal = document.getElementById('newsModal');
+      var modalTitle = document.getElementById('modalTitle');
+      var modalBody = document.getElementById('modalBody');
+      var closeBtn = document.getElementById('modalClose');
+
+      function renderCard(item, i){
+        var div = document.createElement('article');
+        div.className = 'news-card';
+        div.innerHTML = "" + (item.image?'<img src="'+item.image+'" alt="'+(item.title||'')+'">':'') +
+          '<div class="news-body">' +
+          '<div class="meta">'+(item.date?new Date(item.date).toLocaleDateString('fr-FR'):'')+'</div>' +
+          '<h3>'+ (item.title||'') +'</h3>' +
+          '<p>'+ (item.excerpt||'') +'</p>' +
+          '<div class="actions"><button class="btn btn-primary read-btn" data-i="'+i+'">Lire</button></div>' +
+          '</div>';
+        return div;
+      }
+
+      function openModal(item){
+        modalTitle.textContent = item.title || '';
+        modalBody.innerHTML = '<p style="white-space:pre-wrap">'+(item.content||item.excerpt||'')+'</p>';
+        modal.style.display = 'flex';
+      }
+
+      closeBtn.onclick = function(){ modal.style.display='none'; };
+      modal.addEventListener('click', function(e){ if(e.target===modal) modal.style.display='none'; });
+
+      function renderList(arr){
+        grid.innerHTML = '';
+        (arr||[]).slice(0,6).forEach(function(n,i){ grid.appendChild(renderCard(n,i)); });
+      }
+
+      // load from localStorage
+      try{
+        var raw = localStorage.getItem(NEWS_KEY);
+        if(raw){
+          var parsed = JSON.parse(raw);
+          if(Array.isArray(parsed)){
+            renderList(parsed);
+            return;
+          }
+        }
+      }catch(e){/* ignore */}
+
+      // fallback fetch
+      fetch('/data/news.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){ renderList(data); }).catch(function(){
+        // sample
+        renderList([{title:'Rentrée des servants',date:'2026-07-10',excerpt:'Inscriptions ouvertes — première réunion le 1er août.',content:'Détails...'}]);
+      });
+
+      // delegate read
+      grid.addEventListener('click', function(ev){
+        var b = ev.target.closest('.read-btn');
+        if(!b) return;
+        var idx = Number(b.dataset.i || 0);
+        try{
+          var raw2 = localStorage.getItem(NEWS_KEY);
+          if(raw2){
+            var arr2 = JSON.parse(raw2);
+            if(Array.isArray(arr2) && arr2[idx]){ openModal(arr2[idx]); return; }
+          }
+        }catch(e){}
+        // fallback fetch
+        fetch('/data/news.json').then(function(r){ return r.json(); }).then(function(arr){ if(arr && arr[idx]) openModal(arr[idx]); }).catch(function(){ openModal({title:'Info',content:'Contenu indisponible.'}); });
+      });
+    })();
+    </script>
 
     <section class="section cta-section" id="rejoindre">
       <div class="container cta-content">

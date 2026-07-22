@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Inscriptions</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="news.css">
 </head>
 <body class="admin-page">
   <div class="admin-login" id="loginContainer">
@@ -45,7 +46,29 @@
         <div class="stat-number" id="totalCount">0</div>
         <div class="stat-label">Total inscriptions</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-number" id="newsCount">0</div>
+        <div class="stat-label">Actualités publiées</div>
+      </div>
     </div>
+
+    <section class="admin-news">
+      <div class="news-form-card">
+        <h3>Publier une actualité</h3>
+        <form id="newsForm" novalidate>
+          <div class="form-group"><label for="newsTitle">Titre</label><input id="newsTitle" name="newsTitle" required></div>
+          <div class="form-group"><label for="newsDate">Date</label><input id="newsDate" name="newsDate" type="date"></div>
+          <div class="form-group"><label for="newsImage">Image (optionnel)</label><input id="newsImage" name="newsImage" type="file" accept="image/*"></div>
+          <div class="form-group"><label for="newsExcerpt">Extrait</label><textarea id="newsExcerpt" name="newsExcerpt" rows="2"></textarea></div>
+          <div class="form-group"><label for="newsContent">Contenu</label><textarea id="newsContent" name="newsContent" rows="6"></textarea></div>
+          <button class="admin-btn" id="publishNews">Publier</button>
+        </form>
+      </div>
+      <div class="news-list-card">
+        <h3>Articles existants</h3>
+        <div id="newsList"></div>
+      </div>
+    </section>
 
     <div class="admin-table-container">
       <table class="admin-table" id="inscriptionsTable">
@@ -113,6 +136,7 @@
       var DEFAULT_PASSWORD = '200700';
       var PASSWORD_KEY = 'admin_password';
       var INSCRIPTIONS_KEY = 'inscriptions';
+      var NEWS_KEY = 'news_items';
       var SESSION_KEY = 'admin_session';
       var SESSION_EXPIRES_KEY = 'admin_session_expires_at';
       var LOGIN_ATTEMPTS_KEY = 'admin_login_attempts';
@@ -431,6 +455,129 @@
           return '"' + escaped + '"';
         }).join(',');
       }
+
+      /* ===== News management (localStorage) ===== */
+      function getNews(){
+        var raw = localStorage.getItem(NEWS_KEY);
+        if(!raw) return [];
+        try{
+          var parsed = JSON.parse(raw);
+          if(!Array.isArray(parsed)) return [];
+          return parsed.sort(function(a,b){ return new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime(); });
+        }catch(e){ return []; }
+      }
+
+      function saveNews(items){
+        localStorage.setItem(NEWS_KEY, JSON.stringify(items));
+      }
+
+      function updateNewsCount(){
+        var el = document.getElementById('newsCount'); if(el) el.textContent = String(getNews().length);
+      }
+
+      function renderNewsList(){
+        var list = getNews();
+        var container = document.getElementById('newsList');
+        if(!container) return;
+        container.innerHTML = '';
+        if(list.length === 0){ container.innerHTML = '<div style="color:#666;padding:12px">Aucun article</div>'; updateNewsCount(); return; }
+        list.forEach(function(n,i){
+          var div = document.createElement('div');
+          div.className = 'news-item';
+          div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>'+ escapeHtml(n.title || '') +'</strong><div style="font-size:12px;color:#7a8794">'+ (n.date || '') +'</div></div><div style="display:flex;gap:8px"><button class="admin-btn-secondary edit-news" data-i="'+i+'">Modifier</button><button class="admin-btn-danger delete-news" data-i="'+i+'">Supprimer</button></div></div><div style="margin-top:8px;color:#4b5563">'+ escapeHtml(n.excerpt||'') +'</div>';
+          container.appendChild(div);
+        });
+        updateNewsCount();
+      }
+
+      function fileToBase64(file, cb){
+        if(!file){ cb(null); return; }
+        var reader = new FileReader();
+        reader.onload = function(e){ cb(e.target.result); };
+        reader.onerror = function(){ cb(null); };
+        reader.readAsDataURL(file);
+      }
+
+      // Publish / update handler
+      var newsForm = document.getElementById('newsForm');
+      var publishBtn = document.getElementById('publishNews');
+      var newsListEl = document.getElementById('newsList');
+      var editIndex = null;
+      if(newsForm){
+        publishBtn.addEventListener('click', function(e){
+          e.preventDefault();
+          var title = document.getElementById('newsTitle').value.trim();
+          var date = document.getElementById('newsDate').value || new Date().toISOString().slice(0,10);
+          var excerpt = document.getElementById('newsExcerpt').value.trim();
+          var content = document.getElementById('newsContent').value.trim();
+          var imgInput = document.getElementById('newsImage');
+          if(!title){ showMessage(clearMessage, '❌ Le titre est requis', 'error'); return; }
+
+          function finishPublish(imageData){
+            var items = getNews();
+            var item = {
+              id: String(Date.now()),
+              title: title,
+              date: date,
+              excerpt: excerpt,
+              content: content,
+              image: imageData || null,
+              createdAt: new Date().toISOString()
+            };
+            if(editIndex !== null && items[editIndex]){
+              // update
+              item.id = items[editIndex].id || item.id;
+              items[editIndex] = item;
+              editIndex = null;
+              publishBtn.textContent = 'Publier';
+              showMessage(passwordMessage, '✓ Article mis à jour', 'success');
+            } else {
+              items.unshift(item);
+              showMessage(passwordMessage, '✓ Article publié', 'success');
+            }
+            saveNews(items);
+            newsForm.reset();
+            renderNewsList();
+          }
+
+          if(imgInput && imgInput.files && imgInput.files[0]){
+            fileToBase64(imgInput.files[0], finishPublish);
+          } else {
+            finishPublish(null);
+          }
+        });
+
+        // delegate edit/delete
+        newsListEl && newsListEl.addEventListener('click', function(ev){
+          var del = ev.target.closest('.delete-news');
+          if(del){
+            var idx = Number(del.dataset.i);
+            if(confirm('Supprimer cet article ?')){
+              var arr = getNews(); arr.splice(idx,1); saveNews(arr); renderNewsList(); showMessage(clearMessage, '✓ Article supprimé', 'success');
+            }
+            return;
+          }
+          var ed = ev.target.closest('.edit-news');
+          if(ed){
+            var idx2 = Number(ed.dataset.i);
+            var arr2 = getNews();
+            var it = arr2[idx2];
+            if(!it) return;
+            document.getElementById('newsTitle').value = it.title || '';
+            document.getElementById('newsDate').value = it.date || '';
+            document.getElementById('newsExcerpt').value = it.excerpt || '';
+            document.getElementById('newsContent').value = it.content || '';
+            // image cannot be set programmatically for security; leave as-is.
+            editIndex = idx2;
+            publishBtn.textContent = 'Mettre à jour';
+            window.scrollTo({top:0,behavior:'smooth'});
+          }
+        });
+      }
+
+      // initial render
+      renderNewsList();
+
     })();
   </script>
 
