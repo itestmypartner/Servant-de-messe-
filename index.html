@@ -205,8 +205,8 @@
 
       // fallback fetch
       fetch('/data/news.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){ renderList(data); }).catch(function(){
-        // sample
-        renderList([{title:'Rentrée des servants',date:'2026-07-10',excerpt:'Inscriptions ouvertes — première réunion le 1er août.',content:'Détails...'}]);
+        // no remote news.json available -> show nothing
+        renderList([]);
       });
 
       // delegate read
