@@ -601,7 +601,7 @@
           var data = getNews();
           var publishPassword = prompt('Entrez le mot de passe de publication');
           if(!publishPassword) return;
-          const res = await fetch('/api/publish-news', {
+         const res = await fetch('https://servant-de-messe-4651.onrender.com/api/publish-news', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ news: data, publishPassword: publishPassword })
