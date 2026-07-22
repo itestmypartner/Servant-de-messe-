@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Archive — Actualités</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="news.css">
+  <style>
+    .archive-container{max-width:980px;margin:36px auto;padding:18px}
+    .archive-empty{padding:40px 18px;text-align:center;color:#566; background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.04)}
+    .back-home{display:inline-block;margin-top:18px}
+  </style>
+</head>
+<body>
+  <header class="header"><div class="container header-inner"><a href="/" class="logo"><img src="logoservantdemesse.jpg" class="logo-img" alt="logo"></a></div></header>
+  <main>
+    <div class="archive-container">
+      <h1 class="section-title">Toutes les actualités</h1>
+      <div id="archiveList" class="news-grid"></div>
+      <div id="archiveEmpty" class="archive-empty" style="display:none;">Aucune actualité pour le moment.</div>
+      <div style="text-align:center;margin-top:18px"><a href="/" class="btn btn-primary back-home">Retour à l'accueil</a></div>
+    </div>
+  </main>
+  <script>
+    (function(){
+      var KEY = 'news_items';
+      var listEl = document.getElementById('archiveList');
+      var emptyEl = document.getElementById('archiveEmpty');
+
+      function render(items){
+        listEl.innerHTML = '';
+        if(!items || items.length===0){ emptyEl.style.display='block'; return; }
+        emptyEl.style.display='none';
+        items.forEach(function(it){
+          var article = document.createElement('article');
+          article.className = 'news-card' + (it.image? '':' no-image');
+          article.innerHTML = (it.image?'<img src="'+it.image+'" alt="'+(it.title||'')+'">':'') + '<div class="news-body"><div class="meta">'+(it.date?new Date(it.date).toLocaleDateString('fr-FR'):'')+'</div><h3>'+ (it.title||'') +'</h3><p>'+ (it.excerpt||'') +'</p></div>';
+          listEl.appendChild(article);
+        });
+      }
+
+      try{
+        var raw = localStorage.getItem(KEY);
+        if(raw){ var parsed = JSON.parse(raw); if(Array.isArray(parsed) && parsed.length){ render(parsed); return; } }
+      }catch(e){ }
+
+      fetch('/data/news.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){ render(data); }).catch(function(){ render([]); });
+    })();
+  </script>
+</body>
+</html>
