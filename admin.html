@@ -594,27 +594,20 @@
 
       if(exportJsonBtn) exportJsonBtn.addEventListener('click', function(e){ e.preventDefault(); exportNewsJson(); });
 
-      async function publishToGithubWithToken(token){
+      async function publishToServer(){
         try{
-          var owner='itestmypartner', repo='Servant-de-messe-';
-          var path='data/news.json';
           var data = getNews();
-          var content = JSON.stringify(data, null, 2);
-          var b64 = btoa(unescape(encodeURIComponent(content)));
-          var headers = { 'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json' };
-          // get existing file to obtain sha
-          var getRes = await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path, {headers: headers});
-          var sha = null;
-          if(getRes.ok){ var js = await getRes.json(); sha = js.sha; }
-          var body = { message: 'Publish news via admin', content: b64, branch: 'main' };
-          if(sha) body.sha = sha;
-          var putRes = await fetch('https://api.github.com/repos/'+owner+'/'+repo+'/contents/'+path, { method: 'PUT', headers: Object.assign({'Content-Type':'application/json'}, headers), body: JSON.stringify(body) });
-          if(!putRes.ok){ var err = await putRes.json().catch(()=>({message:putRes.statusText})); throw new Error(err.message||'Erreur'); }
+          const res = await fetch('/api/publish-news', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ news: data })
+          });
+          if(!res.ok){ const txt = await res.text().catch(()=>res.statusText); throw new Error(txt || res.statusText); }
           showMessage(passwordMessage, '✓ Actualités publiées publiquement', 'success');
         }catch(err){ showMessage(clearMessage, 'Erreur pendant la publication: '+err.message, 'error'); }
       }
 
-      if(publishPublicBtn){ publishPublicBtn.addEventListener('click', function(e){ e.preventDefault(); var token = prompt('Collez un token GitHub (scope repo). Il sera utilisé une seule fois pour publier:'); if(!token) return; publishToGithubWithToken(token); }); }
+      if(publishPublicBtn){ publishPublicBtn.addEventListener('click', function(e){ e.preventDefault(); if(!confirm('Publier les actualités publiquement ?')) return; publishToServer(); }); }
 
     })();
   </script>

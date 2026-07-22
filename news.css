@@ -10,9 +10,9 @@
 .news-footer{margin-top:18px;text-align:center}
 @media(max-width:640px){.news-card img{height:140px}.news-grid{gap:12px}} 
 /* Admin news UI */
-.admin-news{display:grid;grid-template-columns:1fr 420px;gap:18px;margin-bottom:18px}
-.news-form-card,.news-list-card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,0.04)}
+.admin-news{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-bottom:18px;align-items:start}
+.news-form-card,.news-list-card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 6px 20px rgba(0,0,0,0.04)}
 .news-form-card h3,.news-list-card h3{margin:0 0 12px;font-size:1.05rem;color:var(--news-accent)}
 .news-item{padding:12px;border-bottom:1px solid #f2f5f8}
 .news-item:last-child{border-bottom:none}
-@media(max-width:900px){.admin-news{grid-template-columns:1fr}.news-form-card{order:2}}
+@media(max-width:900px){.admin-news{grid-template-columns:1fr}.news-form-card{order:1}.news-list-card{order:2}.news-form-card,.news-list-card{padding:14px}}

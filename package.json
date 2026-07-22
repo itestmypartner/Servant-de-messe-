@@ -1,0 +1,15 @@
+{
+  "name": "servant-de-messe-server",
+  "version": "1.0.0",
+  "description": "Small service to publish news.json using a Render secret",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
