@@ -121,8 +121,10 @@
 .news-form-actions .admin-btn{flex:1;min-width:140px;margin:0;padding:12px 18px;font-size:13px}
 .news-form-actions .admin-btn-secondary{flex:1;min-width:130px}
 
-#newsMessage{margin-top:16px;padding:12px 14px;border-radius:8px;font-size:13px;font-weight:600;display:none}
+#newsMessage{margin-top:16px;padding:12px 14px;border-radius:8px;font-size:13px;font-weight:600;display:none;text-align:center;animation:slideDown 0.3s ease}
 #newsMessage.show{display:block}
+#newsMessage.success{background:#e6f7ed;color:#0d8a3f;border-left:4px solid #0d8a3f}
+#newsMessage.error{background:#ffe6e6;color:#c23b3b;border-left:4px solid #dc3545}
 
 .news-empty{color:#999;padding:24px 14px;text-align:center;font-style:italic;background:#f8fbfd;border-radius:10px;border:2px dashed #d0dce8}
 
@@ -196,4 +198,10 @@
     padding:9px 14px;
     font-size:11px
   }
+}
+
+/* Animation pour messages */
+@keyframes slideDown{
+  from{opacity:0;transform:translateY(-10px)}
+  to{opacity:1;transform:translateY(0)}
 }

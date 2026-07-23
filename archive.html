@@ -1,15 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Archive — Actualités</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Archive complète des actualités du groupe des Servants de Messe de Saint-Bernard d'Adiopodoumé">
+  <title>Archive — Actualités | Servants de Messe</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="news.css">
   <style>
     .archive-container{max-width:980px;margin:36px auto;padding:18px}
-    .archive-empty{padding:40px 18px;text-align:center;color:#566; background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.04)}
-    .back-home{display:inline-block;margin-top:18px}
+    .archive-empty{padding:40px 18px;text-align:center;color:#566;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.04);font-size:16px;line-height:1.6}
+    .back-home{display:inline-block;margin-top:24px}
+    @media(max-width:768px){
+      .archive-container{margin:24px auto;padding:12px}
+      .archive-empty{padding:30px 16px}
+    }
   </style>
 </head>
 <body>
@@ -18,8 +23,8 @@
     <div class="archive-container">
       <h1 class="section-title">Toutes les actualités</h1>
       <div id="archiveList" class="news-grid"></div>
-      <div id="archiveEmpty" class="archive-empty" style="display:none;">Aucune actualité pour le moment.</div>
-      <div style="text-align:center;margin-top:18px"><a href="/" class="btn btn-primary back-home">Retour à l'accueil</a></div>
+      <div id="archiveEmpty" class="archive-empty" style="display:none;">📭 <strong>Aucune actualité pour le moment.</strong><br>Revenez bientôt pour suivre nos dernières nouvelles !</div>
+      <div style="text-align:center;margin-top:24px"><a href="/" class="btn btn-primary back-home">← Retour à l'accueil</a></div>
     </div>
   </main>
   <script>
