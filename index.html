@@ -167,8 +167,7 @@
       var modalBody = document.getElementById('modalBody');
       var modalDate = document.getElementById('modalDate');
       var closeBtn = document.getElementById('modalClose');
-      var currentNews = [];
-      var displayedNews = []; // Pour tracker les articles affichés
+      var displayedNews = [];
 
       function renderCard(item, displayIndex){
         var div = document.createElement('article');
@@ -184,61 +183,80 @@
       }
 
       function openModal(item){
+        if(!item) return;
         modalTitle.textContent = item.title || '';
         modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+(item.content||item.excerpt||'')+'</p>';
         modalDate.textContent = item.date ? '📅 ' + new Date(item.date).toLocaleDateString('fr-FR') : '';
         modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
         document.body.style.overflow = 'hidden';
       }
 
       function closeModal(){
         modal.style.display = 'none';
+        modal.style.visibility = 'hidden';
         document.body.style.overflow = '';
       }
 
-      closeBtn.onclick = function(){ closeModal(); };
-      modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
-      document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal.style.display==='flex') closeModal(); });
+      // Event listeners
+      if(closeBtn) closeBtn.onclick = function(){ closeModal(); };
+      if(modal){
+        modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
+      }
+      document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
 
       function renderList(arr){
+        if(!grid) return;
         grid.innerHTML = '';
-        currentNews = arr || [];
         displayedNews = [];
-        var sliced = (arr||[]).slice(0,6);
+        if(!arr || arr.length === 0) return;
+        
+        var sliced = arr.slice(0,6);
         sliced.forEach(function(n, displayIndex){ 
           displayedNews.push(n);
           grid.appendChild(renderCard(n, displayIndex)); 
         });
       }
 
-      // load from localStorage
-      try{
-        var raw = localStorage.getItem(NEWS_KEY);
-        if(raw){
-          var parsed = JSON.parse(raw);
-          if(Array.isArray(parsed)){
-            renderList(parsed);
-            return;
+      // Load news
+      function loadNews(){
+        try{
+          var raw = localStorage.getItem(NEWS_KEY);
+          if(raw){
+            var parsed = JSON.parse(raw);
+            if(Array.isArray(parsed) && parsed.length > 0){
+              renderList(parsed);
+              return;
+            }
           }
-        }
-      }catch(e){/* ignore */}
+        }catch(e){console.error('localStorage error:', e);}
 
-      // fallback fetch
-      fetch('/data/news.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){ renderList(data); }).catch(function(){
-        // no remote news.json available -> show nothing
-        renderList([]);
-      });
+        // fallback fetch
+        fetch('/data/news.json')
+          .then(function(r){ if(!r.ok) throw new Error('not ok'); return r.json(); })
+          .then(function(data){ renderList(data); })
+          .catch(function(err){ console.error('fetch error:', err); renderList([]); });
+      }
 
-      // delegate read
-      grid.addEventListener('click', function(ev){
-        var b = ev.target.closest('.read-btn');
-        if(!b) return;
-        var idx = Number(b.dataset.idx || 0);
-        if(displayedNews && displayedNews[idx]){ 
-          openModal(displayedNews[idx]); 
-          return; 
-        }
-      });
+      // Load news after DOM is ready
+      if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', loadNews);
+      } else {
+        loadNews();
+      }
+
+      // Delegate read button clicks
+      if(grid){
+        grid.addEventListener('click', function(ev){
+          var b = ev.target.closest('.read-btn');
+          if(!b) return;
+          ev.preventDefault();
+          var idx = Number(b.dataset.idx || 0);
+          if(displayedNews && displayedNews[idx]){ 
+            openModal(displayedNews[idx]);
+          }
+        });
+      }
     })();
     </script>
 
