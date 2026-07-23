@@ -146,9 +146,12 @@
         <div class="modal-content">
           <div class="modal-header">
             <h2 id="modalTitle"></h2>
-            <button class="modal-close" id="modalClose">&times;</button>
+            <button class="modal-close" id="modalClose" type="button" aria-label="Fermer">&times;</button>
           </div>
           <div class="modal-body" id="modalBody"></div>
+          <div class="modal-footer">
+            <p id="modalDate" style="color:#999;font-size:0.9rem;margin:0;"></p>
+          </div>
         </div>
       </div>
 
@@ -162,7 +165,9 @@
       var modal = document.getElementById('newsModal');
       var modalTitle = document.getElementById('modalTitle');
       var modalBody = document.getElementById('modalBody');
+      var modalDate = document.getElementById('modalDate');
       var closeBtn = document.getElementById('modalClose');
+      var currentNews = [];
 
       function renderCard(item, i){
         var div = document.createElement('article');
@@ -172,22 +177,31 @@
           '<div class="meta">'+(item.date?new Date(item.date).toLocaleDateString('fr-FR'):'')+'</div>' +
           '<h3>'+ (item.title||'') +'</h3>' +
           '<p>'+ (item.excerpt||'') +'</p>' +
-          '<div class="actions"><button class="btn btn-primary read-btn" data-i="'+i+'">Lire</button></div>' +
+          '<div class="actions"><button class="btn btn-primary read-btn" data-i="'+i+'" type="button">Lire</button></div>' +
           '</div>';
         return div;
       }
 
       function openModal(item){
         modalTitle.textContent = item.title || '';
-        modalBody.innerHTML = '<p style="white-space:pre-wrap">'+(item.content||item.excerpt||'')+'</p>';
+        modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+(item.content||item.excerpt||'')+'</p>';
+        modalDate.textContent = item.date ? '📅 ' + new Date(item.date).toLocaleDateString('fr-FR') : '';
         modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
       }
 
-      closeBtn.onclick = function(){ modal.style.display='none'; };
-      modal.addEventListener('click', function(e){ if(e.target===modal) modal.style.display='none'; });
+      function closeModal(){
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+
+      closeBtn.onclick = function(){ closeModal(); };
+      modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
+      document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal.style.display==='flex') closeModal(); });
 
       function renderList(arr){
         grid.innerHTML = '';
+        currentNews = arr || [];
         (arr||[]).slice(0,6).forEach(function(n,i){ grid.appendChild(renderCard(n,i)); });
       }
 
@@ -214,6 +228,11 @@
         var b = ev.target.closest('.read-btn');
         if(!b) return;
         var idx = Number(b.dataset.i || 0);
+        if(currentNews && currentNews[idx]){ 
+          openModal(currentNews[idx]); 
+          return; 
+        }
+        // fallback if index out of sync
         try{
           var raw2 = localStorage.getItem(NEWS_KEY);
           if(raw2){
@@ -221,7 +240,6 @@
             if(Array.isArray(arr2) && arr2[idx]){ openModal(arr2[idx]); return; }
           }
         }catch(e){}
-        // fallback fetch
         fetch('/data/news.json').then(function(r){ return r.json(); }).then(function(arr){ if(arr && arr[idx]) openModal(arr[idx]); }).catch(function(){ openModal({title:'Info',content:'Contenu indisponible.'}); });
       });
     })();

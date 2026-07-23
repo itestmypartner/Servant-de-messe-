@@ -27,23 +27,78 @@
       <div style="text-align:center;margin-top:24px"><a href="/" class="btn btn-primary back-home">← Retour à l'accueil</a></div>
     </div>
   </main>
+
+  <!-- Modal lecture -->
+  <div id="archiveModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="archiveModalTitle"></h2>
+        <button class="modal-close" id="archiveModalClose" type="button" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body" id="archiveModalBody"></div>
+      <div class="modal-footer">
+        <p id="archiveModalDate" style="color:#999;font-size:0.9rem;margin:0;"></p>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function(){
       var KEY = 'news_items';
       var listEl = document.getElementById('archiveList');
       var emptyEl = document.getElementById('archiveEmpty');
+      var modal = document.getElementById('archiveModal');
+      var modalTitle = document.getElementById('archiveModalTitle');
+      var modalBody = document.getElementById('archiveModalBody');
+      var modalDate = document.getElementById('archiveModalDate');
+      var closeBtn = document.getElementById('archiveModalClose');
+      var currentNews = [];
+
+      function openModal(item){
+        modalTitle.textContent = item.title || '';
+        modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+(item.content||item.excerpt||'')+'</p>';
+        modalDate.textContent = item.date ? '📅 ' + new Date(item.date).toLocaleDateString('fr-FR') : '';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal(){
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+
+      closeBtn.onclick = function(){ closeModal(); };
+      modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
+      document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal.style.display==='flex') closeModal(); });
 
       function render(items){
         listEl.innerHTML = '';
         if(!items || items.length===0){ emptyEl.style.display='block'; return; }
         emptyEl.style.display='none';
-        items.forEach(function(it){
+        currentNews = items;
+        items.forEach(function(it, i){
           var article = document.createElement('article');
           article.className = 'news-card' + (it.image? '':' no-image');
-          article.innerHTML = (it.image?'<img src="'+it.image+'" alt="'+(it.title||'')+'">':'') + '<div class="news-body"><div class="meta">'+(it.date?new Date(it.date).toLocaleDateString('fr-FR'):'')+'</div><h3>'+ (it.title||'') +'</h3><p>'+ (it.excerpt||'') +'</p></div>';
+          article.innerHTML = (it.image?'<img src="'+it.image+'" alt="'+(it.title||'')+'">':'') + 
+            '<div class="news-body">' +
+            '<div class="meta">'+(it.date?new Date(it.date).toLocaleDateString('fr-FR'):'')+'</div>' +
+            '<h3>'+ (it.title||'') +'</h3>' +
+            '<p>'+ (it.excerpt||'') +'</p>' +
+            '<div class="actions"><button class="btn btn-primary read-btn" data-i="'+i+'" type="button">Lire</button></div>' +
+            '</div>';
           listEl.appendChild(article);
         });
       }
+
+      // Delegate click handler for read buttons
+      listEl.addEventListener('click', function(ev){
+        var b = ev.target.closest('.read-btn');
+        if(!b) return;
+        var idx = Number(b.dataset.i || 0);
+        if(currentNews && currentNews[idx]){
+          openModal(currentNews[idx]);
+        }
+      });
 
       try{
         var raw = localStorage.getItem(KEY);
