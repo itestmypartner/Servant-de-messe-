@@ -168,8 +168,9 @@
       var modalDate = document.getElementById('modalDate');
       var closeBtn = document.getElementById('modalClose');
       var currentNews = [];
+      var displayedNews = []; // Pour tracker les articles affichés
 
-      function renderCard(item, i){
+      function renderCard(item, displayIndex){
         var div = document.createElement('article');
         div.className = 'news-card' + (item.image ? '' : ' no-image');
         div.innerHTML = "" + (item.image?'<img src="'+item.image+'" alt="'+(item.title||'')+'">':'') +
@@ -177,7 +178,7 @@
           '<div class="meta">'+(item.date?new Date(item.date).toLocaleDateString('fr-FR'):'')+'</div>' +
           '<h3>'+ (item.title||'') +'</h3>' +
           '<p>'+ (item.excerpt||'') +'</p>' +
-          '<div class="actions"><button class="btn btn-primary read-btn" data-i="'+i+'" type="button">Lire</button></div>' +
+          '<div class="actions"><button class="btn btn-primary read-btn" data-idx="'+displayIndex+'" type="button">Lire</button></div>' +
           '</div>';
         return div;
       }
@@ -202,7 +203,12 @@
       function renderList(arr){
         grid.innerHTML = '';
         currentNews = arr || [];
-        (arr||[]).slice(0,6).forEach(function(n,i){ grid.appendChild(renderCard(n,i)); });
+        displayedNews = [];
+        var sliced = (arr||[]).slice(0,6);
+        sliced.forEach(function(n, displayIndex){ 
+          displayedNews.push(n);
+          grid.appendChild(renderCard(n, displayIndex)); 
+        });
       }
 
       // load from localStorage
@@ -227,20 +233,11 @@
       grid.addEventListener('click', function(ev){
         var b = ev.target.closest('.read-btn');
         if(!b) return;
-        var idx = Number(b.dataset.i || 0);
-        if(currentNews && currentNews[idx]){ 
-          openModal(currentNews[idx]); 
+        var idx = Number(b.dataset.idx || 0);
+        if(displayedNews && displayedNews[idx]){ 
+          openModal(displayedNews[idx]); 
           return; 
         }
-        // fallback if index out of sync
-        try{
-          var raw2 = localStorage.getItem(NEWS_KEY);
-          if(raw2){
-            var arr2 = JSON.parse(raw2);
-            if(Array.isArray(arr2) && arr2[idx]){ openModal(arr2[idx]); return; }
-          }
-        }catch(e){}
-        fetch('/data/news.json').then(function(r){ return r.json(); }).then(function(arr){ if(arr && arr[idx]) openModal(arr[idx]); }).catch(function(){ openModal({title:'Info',content:'Contenu indisponible.'}); });
       });
     })();
     </script>
