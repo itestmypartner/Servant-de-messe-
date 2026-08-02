@@ -54,9 +54,28 @@
       var closeBtn = document.getElementById('archiveModalClose');
       var currentNews = [];
 
+      function escapeHtml(text){
+        var safe = String(text == null ? '' : text);
+        var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return safe.replace(/[&<>"']/g, function(c){ return map[c]; });
+      }
+
+      function renderContentText(text){
+        return escapeHtml(text || '').replace(/\n/g, '<br>');
+      }
+
+      function normalizeNews(items){
+        if(!Array.isArray(items)) return [];
+        return items
+          .filter(function(it){ return it && typeof it === 'object'; })
+          .sort(function(a,b){
+            return new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime();
+          });
+      }
+
       function openModal(item){
         modalTitle.textContent = item.title || '';
-        modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+(item.content||item.excerpt||'')+'</p>';
+        modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+ renderContentText(item.content || item.excerpt || '') +'</p>';
         modalDate.textContent = item.date ? '📅 ' + new Date(item.date).toLocaleDateString('fr-FR') : '';
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -73,10 +92,11 @@
 
       function render(items){
         listEl.innerHTML = '';
-        if(!items || items.length===0){ emptyEl.style.display='block'; return; }
+        var normalized = normalizeNews(items);
+        if(normalized.length===0){ emptyEl.style.display='block'; return; }
         emptyEl.style.display='none';
-        currentNews = items;
-        items.forEach(function(it, i){
+        currentNews = normalized;
+        normalized.forEach(function(it, i){
           var article = document.createElement('article');
           article.className = 'news-card' + (it.image? '':' no-image');
           article.innerHTML = (it.image?'<img src="'+it.image+'" alt="'+(it.title||'')+'">':'') + 

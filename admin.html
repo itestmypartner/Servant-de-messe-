@@ -100,7 +100,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>Paramètres Admin</h2>
-        <button class="modal-close" id="closeModal">&times;</button>
+        <button class="modal-close" id="closeModal" type="button" aria-label="Fermer">&times;</button>
       </div>
       <div class="modal-body">
         <div class="settings-section">
@@ -469,7 +469,9 @@
         try{
           var parsed = JSON.parse(raw);
           if(!Array.isArray(parsed)) return [];
-          return parsed.sort(function(a,b){ return new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime(); });
+          return parsed
+            .filter(function(item){ return item && typeof item === 'object'; })
+            .sort(function(a,b){ return new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime(); });
         }catch(e){ return []; }
       }
 
@@ -517,17 +519,22 @@
           var excerpt = document.getElementById('newsExcerpt').value.trim();
           var content = document.getElementById('newsContent').value.trim();
           var imgInput = document.getElementById('newsImage');
-          if(!title){ showMessage(clearMessage, '❌ Le titre est requis', 'error'); return; }
+          if(!title){ showMessage(newsMessage, '❌ Le titre est requis', 'error'); return; }
 
           function finishPublish(imageData){
             var items = getNews();
+            var existingItem = editIndex !== null && items[editIndex] ? items[editIndex] : null;
+            var finalImage = imageData;
+            if(existingItem && imageData === null){
+              finalImage = existingItem.image || null;
+            }
             var item = {
               id: String(Date.now()),
               title: title,
               date: date,
               excerpt: excerpt,
               content: content,
-              image: imageData || null,
+              image: finalImage,
               createdAt: new Date().toISOString()
             };
             if(editIndex !== null && items[editIndex]){

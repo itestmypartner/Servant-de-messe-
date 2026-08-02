@@ -135,6 +135,10 @@
         <div id="newsGrid" class="news-grid">
           <!-- Les cartes sont injectées ici par JS -->
         </div>
+        <div id="newsEmpty" class="news-empty" style="display:none;">
+          📭 <strong>Aucune actualité pour le moment.</strong><br>
+          Revenez bientôt pour suivre nos dernières nouvelles.
+        </div>
 
         <div class="news-footer">
           <a href="/archive.html" class="btn btn-primary">Voir toutes les actualités</a>
@@ -167,7 +171,27 @@
       var modalBody = document.getElementById('modalBody');
       var modalDate = document.getElementById('modalDate');
       var closeBtn = document.getElementById('modalClose');
+      var emptyState = document.getElementById('newsEmpty');
       var displayedNews = [];
+
+      function escapeHtml(text){
+        var safe = String(text == null ? '' : text);
+        var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return safe.replace(/[&<>"']/g, function(c){ return map[c]; });
+      }
+
+      function renderContentText(text){
+        return escapeHtml(text || '').replace(/\n/g, '<br>');
+      }
+
+      function normalizeNews(items){
+        if(!Array.isArray(items)) return [];
+        return items
+          .filter(function(it){ return it && typeof it === 'object'; })
+          .sort(function(a,b){
+            return new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime();
+          });
+      }
 
       function renderCard(item, displayIndex){
         var div = document.createElement('article');
@@ -185,7 +209,7 @@
       function openModal(item){
         if(!item) return;
         modalTitle.textContent = item.title || '';
-        modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+(item.content||item.excerpt||'')+'</p>';
+        modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+ renderContentText(item.content || item.excerpt || '') +'</p>';
         modalDate.textContent = item.date ? '📅 ' + new Date(item.date).toLocaleDateString('fr-FR') : '';
         modal.style.display = 'flex';
         modal.style.visibility = 'visible';
@@ -209,9 +233,13 @@
         if(!grid) return;
         grid.innerHTML = '';
         displayedNews = [];
-        if(!arr || arr.length === 0) return;
-        
-        var sliced = arr.slice(0,6);
+        var sortedNews = normalizeNews(arr);
+        if(emptyState){
+          emptyState.style.display = sortedNews.length === 0 ? 'block' : 'none';
+        }
+        if(sortedNews.length === 0) return;
+
+        var sliced = sortedNews.slice(0,6);
         sliced.forEach(function(n, displayIndex){ 
           displayedNews.push(n);
           grid.appendChild(renderCard(n, displayIndex)); 
