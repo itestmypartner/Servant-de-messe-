@@ -1109,6 +1109,36 @@ button.loading .btn-text{ opacity: 0.9; }
   color: #1a3a5c;
 }
 
+.admin-toolbar-filters {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar-chip {
+  border: 1px solid #d7e2ee;
+  background: #f5f8fb;
+  color: #33506f;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toolbar-chip:hover {
+  background: #ecf3fa;
+  border-color: #c8d9ea;
+}
+
+.toolbar-chip.is-active {
+  background: #143454;
+  color: #fff;
+  border-color: #143454;
+}
+
 .expense-list {
   display: grid;
   gap: 10px;
@@ -1146,6 +1176,22 @@ button.loading .btn-text{ opacity: 0.9; }
   font-weight: 700;
   font-size: 14px;
   white-space: nowrap;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  color: #6a7f95;
+  font-size: 12px;
+}
+
+.field-hint.warning {
+  color: #b26b00;
+}
+
+.news-form-card.is-editing {
+  border-color: #c9a227;
+  box-shadow: 0 12px 36px rgba(201, 162, 39, 0.2);
 }
 
 .admin-stats {

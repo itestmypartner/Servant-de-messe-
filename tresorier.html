@@ -65,6 +65,12 @@
       <label for="searchInput" class="admin-toolbar-label">Recherche rapide</label>
       <input id="searchInput" class="admin-search-input" type="search" placeholder="Libellé, catégorie, mode..." autocomplete="off">
       <div class="admin-toolbar-meta"><span id="visibleCount">0</span> affichée(s)</div>
+      <div class="admin-toolbar-filters">
+        <button type="button" class="toolbar-chip is-active" id="filterAllBtn">Tout</button>
+        <button type="button" class="toolbar-chip" id="filterMonthBtn">Ce mois</button>
+        <button type="button" class="toolbar-chip" id="filterTodayBtn">Aujourd'hui</button>
+        <button type="button" class="toolbar-chip" id="clearSearchBtn">Effacer recherche</button>
+      </div>
     </div>
 
     <section class="admin-news">
@@ -73,7 +79,7 @@
         <form id="expenseForm" novalidate>
           <div class="form-group"><label for="expenseDate">Date</label><input id="expenseDate" type="date" required></div>
           <div class="form-group"><label for="expenseLabel">Libellé</label><input id="expenseLabel" type="text" placeholder="Ex: Achat de bougies" required></div>
-          <div class="form-group"><label for="expenseAmount">Montant (FCFA)</label><input id="expenseAmount" type="number" min="1" step="1" inputmode="numeric" required></div>
+          <div class="form-group"><label for="expenseAmount">Montant (FCFA)</label><input id="expenseAmount" type="number" min="1" step="1" inputmode="numeric" required><small class="field-hint" id="amountHint">0 FCFA</small></div>
           <div class="form-group">
             <label for="expenseCategory">Catégorie</label>
             <select id="expenseCategory">
@@ -146,6 +152,7 @@
       var expenseDate = document.getElementById('expenseDate');
       var expenseLabel = document.getElementById('expenseLabel');
       var expenseAmount = document.getElementById('expenseAmount');
+      var amountHint = document.getElementById('amountHint');
       var expenseCategory = document.getElementById('expenseCategory');
       var expenseMethod = document.getElementById('expenseMethod');
       var expenseNote = document.getElementById('expenseNote');
@@ -156,6 +163,10 @@
       var recentList = document.getElementById('recentList');
       var searchInput = document.getElementById('searchInput');
       var visibleCount = document.getElementById('visibleCount');
+      var filterAllBtn = document.getElementById('filterAllBtn');
+      var filterMonthBtn = document.getElementById('filterMonthBtn');
+      var filterTodayBtn = document.getElementById('filterTodayBtn');
+      var clearSearchBtn = document.getElementById('clearSearchBtn');
 
       var totalAmountEl = document.getElementById('totalAmount');
       var monthAmountEl = document.getElementById('monthAmount');
@@ -168,8 +179,10 @@
 
       var expensesCache = [];
       var isSaving = false;
+      var activeDateFilter = 'all';
 
       expenseDate.value = new Date().toISOString().slice(0, 10);
+      updateAmountHint();
 
       if(hasActiveSession()){
         showDashboard();
@@ -232,6 +245,7 @@
 
         expenseForm.reset();
         expenseDate.value = new Date().toISOString().slice(0, 10);
+        updateAmountHint();
         showMessage(formMessage, '✓ Dépense enregistrée', 'success');
         refreshView();
 
@@ -283,13 +297,35 @@
 
       if(searchInput){
         var debounced = debounce(function(v){
-          renderTable(filterExpenses(v));
-          renderVisibleCount(filterExpenses(v).length);
+          var filtered = filterExpenses(v);
+          renderTable(filtered);
+          renderVisibleCount(filtered.length);
         }, 120);
         searchInput.addEventListener('input', function(){
           debounced(searchInput.value);
         });
       }
+
+      if(expenseAmount){
+        expenseAmount.addEventListener('input', updateAmountHint);
+      }
+
+      if(filterAllBtn){
+        filterAllBtn.addEventListener('click', function(){ setActiveDateFilter('all'); refreshView(); });
+      }
+      if(filterMonthBtn){
+        filterMonthBtn.addEventListener('click', function(){ setActiveDateFilter('month'); refreshView(); });
+      }
+      if(filterTodayBtn){
+        filterTodayBtn.addEventListener('click', function(){ setActiveDateFilter('today'); refreshView(); });
+      }
+      if(clearSearchBtn){
+        clearSearchBtn.addEventListener('click', function(){
+          if(searchInput) searchInput.value = '';
+          refreshView();
+        });
+      }
+      setActiveDateFilter('all');
 
       function showDashboard(){
         loginContainer.style.display = 'none';
@@ -315,15 +351,19 @@
         var day = sumAmounts(items.filter(function(i){ return i.date === today; }));
 
         totalAmountEl.textContent = formatCompactFCFA(total);
+        totalAmountEl.title = formatFCFA(total);
         monthAmountEl.textContent = formatCompactFCFA(month);
+        monthAmountEl.title = formatFCFA(month);
         todayAmountEl.textContent = formatCompactFCFA(day);
+        todayAmountEl.title = formatFCFA(day);
         totalOpsEl.textContent = String(items.length);
       }
 
       function renderTable(items){
         tableBody.innerHTML = '';
         if(!items.length){
-          tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px 20px;">Aucune dépense</td></tr>';
+          var emptyMsg = expensesCache.length ? 'Aucun résultat pour le filtre actuel' : 'Aucune dépense';
+          tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px 20px;">' + emptyMsg + '</td></tr>';
           return;
         }
 
@@ -368,11 +408,31 @@
 
       function filterExpenses(query){
         var clean = String(query || '').trim().toLowerCase();
-        if(!clean) return expensesCache.slice();
-        return expensesCache.filter(function(item){
+        var scoped = applyDateFilter(expensesCache);
+        if(!clean) return scoped;
+        return scoped.filter(function(item){
           var text = [item.label, item.category, item.method, item.note].join(' ').toLowerCase();
           return text.indexOf(clean) !== -1;
         });
+      }
+
+      function applyDateFilter(items){
+        var today = new Date().toISOString().slice(0, 10);
+        var thisMonth = today.slice(0, 7);
+        if(activeDateFilter === 'today'){
+          return items.filter(function(item){ return item.date === today; });
+        }
+        if(activeDateFilter === 'month'){
+          return items.filter(function(item){ return String(item.date || '').slice(0, 7) === thisMonth; });
+        }
+        return items.slice();
+      }
+
+      function setActiveDateFilter(value){
+        activeDateFilter = value;
+        if(filterAllBtn) filterAllBtn.classList.toggle('is-active', value === 'all');
+        if(filterMonthBtn) filterMonthBtn.classList.toggle('is-active', value === 'month');
+        if(filterTodayBtn) filterTodayBtn.classList.toggle('is-active', value === 'today');
       }
 
       function renderVisibleCount(count){
@@ -448,6 +508,12 @@
         var num = Number(cleaned);
         if(!Number.isFinite(num)) return 0;
         return Math.round(num);
+      }
+
+      function updateAmountHint(){
+        if(!amountHint) return;
+        var amount = parseAmount(expenseAmount ? expenseAmount.value : 0);
+        amountHint.textContent = formatFCFA(amount);
       }
 
       function formatFCFA(amount){

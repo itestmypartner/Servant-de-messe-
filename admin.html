@@ -65,11 +65,12 @@
         <form id="newsForm" novalidate>
           <div class="form-group"><label for="newsTitle">Titre</label><input id="newsTitle" type="text" name="newsTitle" required></div>
           <div class="form-group"><label for="newsDate">Date</label><input id="newsDate" type="date" name="newsDate"></div>
-          <div class="form-group"><label for="newsImage">Image (optionnel)</label><input id="newsImage" type="file" name="newsImage" accept="image/*"></div>
-          <div class="form-group"><label for="newsExcerpt">Extrait</label><textarea id="newsExcerpt" name="newsExcerpt" rows="2"></textarea></div>
+          <div class="form-group"><label for="newsImage">Image (optionnel)</label><input id="newsImage" type="file" name="newsImage" accept="image/*"><small class="field-hint">Image automatiquement optimisée pour accélérer le site.</small></div>
+          <div class="form-group"><label for="newsExcerpt">Extrait</label><textarea id="newsExcerpt" name="newsExcerpt" rows="2"></textarea><small class="field-hint" id="newsExcerptCount">0 / 180 caractères conseillés</small></div>
           <div class="form-group"><label for="newsContent">Contenu</label><textarea id="newsContent" name="newsContent" rows="6"></textarea></div>
           <div class="news-form-actions">
             <button type="button" class="admin-btn" id="publishNews">Publier</button>
+            <button type="button" class="admin-btn-secondary" id="cancelNewsEdit" hidden>Annuler la modification</button>
             <button type="button" class="admin-btn-secondary" id="publishPublic">Publier publiquement</button>
             <button type="button" class="admin-btn-secondary" id="exportJson">Exporter JSON</button>
           </div>
@@ -174,6 +175,7 @@
       var clearDataBtn = document.getElementById('clearDataBtn');
       var clearMessage = document.getElementById('clearMessage');
       var newsMessage = document.getElementById('newsMessage');
+      var newsExcerptCount = document.getElementById('newsExcerptCount');
       var tableBody = document.getElementById('tableBody');
       var totalCount = document.getElementById('totalCount');
       var inscriptionsSearch = document.getElementById('inscriptionsSearch');
@@ -611,10 +613,47 @@
       // Publish / update handler
       var newsForm = document.getElementById('newsForm');
       var publishBtn = document.getElementById('publishNews');
+      var cancelNewsEditBtn = document.getElementById('cancelNewsEdit');
       var newsListEl = document.getElementById('newsList');
       var editIndex = null;
       var isPublishingNews = false;
+      var newsExcerptInput = document.getElementById('newsExcerpt');
+      var newsFormCard = document.querySelector('.news-form-card');
       if(newsForm){
+        function setEditMode(isEditing){
+          editIndex = isEditing ? editIndex : null;
+          if(cancelNewsEditBtn) cancelNewsEditBtn.hidden = !isEditing;
+          if(publishBtn) publishBtn.textContent = isEditing ? 'Mettre à jour' : 'Publier';
+          if(newsFormCard){
+            newsFormCard.classList.toggle('is-editing', !!isEditing);
+          }
+        }
+
+        function resetNewsForm(){
+          newsForm.reset();
+          setEditMode(false);
+          updateExcerptCounter();
+        }
+
+        function updateExcerptCounter(){
+          if(!newsExcerptCount || !newsExcerptInput) return;
+          var len = newsExcerptInput.value.length;
+          newsExcerptCount.textContent = len + ' / 180 caractères conseillés';
+          newsExcerptCount.className = 'field-hint' + (len > 180 ? ' warning' : '');
+        }
+
+        if(newsExcerptInput){
+          newsExcerptInput.addEventListener('input', updateExcerptCounter);
+          updateExcerptCounter();
+        }
+
+        if(cancelNewsEditBtn){
+          cancelNewsEditBtn.addEventListener('click', function(){
+            resetNewsForm();
+            showMessage(newsMessage, 'Modification annulée', 'success');
+          });
+        }
+
         publishBtn.addEventListener('click', function(e){
           e.preventDefault();
           if(isPublishingNews) return;
@@ -624,6 +663,7 @@
           var content = document.getElementById('newsContent').value.trim();
           var imgInput = document.getElementById('newsImage');
           if(!title){ showMessage(newsMessage, '❌ Le titre est requis', 'error'); return; }
+          if(!excerpt && !content){ showMessage(newsMessage, '❌ Ajoutez un extrait ou un contenu', 'error'); return; }
           isPublishingNews = true;
           setButtonLoading(publishBtn, true, editIndex !== null ? 'Mise à jour...' : 'Publication...', null);
 
@@ -647,15 +687,14 @@
               // update
               item.id = items[editIndex].id || item.id;
               items[editIndex] = item;
-              editIndex = null;
-              publishBtn.textContent = 'Publier';
+              setEditMode(false);
               showMessage(newsMessage, '✓ Article mis à jour', 'success');
             } else {
               items.unshift(item);
               showMessage(newsMessage, '✓ Article publié', 'success');
             }
             saveNews(items);
-            newsForm.reset();
+            resetNewsForm();
             renderNewsList();
             isPublishingNews = false;
             setButtonLoading(publishBtn, false, null, 'Publier');
@@ -690,7 +729,8 @@
             document.getElementById('newsContent').value = it.content || '';
             // image cannot be set programmatically for security; leave as-is.
             editIndex = idx2;
-            publishBtn.textContent = 'Mettre à jour';
+            setEditMode(true);
+            updateExcerptCounter();
             window.scrollTo({top:0,behavior:'smooth'});
           }
         });
