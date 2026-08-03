@@ -68,6 +68,7 @@
       var toast = document.getElementById('toast');
       var submitBtn = document.querySelector('.submit-btn');
       var INSCRIPTIONS_KEY = 'inscriptions';
+      var INSCRIPTIONS_API_URL = 'https://servant-de-messe-4651.onrender.com/api/inscriptions';
       
       if(!form) return;
 
@@ -128,8 +129,20 @@
         }
       }
 
+      async function publishInscription(inscription){
+        var response = await fetch(INSCRIPTIONS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inscription: inscription })
+        });
+        if(!response.ok){
+          var txt = await response.text().catch(function(){ return response.statusText; });
+          throw new Error(txt || response.statusText);
+        }
+      }
+
       // Form submission : sauvegarder en localStorage
-      form.addEventListener('submit', function(e){
+      form.addEventListener('submit', async function(e){
         e.preventDefault();
         
         var nom = document.getElementById('nom').value.trim();
@@ -189,11 +202,15 @@
         localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(inscriptions));
 
         submitBtn.classList.add('loading');
-        setTimeout(function(){
+        try{
+          await publishInscription(inscription);
           showToast('✓ Inscription réussie !', 'success');
+        }catch(error){
+          showToast('✓ Inscription enregistrée localement. Synchronisation serveur en attente.', 'success');
+        }finally{
           form.reset();
           submitBtn.classList.remove('loading');
-        }, 1500);
+        }
 
         // Track form interactions with GA
         if(typeof gtag !== 'undefined'){

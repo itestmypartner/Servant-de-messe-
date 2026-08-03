@@ -36,6 +36,7 @@
     <div class="admin-header">
       <div class="admin-actions">
         <button id="exportBtn" class="admin-btn-secondary" type="button">📥 Exporter CSV</button>
+        <button id="syncInscriptionsBtn" class="admin-btn-secondary" type="button">🔄 Synchroniser inscriptions</button>
         <a href="tresorier.html" class="admin-btn-secondary">💰 Trésorier</a>
         <button id="settingsBtn" class="admin-btn-secondary" type="button">⚙️ Paramètres</button>
         <button id="logoutBtn" class="admin-btn-danger" type="button">🚪 Déconnexion</button>
@@ -150,6 +151,7 @@
       var PASSWORD_KEY = 'admin_password';
       var INSCRIPTIONS_KEY = 'inscriptions';
       var NEWS_KEY = 'news_items';
+      var INSCRIPTIONS_API_URL = 'https://servant-de-messe-4651.onrender.com/api/inscriptions';
       var SESSION_KEY = 'admin_session';
       var SESSION_EXPIRES_KEY = 'admin_session_expires_at';
       var LOGIN_ATTEMPTS_KEY = 'admin_login_attempts';
@@ -166,6 +168,7 @@
       var loginError = document.getElementById('loginError');
 
       var exportBtn = document.getElementById('exportBtn');
+      var syncInscriptionsBtn = document.getElementById('syncInscriptionsBtn');
       var settingsBtn = document.getElementById('settingsBtn');
       var logoutBtn = document.getElementById('logoutBtn');
       var settingsModal = document.getElementById('settingsModal');
@@ -233,6 +236,7 @@
         loginContainer.style.display = 'none';
         dashboardContainer.style.display = 'block';
         displayInscriptions();
+        syncInscriptionsFromServer();
       }
 
       // Afficher inscriptions
@@ -311,6 +315,12 @@
         }, 120);
         inscriptionsSearch.addEventListener('input', function(){
           debouncedSearch(inscriptionsSearch.value);
+        });
+      }
+
+      if(syncInscriptionsBtn){
+        syncInscriptionsBtn.addEventListener('click', function(){
+          syncInscriptionsFromServer();
         });
       }
 
@@ -394,7 +404,7 @@
       // Supprimer données
       clearDataBtn.addEventListener('click', function(){
         if(confirm('ATTENTION : Cette action supprimera TOUTES les inscriptions. Confirmez-vous ?')){
-          localStorage.removeItem(INSCRIPTIONS_KEY);
+          saveInscriptions([]);
           displayInscriptions();
           showMessage(clearMessage, '✓ Toutes les inscriptions ont été supprimées', 'success');
         }
@@ -526,6 +536,56 @@
 
       function saveInscriptions(items){
         localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(items));
+        pushInscriptionsToServer(items);
+      }
+
+      function mergeInscriptions(remoteItems, localItems){
+        var merged = [];
+        var seen = {};
+        remoteItems.concat(localItems).forEach(function(item){
+          var key = String(item.id || '') + '|' + String(item.nom || '').toLowerCase() + '|' + String(item.prenom || '').toLowerCase() + '|' + String(item.tel || '');
+          if(seen[key]) return;
+          seen[key] = true;
+          merged.push(item);
+        });
+        return merged;
+      }
+
+      async function syncInscriptionsFromServer(){
+        if(!syncInscriptionsBtn) return;
+        setButtonLoading(syncInscriptionsBtn, true, 'Synchronisation...', null);
+        try{
+          var res = await fetch(INSCRIPTIONS_API_URL);
+          if(!res.ok){
+            var txt = await res.text().catch(function(){ return res.statusText; });
+            throw new Error(txt || res.statusText);
+          }
+          var payload = await res.json();
+          var remoteItems = Array.isArray(payload.inscriptions) ? payload.inscriptions : [];
+          var localItems = getInscriptions();
+          var merged = mergeInscriptions(remoteItems, localItems);
+          localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(merged));
+          displayInscriptions();
+          showMessage(clearMessage, '✓ Inscriptions synchronisées', 'success');
+        }catch(error){
+          showMessage(clearMessage, '⚠️ Synchronisation impossible pour le moment', 'error');
+        }finally{
+          setButtonLoading(syncInscriptionsBtn, false, null, '🔄 Synchroniser inscriptions');
+        }
+      }
+
+      function pushInscriptionsToServer(items){
+        fetch(INSCRIPTIONS_API_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inscriptions: items })
+        }).then(function(res){
+          if(!res.ok){
+            throw new Error('sync failed');
+          }
+        }).catch(function(){
+          showMessage(clearMessage, '⚠️ Modifications locales faites, sync serveur en attente.', 'error');
+        });
       }
 
       function toCsvRow(values){
