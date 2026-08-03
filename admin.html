@@ -551,7 +551,7 @@
         return merged;
       }
 
-      async function syncInscriptionsFromServer(){
+            async function syncInscriptionsFromServer(){
         if(!syncInscriptionsBtn) return;
         setButtonLoading(syncInscriptionsBtn, true, 'Synchronisation...', null);
         try{
@@ -562,6 +562,13 @@
           }
           var payload = await res.json();
           var remoteItems = Array.isArray(payload.inscriptions) ? payload.inscriptions : [];
+          if(remoteItems.length === 0){
+            // Aucun enregistrement serveur : nettoyer les données locales pour partir propre
+            localStorage.removeItem(INSCRIPTIONS_KEY);
+            displayInscriptions();
+            showMessage(clearMessage, '✓ Aucune inscription sur le serveur — données locales nettoyées', 'success');
+            return;
+          }
           var localItems = getInscriptions();
           var merged = mergeInscriptions(remoteItems, localItems);
           localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(merged));
@@ -572,9 +579,7 @@
         }finally{
           setButtonLoading(syncInscriptionsBtn, false, null, '🔄 Synchroniser inscriptions');
         }
-      }
-
-      function pushInscriptionsToServer(items){
+      }function pushInscriptionsToServer(items){
         fetch(INSCRIPTIONS_API_URL, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -841,3 +846,4 @@
 
 </body>
 </html>
+
