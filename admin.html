@@ -35,9 +35,9 @@
 
     <div class="admin-header">
       <div class="admin-actions">
-        <button id="exportBtn" class="admin-btn-secondary">📥 Exporter CSV</button>
-        <button id="settingsBtn" class="admin-btn-secondary">⚙️ Paramètres</button>
-        <button id="logoutBtn" class="admin-btn-danger">🚪 Déconnexion</button>
+        <button id="exportBtn" class="admin-btn-secondary" type="button">📥 Exporter CSV</button>
+        <button id="settingsBtn" class="admin-btn-secondary" type="button">⚙️ Paramètres</button>
+        <button id="logoutBtn" class="admin-btn-danger" type="button">🚪 Déconnexion</button>
       </div>
     </div>
 
@@ -50,6 +50,12 @@
         <div class="stat-number" id="newsCount">0</div>
         <div class="stat-label">Actualités publiées</div>
       </div>
+    </div>
+
+    <div class="admin-toolbar">
+      <label for="inscriptionsSearch" class="admin-toolbar-label">Recherche rapide</label>
+      <input id="inscriptionsSearch" class="admin-search-input" type="search" placeholder="Nom, prénom ou téléphone..." autocomplete="off">
+      <div class="admin-toolbar-meta"><span id="inscriptionsVisibleCount">0</span> affichée(s)</div>
     </div>
 
     <section class="admin-news">
@@ -167,6 +173,11 @@
       var clearDataBtn = document.getElementById('clearDataBtn');
       var clearMessage = document.getElementById('clearMessage');
       var newsMessage = document.getElementById('newsMessage');
+      var tableBody = document.getElementById('tableBody');
+      var totalCount = document.getElementById('totalCount');
+      var inscriptionsSearch = document.getElementById('inscriptionsSearch');
+      var inscriptionsVisibleCount = document.getElementById('inscriptionsVisibleCount');
+      var inscriptionsCache = [];
 
       // Vérifier session existante
       if(hasActiveSession()){
@@ -223,35 +234,51 @@
 
       // Afficher inscriptions
       function displayInscriptions(){
-        var inscriptions = getInscriptions();
-        var tbody = document.getElementById('tableBody');
-        var totalCount = document.getElementById('totalCount');
+        inscriptionsCache = getInscriptions();
+        if(totalCount){
+          totalCount.textContent = inscriptionsCache.length;
+        }
+        var currentQuery = inscriptionsSearch ? inscriptionsSearch.value : '';
+        filterInscriptions(currentQuery);
+      }
 
-        totalCount.textContent = inscriptions.length;
-
-        if(inscriptions.length === 0){
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">Aucune inscription</td></tr>';
+      function renderInscriptions(items){
+        if(!tableBody) return;
+        tableBody.innerHTML = '';
+        if(!items.length){
+          tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">Aucune inscription</td></tr>';
+          if(inscriptionsVisibleCount) inscriptionsVisibleCount.textContent = '0';
           return;
         }
 
-        tbody.innerHTML = '';
-        inscriptions.forEach(function(insc, index){
+        var fragment = document.createDocumentFragment();
+        items.forEach(function(insc, index){
           var row = document.createElement('tr');
-          row.innerHTML = 
+          row.innerHTML =
             '<td data-label="#">' + (index + 1) + '</td>' +
             '<td data-label="Nom">' + escapeHtml(insc.nom) + '</td>' +
             '<td data-label="Prénom">' + escapeHtml(insc.prenom) + '</td>' +
             '<td data-label="Âge">' + escapeHtml(insc.age) + '</td>' +
             '<td data-label="Téléphone">' + escapeHtml(insc.tel) + '</td>' +
             '<td data-label="Date d\'inscription">' + escapeHtml(insc.date || '') + '</td>' +
-            '<td data-label="Action"><button class="delete-btn" data-id="' + insc.id + '">Supprimer</button></td>';
-          
-          row.querySelector('.delete-btn').addEventListener('click', function(){
-            deleteInscription(insc.id);
-          });
-
-          tbody.appendChild(row);
+            '<td data-label="Action"><button class="delete-btn" data-id="' + escapeHtml(insc.id) + '" type="button">Supprimer</button></td>';
+          fragment.appendChild(row);
         });
+        tableBody.appendChild(fragment);
+        if(inscriptionsVisibleCount) inscriptionsVisibleCount.textContent = String(items.length);
+      }
+
+      function filterInscriptions(query){
+        var cleanQuery = (query || '').trim().toLowerCase();
+        if(!cleanQuery){
+          renderInscriptions(inscriptionsCache);
+          return;
+        }
+        var filtered = inscriptionsCache.filter(function(insc){
+          var haystack = [insc.nom, insc.prenom, insc.tel].join(' ').toLowerCase();
+          return haystack.indexOf(cleanQuery) !== -1;
+        });
+        renderInscriptions(filtered);
       }
 
       // Supprimer une inscription
@@ -263,6 +290,25 @@
           saveInscriptions(inscriptions);
           displayInscriptions();
         }
+      }
+
+      if(tableBody){
+        tableBody.addEventListener('click', function(ev){
+          var deleteBtn = ev.target.closest('.delete-btn');
+          if(!deleteBtn) return;
+          var id = deleteBtn.getAttribute('data-id');
+          if(!id) return;
+          deleteInscription(id);
+        });
+      }
+
+      if(inscriptionsSearch){
+        var debouncedSearch = debounce(function(value){
+          filterInscriptions(value);
+        }, 120);
+        inscriptionsSearch.addEventListener('input', function(){
+          debouncedSearch(inscriptionsSearch.value);
+        });
       }
 
       // Export CSV
@@ -361,6 +407,30 @@
             element.className = 'message';
           }, 3500);
         }
+      }
+
+      function debounce(fn, delay){
+        var timer = null;
+        return function(){
+          var args = arguments;
+          clearTimeout(timer);
+          timer = setTimeout(function(){
+            fn.apply(null, args);
+          }, delay);
+        };
+      }
+
+      function setButtonLoading(button, isLoading, loadingText, defaultText){
+        if(!button) return;
+        if(isLoading){
+          button.setAttribute('disabled', 'disabled');
+          button.classList.add('is-loading');
+          if(loadingText) button.textContent = loadingText;
+          return;
+        }
+        button.removeAttribute('disabled');
+        button.classList.remove('is-loading');
+        if(defaultText) button.textContent = defaultText;
       }
 
       function escapeHtml(text){
@@ -489,19 +559,50 @@
         if(!container) return;
         container.innerHTML = '';
         if(list.length === 0){ container.innerHTML = '<div class="news-empty">Aucun article</div>'; updateNewsCount(); return; }
+        var fragment = document.createDocumentFragment();
         list.forEach(function(n,i){
           var div = document.createElement('div');
           div.className = 'news-item';
           div.innerHTML = '<div class="news-item-top"><div><strong class="news-item-title">'+ escapeHtml(n.title || '') +'</strong><div class="news-item-date">'+ escapeHtml(n.date || '') +'</div></div><div class="news-item-actions"><button class="admin-btn-secondary edit-news" data-i="'+i+'">Modifier</button><button class="admin-btn-danger delete-news" data-i="'+i+'">Supprimer</button></div></div><div class="news-item-excerpt">'+ escapeHtml(n.excerpt||'') +'</div>';
-          container.appendChild(div);
+          fragment.appendChild(div);
         });
+        container.appendChild(fragment);
         updateNewsCount();
       }
 
       function fileToBase64(file, cb){
         if(!file){ cb(null); return; }
         var reader = new FileReader();
-        reader.onload = function(e){ cb(e.target.result); };
+        reader.onload = function(e){
+          var img = new Image();
+          img.onload = function(){
+            var maxWidth = 1280;
+            var maxHeight = 1280;
+            var width = img.width;
+            var height = img.height;
+
+            if(width > maxWidth || height > maxHeight){
+              var ratio = Math.min(maxWidth / width, maxHeight / height);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+            }
+
+            var canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            var ctx = canvas.getContext('2d');
+            if(!ctx){
+              cb(e.target.result);
+              return;
+            }
+            ctx.drawImage(img, 0, 0, width, height);
+
+            var optimized = canvas.toDataURL('image/jpeg', 0.82);
+            cb(optimized || e.target.result);
+          };
+          img.onerror = function(){ cb(e.target.result); };
+          img.src = e.target.result;
+        };
         reader.onerror = function(){ cb(null); };
         reader.readAsDataURL(file);
       }
@@ -511,15 +612,19 @@
       var publishBtn = document.getElementById('publishNews');
       var newsListEl = document.getElementById('newsList');
       var editIndex = null;
+      var isPublishingNews = false;
       if(newsForm){
         publishBtn.addEventListener('click', function(e){
           e.preventDefault();
+          if(isPublishingNews) return;
           var title = document.getElementById('newsTitle').value.trim();
           var date = document.getElementById('newsDate').value || new Date().toISOString().slice(0,10);
           var excerpt = document.getElementById('newsExcerpt').value.trim();
           var content = document.getElementById('newsContent').value.trim();
           var imgInput = document.getElementById('newsImage');
           if(!title){ showMessage(newsMessage, '❌ Le titre est requis', 'error'); return; }
+          isPublishingNews = true;
+          setButtonLoading(publishBtn, true, editIndex !== null ? 'Mise à jour...' : 'Publication...', null);
 
           function finishPublish(imageData){
             var items = getNews();
@@ -551,6 +656,8 @@
             saveNews(items);
             newsForm.reset();
             renderNewsList();
+            isPublishingNews = false;
+            setButtonLoading(publishBtn, false, null, 'Publier');
           }
 
           if(imgInput && imgInput.files && imgInput.files[0]){
@@ -594,6 +701,7 @@
       // Publish to backend endpoint
       var publishPublicBtn = document.getElementById('publishPublic');
       var exportJsonBtn = document.getElementById('exportJson');
+      var isPublishingRemote = false;
 
       function exportNewsJson(){
         var data = getNews();
@@ -604,6 +712,9 @@
       if(exportJsonBtn) exportJsonBtn.addEventListener('click', function(e){ e.preventDefault(); exportNewsJson(); });
 
       async function publishToServer(){
+        if(isPublishingRemote) return;
+        isPublishingRemote = true;
+        setButtonLoading(publishPublicBtn, true, 'Publication...', null);
         try{
           var data = getNews();
           var publishPassword = prompt('Entrez le mot de passe de publication');
@@ -616,6 +727,10 @@
           if(!res.ok){ const txt = await res.text().catch(()=>res.statusText); throw new Error(txt || res.statusText); }
           showMessage(newsMessage, '✓ Actualités publiées publiquement', 'success');
         }catch(err){ showMessage(newsMessage, 'Erreur pendant la publication: '+err.message, 'error'); }
+        finally{
+          isPublishingRemote = false;
+          setButtonLoading(publishPublicBtn, false, null, 'Publier publiquement');
+        }
       }
 
       if(publishPublicBtn){ publishPublicBtn.addEventListener('click', function(e){ e.preventDefault(); if(!confirm('Publier les actualités publiquement ?')) return; publishToServer(); }); }

@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <header class="header"><div class="container header-inner"><a href="/" class="logo"><img src="logoservantdemesse.jpg" class="logo-img" alt="logo"></a></div></header>
+  <header class="header"><div class="container header-inner"><a href="/" class="logo"><img src="logoservantdemesse.jpg" class="logo-img" alt="logo" loading="lazy" decoding="async"></a></div></header>
   <main>
     <div class="archive-container">
       <h1 class="section-title">Toutes les actualités</h1>
@@ -96,18 +96,20 @@
         if(normalized.length===0){ emptyEl.style.display='block'; return; }
         emptyEl.style.display='none';
         currentNews = normalized;
+        var fragment = document.createDocumentFragment();
         normalized.forEach(function(it, i){
           var article = document.createElement('article');
           article.className = 'news-card' + (it.image? '':' no-image');
-          article.innerHTML = (it.image?'<img src="'+it.image+'" alt="'+(it.title||'')+'">':'') + 
+          article.innerHTML = (it.image?'<img src="'+it.image+'" alt="'+(it.title||'')+'" loading="lazy" decoding="async">':'') + 
             '<div class="news-body">' +
             '<div class="meta">'+(it.date?new Date(it.date).toLocaleDateString('fr-FR'):'')+'</div>' +
             '<h3>'+ (it.title||'') +'</h3>' +
             '<p>'+ (it.excerpt||'') +'</p>' +
             '<div class="actions"><button class="btn btn-primary read-btn" data-i="'+i+'" type="button">Lire</button></div>' +
             '</div>';
-          listEl.appendChild(article);
+          fragment.appendChild(article);
         });
+        listEl.appendChild(fragment);
       }
 
       // Delegate click handler for read buttons

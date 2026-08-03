@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Servants de Messe de la paroisse Saint-Bernard d'Adiopodoumé">
   <title>Servants de Messe — Paroisse Saint-Bernard d'Adiopodoumé</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="news.css">
@@ -63,7 +65,7 @@
               afin de grandir dans la foi et dans le sens des responsabilités.
             </p>
           </div>
-          <img src="logoeglise.jpeg" alt="Paroisse Saint-Bernard d'Adiopodoumé" class="about-image">
+          <img src="logoeglise.jpeg" alt="Paroisse Saint-Bernard d'Adiopodoumé" class="about-image" loading="lazy" decoding="async">
         </div>
       </div>
     </section>
@@ -112,9 +114,9 @@
           <button class="gallery-btn gallery-btn-prev" type="button" aria-label="Photo précédente">&#10094;</button>
           <div class="gallery-track">
             <img src="galerie-1.jpeg" alt="Servants de messe dans l'église" class="gallery-photo is-active">
-            <img src="galerie-2.jpeg" alt="Groupe de servants de messe avec le père" class="gallery-photo">
-            <img src="galerie-3.jpeg" alt="Procession des servants de messe" class="gallery-photo">
-            <img src="galerie-4.jpeg" alt="Entrée en procession des servants de messe" class="gallery-photo">
+            <img src="galerie-2.jpeg" alt="Groupe de servants de messe avec le père" class="gallery-photo" loading="lazy" decoding="async">
+            <img src="galerie-3.jpeg" alt="Procession des servants de messe" class="gallery-photo" loading="lazy" decoding="async">
+            <img src="galerie-4.jpeg" alt="Entrée en procession des servants de messe" class="gallery-photo" loading="lazy" decoding="async">
           </div>
           <button class="gallery-btn gallery-btn-next" type="button" aria-label="Photo suivante">&#10095;</button>
           <div class="gallery-dots" aria-hidden="true">
@@ -196,7 +198,7 @@
       function renderCard(item, displayIndex){
         var div = document.createElement('article');
         div.className = 'news-card' + (item.image ? '' : ' no-image');
-        div.innerHTML = "" + (item.image?'<img src="'+item.image+'" alt="'+(item.title||'')+'">':'') +
+        div.innerHTML = "" + (item.image?'<img src="'+item.image+'" alt="'+(item.title||'')+'" loading="lazy" decoding="async">':'') +
           '<div class="news-body">' +
           '<div class="meta">'+(item.date?new Date(item.date).toLocaleDateString('fr-FR'):'')+'</div>' +
           '<h3>'+ (item.title||'') +'</h3>' +
@@ -240,10 +242,12 @@
         if(sortedNews.length === 0) return;
 
         var sliced = sortedNews.slice(0,6);
+        var fragment = document.createDocumentFragment();
         sliced.forEach(function(n, displayIndex){ 
           displayedNews.push(n);
-          grid.appendChild(renderCard(n, displayIndex)); 
+          fragment.appendChild(renderCard(n, displayIndex)); 
         });
+        grid.appendChild(fragment);
       }
 
       // Load news
@@ -355,6 +359,7 @@
     var slider = document.querySelector('.gallery-slider');
     var activeIndex = 0;
     var autoSlideTimer;
+    var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function showSlide(index) {
       if (!photos.length) {
@@ -412,8 +417,19 @@
         };
       }
 
-      startAutoSlide();
+      if (!prefersReducedMotion) {
+        startAutoSlide();
+      }
     }
+
+    document.addEventListener('visibilitychange', function () {
+      if (!photos.length || prefersReducedMotion) return;
+      if (document.hidden) {
+        clearInterval(autoSlideTimer);
+      } else {
+        resetAutoSlide();
+      }
+    });
   </script>
 
 </body>
