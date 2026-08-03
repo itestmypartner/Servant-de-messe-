@@ -1053,6 +1053,15 @@ button.loading .btn-text{ opacity: 0.9; }
   flex-wrap: wrap;
 }
 
+.admin-actions .admin-btn-secondary,
+.admin-actions .admin-btn-danger,
+.admin-actions .admin-btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .admin-toolbar {
   display: grid;
   grid-template-columns: 180px 1fr auto;
@@ -1098,6 +1107,45 @@ button.loading .btn-text{ opacity: 0.9; }
 
 .admin-toolbar-meta span {
   color: #1a3a5c;
+}
+
+.expense-list {
+  display: grid;
+  gap: 10px;
+}
+
+.expense-item {
+  background: #f8fbff;
+  border: 1px solid #e5eef7;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.expense-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.expense-item-title {
+  margin: 0;
+  font-weight: 700;
+  color: #143454;
+  font-size: 14px;
+}
+
+.expense-item-meta {
+  margin: 4px 0 0;
+  color: #607080;
+  font-size: 12px;
+}
+
+.expense-item-amount {
+  color: #c23b3b;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 .admin-stats {

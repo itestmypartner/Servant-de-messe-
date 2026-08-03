@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trésorier - Dépenses</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="news.css">
+</head>
+<body class="admin-page">
+  <div class="admin-login" id="loginContainer">
+    <div class="admin-card">
+      <div class="admin-badge">Accès sécurisé</div>
+      <h1>Accès Trésorier</h1>
+      <p class="admin-subtitle">Entrez le mot de passe pour gérer les dépenses (FCFA).</p>
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" name="password" placeholder="••••••" required autofocus>
+        </div>
+        <button type="submit" class="admin-btn">Accéder</button>
+      </form>
+      <div id="loginError" class="error-message"></div>
+    </div>
+  </div>
+
+  <div class="admin-dashboard" id="dashboardContainer" style="display:none;">
+    <section class="admin-hero">
+      <div>
+        <p class="admin-badge admin-badge-inline">Tableau de bord</p>
+        <h1>Trésorerie du groupe</h1>
+        <p class="admin-hero-text">Saisissez les dépenses rapidement, en FCFA, avec un suivi clair et fluide.</p>
+      </div>
+    </section>
+
+    <div class="admin-header">
+      <div class="admin-actions">
+        <a href="admin.html" class="admin-btn-secondary">🛠️ Retour Admin</a>
+        <button id="exportBtn" class="admin-btn-secondary" type="button">📥 Exporter CSV</button>
+        <button id="clearBtn" class="admin-btn-danger" type="button">🗑️ Tout vider</button>
+        <button id="logoutBtn" class="admin-btn-danger" type="button">🚪 Déconnexion</button>
+      </div>
+    </div>
+
+    <div class="admin-stats">
+      <div class="stat-card">
+        <div class="stat-number" id="totalAmount">0</div>
+        <div class="stat-label">Total dépenses</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="monthAmount">0</div>
+        <div class="stat-label">Ce mois</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="todayAmount">0</div>
+        <div class="stat-label">Aujourd'hui</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="totalOps">0</div>
+        <div class="stat-label">Opérations</div>
+      </div>
+    </div>
+
+    <div class="admin-toolbar">
+      <label for="searchInput" class="admin-toolbar-label">Recherche rapide</label>
+      <input id="searchInput" class="admin-search-input" type="search" placeholder="Libellé, catégorie, mode..." autocomplete="off">
+      <div class="admin-toolbar-meta"><span id="visibleCount">0</span> affichée(s)</div>
+    </div>
+
+    <section class="admin-news">
+      <div class="news-form-card">
+        <h3>Nouvelle dépense</h3>
+        <form id="expenseForm" novalidate>
+          <div class="form-group"><label for="expenseDate">Date</label><input id="expenseDate" type="date" required></div>
+          <div class="form-group"><label for="expenseLabel">Libellé</label><input id="expenseLabel" type="text" placeholder="Ex: Achat de bougies" required></div>
+          <div class="form-group"><label for="expenseAmount">Montant (FCFA)</label><input id="expenseAmount" type="number" min="1" step="1" inputmode="numeric" required></div>
+          <div class="form-group">
+            <label for="expenseCategory">Catégorie</label>
+            <select id="expenseCategory">
+              <option value="Liturgie">Liturgie</option>
+              <option value="Transport">Transport</option>
+              <option value="Événement">Événement</option>
+              <option value="Formation">Formation</option>
+              <option value="Communication">Communication</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="expenseMethod">Mode de paiement</label>
+            <select id="expenseMethod">
+              <option value="Espèces">Espèces</option>
+              <option value="Mobile Money">Mobile Money</option>
+              <option value="Virement">Virement</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+          <div class="form-group"><label for="expenseNote">Note (optionnel)</label><textarea id="expenseNote" rows="3" placeholder="Détail utile..."></textarea></div>
+          <div class="news-form-actions">
+            <button id="saveExpenseBtn" type="submit" class="admin-btn">Enregistrer</button>
+          </div>
+          <div id="formMessage" class="message"></div>
+        </form>
+      </div>
+      <div class="news-list-card">
+        <h3>Dernières dépenses</h3>
+        <div id="recentList" class="expense-list"></div>
+      </div>
+    </section>
+
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Libellé</th>
+            <th>Catégorie</th>
+            <th>Paiement</th>
+            <th>Montant</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="7" style="text-align:center;color:#999;padding:40px 20px;">Aucune dépense</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var DEFAULT_PASSWORD = '200700';
+      var PASSWORD_KEY = 'treasurer_password';
+      var DATA_KEY = 'treasurer_expenses';
+      var SESSION_KEY = 'treasurer_session';
+      var SESSION_EXPIRES_KEY = 'treasurer_session_expires_at';
+      var SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
+
+      var loginContainer = document.getElementById('loginContainer');
+      var dashboardContainer = document.getElementById('dashboardContainer');
+      var loginForm = document.getElementById('loginForm');
+      var passwordInput = document.getElementById('password');
+      var loginError = document.getElementById('loginError');
+
+      var expenseForm = document.getElementById('expenseForm');
+      var expenseDate = document.getElementById('expenseDate');
+      var expenseLabel = document.getElementById('expenseLabel');
+      var expenseAmount = document.getElementById('expenseAmount');
+      var expenseCategory = document.getElementById('expenseCategory');
+      var expenseMethod = document.getElementById('expenseMethod');
+      var expenseNote = document.getElementById('expenseNote');
+      var formMessage = document.getElementById('formMessage');
+      var saveExpenseBtn = document.getElementById('saveExpenseBtn');
+
+      var tableBody = document.getElementById('tableBody');
+      var recentList = document.getElementById('recentList');
+      var searchInput = document.getElementById('searchInput');
+      var visibleCount = document.getElementById('visibleCount');
+
+      var totalAmountEl = document.getElementById('totalAmount');
+      var monthAmountEl = document.getElementById('monthAmount');
+      var todayAmountEl = document.getElementById('todayAmount');
+      var totalOpsEl = document.getElementById('totalOps');
+
+      var exportBtn = document.getElementById('exportBtn');
+      var clearBtn = document.getElementById('clearBtn');
+      var logoutBtn = document.getElementById('logoutBtn');
+
+      var expensesCache = [];
+      var isSaving = false;
+
+      expenseDate.value = new Date().toISOString().slice(0, 10);
+
+      if(hasActiveSession()){
+        showDashboard();
+      }
+
+      loginForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        if(passwordInput.value === getStoredPassword()){
+          startSession();
+          loginError.textContent = '';
+          showDashboard();
+          return;
+        }
+        loginError.textContent = '❌ Mot de passe incorrect';
+        passwordInput.value = '';
+      });
+
+      logoutBtn.addEventListener('click', function(){
+        clearSession();
+        loginContainer.style.display = 'block';
+        dashboardContainer.style.display = 'none';
+        loginForm.reset();
+      });
+
+      expenseForm.addEventListener('submit', function(e){
+        e.preventDefault();
+        if(isSaving) return;
+
+        var label = expenseLabel.value.trim();
+        var date = expenseDate.value;
+        var amount = parseAmount(expenseAmount.value);
+        if(!label){
+          showMessage(formMessage, '❌ Le libellé est requis', 'error');
+          return;
+        }
+        if(!date){
+          showMessage(formMessage, '❌ La date est requise', 'error');
+          return;
+        }
+        if(!amount || amount <= 0){
+          showMessage(formMessage, '❌ Le montant doit être supérieur à 0', 'error');
+          return;
+        }
+
+        isSaving = true;
+        setButtonLoading(saveExpenseBtn, true, 'Enregistrement...', null);
+
+        var expenses = getExpenses();
+        expenses.unshift({
+          id: String(Date.now()),
+          date: date,
+          label: label,
+          amount: amount,
+          category: expenseCategory.value || 'Autre',
+          method: expenseMethod.value || 'Espèces',
+          note: expenseNote.value.trim(),
+          createdAt: new Date().toISOString()
+        });
+        saveExpenses(expenses);
+
+        expenseForm.reset();
+        expenseDate.value = new Date().toISOString().slice(0, 10);
+        showMessage(formMessage, '✓ Dépense enregistrée', 'success');
+        refreshView();
+
+        isSaving = false;
+        setButtonLoading(saveExpenseBtn, false, null, 'Enregistrer');
+      });
+
+      tableBody.addEventListener('click', function(e){
+        var btn = e.target.closest('.delete-btn');
+        if(!btn) return;
+        var id = btn.getAttribute('data-id');
+        if(!id) return;
+        if(!confirm('Supprimer cette dépense ?')) return;
+        var next = getExpenses().filter(function(item){ return String(item.id) !== String(id); });
+        saveExpenses(next);
+        refreshView();
+      });
+
+      exportBtn.addEventListener('click', function(){
+        var data = getExpenses();
+        if(!data.length){
+          showMessage(formMessage, '❌ Aucune dépense à exporter', 'error');
+          return;
+        }
+        var csv = 'Date,Libellé,Catégorie,Paiement,Montant_FCFA,Note\n';
+        data.forEach(function(item){
+          csv += toCsvRow([
+            item.date,
+            item.label,
+            item.category,
+            item.method,
+            String(item.amount),
+            item.note || ''
+          ]) + '\n';
+        });
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'depenses-tresorier-' + new Date().toISOString().slice(0, 10) + '.csv';
+        a.click();
+      });
+
+      clearBtn.addEventListener('click', function(){
+        if(!confirm('Supprimer toutes les dépenses ?')) return;
+        localStorage.removeItem(DATA_KEY);
+        refreshView();
+        showMessage(formMessage, '✓ Toutes les dépenses ont été supprimées', 'success');
+      });
+
+      if(searchInput){
+        var debounced = debounce(function(v){
+          renderTable(filterExpenses(v));
+          renderVisibleCount(filterExpenses(v).length);
+        }, 120);
+        searchInput.addEventListener('input', function(){
+          debounced(searchInput.value);
+        });
+      }
+
+      function showDashboard(){
+        loginContainer.style.display = 'none';
+        dashboardContainer.style.display = 'block';
+        refreshView();
+      }
+
+      function refreshView(){
+        expensesCache = getExpenses();
+        var filtered = filterExpenses(searchInput ? searchInput.value : '');
+        renderStats(expensesCache);
+        renderTable(filtered);
+        renderRecent(expensesCache.slice(0, 6));
+        renderVisibleCount(filtered.length);
+      }
+
+      function renderStats(items){
+        var today = new Date().toISOString().slice(0, 10);
+        var thisMonth = today.slice(0, 7);
+
+        var total = sumAmounts(items);
+        var month = sumAmounts(items.filter(function(i){ return String(i.date || '').slice(0, 7) === thisMonth; }));
+        var day = sumAmounts(items.filter(function(i){ return i.date === today; }));
+
+        totalAmountEl.textContent = formatCompactFCFA(total);
+        monthAmountEl.textContent = formatCompactFCFA(month);
+        todayAmountEl.textContent = formatCompactFCFA(day);
+        totalOpsEl.textContent = String(items.length);
+      }
+
+      function renderTable(items){
+        tableBody.innerHTML = '';
+        if(!items.length){
+          tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:40px 20px;">Aucune dépense</td></tr>';
+          return;
+        }
+
+        var fragment = document.createDocumentFragment();
+        items.forEach(function(item, index){
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td data-label="#">' + (index + 1) + '</td>' +
+            '<td data-label="Date">' + escapeHtml(formatDate(item.date)) + '</td>' +
+            '<td data-label="Libellé">' + escapeHtml(item.label) + '</td>' +
+            '<td data-label="Catégorie">' + escapeHtml(item.category) + '</td>' +
+            '<td data-label="Paiement">' + escapeHtml(item.method) + '</td>' +
+            '<td data-label="Montant"><strong>' + escapeHtml(formatFCFA(item.amount)) + '</strong></td>' +
+            '<td data-label="Action"><button class="delete-btn" type="button" data-id="' + escapeHtml(item.id) + '">Supprimer</button></td>';
+          fragment.appendChild(tr);
+        });
+        tableBody.appendChild(fragment);
+      }
+
+      function renderRecent(items){
+        recentList.innerHTML = '';
+        if(!items.length){
+          recentList.innerHTML = '<div class="news-empty">Aucune dépense enregistrée</div>';
+          return;
+        }
+        var fragment = document.createDocumentFragment();
+        items.forEach(function(item){
+          var div = document.createElement('div');
+          div.className = 'expense-item';
+          div.innerHTML =
+            '<div class="expense-item-top">' +
+              '<div>' +
+                '<p class="expense-item-title">' + escapeHtml(item.label) + '</p>' +
+                '<p class="expense-item-meta">' + escapeHtml(formatDate(item.date) + ' • ' + item.category + ' • ' + item.method) + '</p>' +
+              '</div>' +
+              '<div class="expense-item-amount">' + escapeHtml(formatFCFA(item.amount)) + '</div>' +
+            '</div>';
+          fragment.appendChild(div);
+        });
+        recentList.appendChild(fragment);
+      }
+
+      function filterExpenses(query){
+        var clean = String(query || '').trim().toLowerCase();
+        if(!clean) return expensesCache.slice();
+        return expensesCache.filter(function(item){
+          var text = [item.label, item.category, item.method, item.note].join(' ').toLowerCase();
+          return text.indexOf(clean) !== -1;
+        });
+      }
+
+      function renderVisibleCount(count){
+        if(visibleCount) visibleCount.textContent = String(count);
+      }
+
+      function getExpenses(){
+        var raw = localStorage.getItem(DATA_KEY);
+        if(!raw) return [];
+        try{
+          var parsed = JSON.parse(raw);
+          if(!Array.isArray(parsed)) return [];
+          return parsed
+            .map(normalizeExpense)
+            .filter(function(item){ return item !== null; })
+            .sort(function(a, b){
+              var da = new Date(a.date || a.createdAt || 0).getTime();
+              var db = new Date(b.date || b.createdAt || 0).getTime();
+              return db - da;
+            });
+        }catch(_e){
+          return [];
+        }
+      }
+
+      function normalizeExpense(entry){
+        if(!entry || typeof entry !== 'object') return null;
+        var amount = Number(entry.amount || 0);
+        if(!Number.isFinite(amount) || amount <= 0) return null;
+        return {
+          id: String(entry.id || Date.now()),
+          date: String(entry.date || new Date().toISOString().slice(0, 10)),
+          label: String(entry.label || ''),
+          amount: Math.round(amount),
+          category: String(entry.category || 'Autre'),
+          method: String(entry.method || 'Espèces'),
+          note: String(entry.note || ''),
+          createdAt: String(entry.createdAt || new Date().toISOString())
+        };
+      }
+
+      function saveExpenses(items){
+        localStorage.setItem(DATA_KEY, JSON.stringify(items));
+      }
+
+      function hasActiveSession(){
+        var active = sessionStorage.getItem(SESSION_KEY) === 'true';
+        if(!active) return false;
+        var expiresAt = Number(sessionStorage.getItem(SESSION_EXPIRES_KEY) || 0);
+        if(expiresAt > Date.now()) return true;
+        clearSession();
+        return false;
+      }
+
+      function startSession(){
+        sessionStorage.setItem(SESSION_KEY, 'true');
+        sessionStorage.setItem(SESSION_EXPIRES_KEY, String(Date.now() + SESSION_DURATION_MS));
+      }
+
+      function clearSession(){
+        sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_EXPIRES_KEY);
+      }
+
+      function getStoredPassword(){
+        var stored = localStorage.getItem(PASSWORD_KEY);
+        if(stored && stored.trim()) return stored;
+        return DEFAULT_PASSWORD;
+      }
+
+      function parseAmount(value){
+        var cleaned = String(value || '').replace(/\s+/g, '').replace(',', '.');
+        var num = Number(cleaned);
+        if(!Number.isFinite(num)) return 0;
+        return Math.round(num);
+      }
+
+      function formatFCFA(amount){
+        var fmt = new Intl.NumberFormat('fr-FR').format(Number(amount || 0));
+        return fmt + ' FCFA';
+      }
+
+      function formatCompactFCFA(amount){
+        var value = Number(amount || 0);
+        if(value >= 1000000){
+          return (value / 1000000).toFixed(1).replace('.', ',') + 'M';
+        }
+        if(value >= 1000){
+          return (value / 1000).toFixed(1).replace('.', ',') + 'k';
+        }
+        return String(value);
+      }
+
+      function formatDate(yyyyMmDd){
+        var d = new Date(yyyyMmDd);
+        if(Number.isNaN(d.getTime())) return yyyyMmDd || '';
+        return d.toLocaleDateString('fr-FR');
+      }
+
+      function sumAmounts(items){
+        return items.reduce(function(total, item){ return total + Number(item.amount || 0); }, 0);
+      }
+
+      function toCsvRow(values){
+        return values.map(function(value){
+          var escaped = String(value == null ? '' : value).replace(/"/g, '""');
+          return '"' + escaped + '"';
+        }).join(',');
+      }
+
+      function showMessage(element, text, type){
+        if(!element) return;
+        element.textContent = text;
+        element.className = 'message ' + type + ' show';
+        if(type === 'success'){
+          setTimeout(function(){
+            element.textContent = '';
+            element.className = 'message';
+          }, 3000);
+        }
+      }
+
+      function debounce(fn, delay){
+        var timer = null;
+        return function(value){
+          clearTimeout(timer);
+          timer = setTimeout(function(){ fn(value); }, delay);
+        };
+      }
+
+      function setButtonLoading(button, isLoading, loadingText, defaultText){
+        if(!button) return;
+        if(isLoading){
+          button.setAttribute('disabled', 'disabled');
+          if(loadingText) button.textContent = loadingText;
+          return;
+        }
+        button.removeAttribute('disabled');
+        if(defaultText) button.textContent = defaultText;
+      }
+
+      function escapeHtml(text){
+        var safe = String(text == null ? '' : text);
+        var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return safe.replace(/[&<>"']/g, function(m){ return map[m]; });
+      }
+    })();
+  </script>
+</body>
+</html>
