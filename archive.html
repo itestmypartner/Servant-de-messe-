@@ -18,13 +18,13 @@
   </style>
 </head>
 <body>
-  <header class="header"><div class="container header-inner"><a href="/" class="logo"><img src="logoservantdemesse.jpg" class="logo-img" alt="logo" loading="lazy" decoding="async"></a></div></header>
+  <header class="header"><div class="container header-inner"><a href="index.html" class="logo"><img src="logoservantdemesse.jpg" class="logo-img" alt="logo" loading="lazy" decoding="async"></a></div></header>
   <main>
     <div class="archive-container">
       <h1 class="section-title">Toutes les actualités</h1>
       <div id="archiveList" class="news-grid"></div>
       <div id="archiveEmpty" class="archive-empty" style="display:none;">📭 <strong>Aucune actualité pour le moment.</strong><br>Revenez bientôt pour suivre nos dernières nouvelles !</div>
-      <div style="text-align:center;margin-top:24px"><a href="/" class="btn btn-primary back-home">← Retour à l'accueil</a></div>
+      <div style="text-align:center;margin-top:24px"><a href="index.html" class="btn btn-primary back-home">← Retour à l'accueil</a></div>
     </div>
   </main>
 
@@ -58,6 +58,15 @@
         var safe = String(text == null ? '' : text);
         var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
         return safe.replace(/[&<>"']/g, function(c){ return map[c]; });
+      }
+
+      function sanitizeImageUrl(url){
+        if(!url || typeof url !== 'string') return '';
+        var clean = url.trim();
+        if(clean.indexOf('data:image/') === 0 || clean.indexOf('https://') === 0 || clean.indexOf('http://') === 0 || /^[a-zA-Z0-9_\-\.\/]+$/.test(clean)){
+          return escapeHtml(clean);
+        }
+        return '';
       }
 
       function renderContentText(text){
@@ -99,13 +108,17 @@
         var fragment = document.createDocumentFragment();
         normalized.forEach(function(it, i){
           var article = document.createElement('article');
-          article.className = 'news-card' + (it.image? '':' no-image');
-          article.innerHTML = (it.image?'<img src="'+it.image+'" alt="'+(it.title||'')+'" loading="lazy" decoding="async">':'') + 
+          var safeImg = sanitizeImageUrl(it.image);
+          var safeTitle = escapeHtml(it.title || '');
+          var safeExcerpt = escapeHtml(it.excerpt || '');
+          var safeDate = it.date ? escapeHtml(new Date(it.date).toLocaleDateString('fr-FR')) : '';
+          article.className = 'news-card' + (safeImg ? '' : ' no-image');
+          article.innerHTML = (safeImg ? '<img src="' + safeImg + '" alt="' + safeTitle + '" loading="lazy" decoding="async">' : '') + 
             '<div class="news-body">' +
-            '<div class="meta">'+(it.date?new Date(it.date).toLocaleDateString('fr-FR'):'')+'</div>' +
-            '<h3>'+ (it.title||'') +'</h3>' +
-            '<p>'+ (it.excerpt||'') +'</p>' +
-            '<div class="actions"><button class="btn btn-primary read-btn" data-i="'+i+'" type="button">Lire</button></div>' +
+            '<div class="meta">' + safeDate + '</div>' +
+            '<h3>' + safeTitle + '</h3>' +
+            '<p>' + safeExcerpt + '</p>' +
+            '<div class="actions"><button class="btn btn-primary read-btn" data-i="' + i + '" type="button">Lire</button></div>' +
             '</div>';
           fragment.appendChild(article);
         });
@@ -127,7 +140,7 @@
         if(raw){ var parsed = JSON.parse(raw); if(Array.isArray(parsed) && parsed.length){ render(parsed); return; } }
       }catch(e){ }
 
-      fetch('/data/news.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){ render(data); }).catch(function(){ render([]); });
+      fetch('data/news.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){ render(data); }).catch(function(){ render([]); });
     })();
   </script>
 </body>

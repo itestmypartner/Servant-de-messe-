@@ -63,7 +63,7 @@ Service run sur http://localhost:3000
 
 ### Password Admin
 Stocké dans localStorage au premier accès.
-Par défaut: `admin123`
+Par défaut: `200700`
 Changeable via Settings dans l'admin.
 
 ### GitHub Publishing

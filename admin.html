@@ -38,6 +38,7 @@
         <button id="exportBtn" class="admin-btn-secondary" type="button">📥 Exporter CSV</button>
         <button id="syncInscriptionsBtn" class="admin-btn-secondary" type="button">🔄 Synchroniser inscriptions</button>
         <a href="tresorier.html" class="admin-btn-secondary">💰 Trésorier</a>
+        <a href="formation-responsables/index.html" class="admin-btn-secondary" target="_blank">📖 Emploi du Temps Formateurs</a>
         <button id="settingsBtn" class="admin-btn-secondary" type="button">⚙️ Paramètres</button>
         <button id="logoutBtn" class="admin-btn-danger" type="button">🚪 Déconnexion</button>
       </div>
@@ -555,34 +556,47 @@
         if(!syncInscriptionsBtn) return;
         setButtonLoading(syncInscriptionsBtn, true, 'Synchronisation...', null);
         try{
-          var res = await fetch(INSCRIPTIONS_API_URL);
+          var res = await fetch(INSCRIPTIONS_API_URL, {
+            headers: {
+              'x-admin-password': getStoredPassword()
+            }
+          });
           if(!res.ok){
             var txt = await res.text().catch(function(){ return res.statusText; });
             throw new Error(txt || res.statusText);
           }
           var payload = await res.json();
           var remoteItems = Array.isArray(payload.inscriptions) ? payload.inscriptions : [];
+          var localItems = getInscriptions();
+
           if(remoteItems.length === 0){
-            // Aucun enregistrement serveur : nettoyer les données locales pour partir propre
-            localStorage.removeItem(INSCRIPTIONS_KEY);
-            displayInscriptions();
-            showMessage(clearMessage, '✓ Aucune inscription sur le serveur — données locales nettoyées', 'success');
+            if(localItems.length > 0){
+              pushInscriptionsToServer(localItems);
+              showMessage(clearMessage, '✓ Serveur vide — données locales synchronisées vers le serveur', 'success');
+            } else {
+              showMessage(clearMessage, '✓ Aucune inscription enregistrée', 'success');
+            }
             return;
           }
-          var localItems = getInscriptions();
+
           var merged = mergeInscriptions(remoteItems, localItems);
           localStorage.setItem(INSCRIPTIONS_KEY, JSON.stringify(merged));
           displayInscriptions();
-          showMessage(clearMessage, '✓ Inscriptions synchronisées', 'success');
+          showMessage(clearMessage, '✓ Inscriptions synchronisées (' + merged.length + ' au total)', 'success');
         }catch(error){
-          showMessage(clearMessage, '⚠️ Synchronisation impossible pour le moment', 'error');
+          showMessage(clearMessage, '⚠️ Synchronisation impossible (' + (error.message || 'serveur injoignable') + ')', 'error');
         }finally{
           setButtonLoading(syncInscriptionsBtn, false, null, '🔄 Synchroniser inscriptions');
         }
-      }function pushInscriptionsToServer(items){
+      }
+
+      function pushInscriptionsToServer(items){
         fetch(INSCRIPTIONS_API_URL, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-admin-password': getStoredPassword()
+          },
           body: JSON.stringify({ inscriptions: items })
         }).then(function(res){
           if(!res.ok){
@@ -827,7 +841,10 @@
           if(!publishPassword) return;
          const res = await fetch('https://servant-de-messe-4651.onrender.com/api/publish-news', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'x-admin-password': publishPassword
+            },
             body: JSON.stringify({ news: data, publishPassword: publishPassword })
           });
           if(!res.ok){ const txt = await res.text().catch(()=>res.statusText); throw new Error(txt || res.statusText); }

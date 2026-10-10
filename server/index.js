@@ -1,16 +1,68 @@
 const express = require('express');
 const path = require('path');
 const app = express();
-app.use(express.json({ limit: '2mb' }));
 
-// Servir les fichiers statiques du repo
-app.use(express.static(path.join(__dirname, '..')));
-
+// Configuration
 const OWNER = 'itestmypartner';
 const REPO = 'Servant-de-messe-';
 const NEWS_PATH = 'data/news.json';
 const INSCRIPTIONS_PATH = 'data/inscriptions.json';
 const BRANCH = 'main';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '200700';
+
+// Headers de sécurité HTTP de base
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-password, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+app.use(express.json({ limit: '2mb' }));
+
+// Servir les fichiers statiques du repo
+app.use(express.static(path.join(__dirname, '..')));
+
+// Simple in-memory rate limiter pour prévenir le spam
+const ipRequestCounts = new Map();
+function rateLimiter(windowMs, maxRequests) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    const entry = ipRequestCounts.get(ip) || { count: 0, resetTime: now + windowMs };
+
+    if (now > entry.resetTime) {
+      entry.count = 1;
+      entry.resetTime = now + windowMs;
+    } else {
+      entry.count += 1;
+    }
+    ipRequestCounts.set(ip, entry);
+
+    if (entry.count > maxRequests) {
+      return res.status(429).json({ error: 'Trop de requêtes. Veuillez patienter quelques minutes.' });
+    }
+    next();
+  };
+}
+
+// Middleware d'authentification admin
+function requireAdminAuth(req, res, next) {
+  const providedPassword = req.headers['x-admin-password'] || (req.body && req.body.publishPassword);
+  if (!providedPassword || providedPassword !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Accès non autorisé : mot de passe admin requis ou invalide.' });
+  }
+  next();
+}
 
 function getToken(){
   return process.env.NEWS_PUBLISH_TOKEN || process.env.GITHUB_TOKEN || null;
@@ -66,57 +118,64 @@ async function writeRepoJson(filePath, data, commitMessage, token, sha){
   return putJson;
 }
 
-app.get('/api/health', (req,res)=> res.json({ status: 'ok', service: 'publish-news' }));
+// Health check
+app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'publish-news' }));
 
-app.post('/api/publish-news', async (req,res)=>{
+// Publication d'actualités (authentifié)
+app.post('/api/publish-news', requireAdminAuth, async (req, res) => {
   try{
     const token = getToken();
-    if(!token) return res.status(500).json({ error: 'No publish token configured (NEWS_PUBLISH_TOKEN).' });
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
 
     const news = req.body && req.body.news;
-    if(!Array.isArray(news)) return res.status(400).json({ error: 'Missing news payload' });
+    if(!Array.isArray(news)) return res.status(400).json({ error: 'Données actualités invalides.' });
 
     const existing = await readRepoJson(NEWS_PATH, token);
     const result = await writeRepoJson(NEWS_PATH, news, 'Publish news via Render service', token, existing.sha);
     return res.json({ ok: true, result });
   }catch(err){
-    console.error(err);
-    return res.status(500).json({ error: String(err) });
+    console.error('Erreur /api/publish-news:', err);
+    return res.status(500).json({ error: 'Erreur lors de la publication des actualités.' });
   }
 });
 
-app.get('/api/inscriptions', async (req,res)=>{
+// Récupération des inscriptions (authentifié pour protéger les données de mineurs)
+app.get('/api/inscriptions', requireAdminAuth, async (req, res) => {
   try{
     const token = getToken();
-    if(!token) return res.status(500).json({ error: 'No publish token configured (NEWS_PUBLISH_TOKEN).' });
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
     const existing = await readRepoJson(INSCRIPTIONS_PATH, token);
     return res.json({ ok: true, inscriptions: existing.data });
   }catch(err){
-    console.error(err);
-    return res.status(500).json({ error: String(err) });
+    console.error('Erreur GET /api/inscriptions:', err);
+    return res.status(500).json({ error: 'Impossible de lire les inscriptions.' });
   }
 });
 
-app.post('/api/inscriptions', async (req,res)=>{
+// Soumission publique d'inscription (avec rate limit et validation stricte)
+app.post('/api/inscriptions', rateLimiter(10 * 60 * 1000, 10), async (req, res) => {
   try{
     const token = getToken();
-    if(!token) return res.status(500).json({ error: 'No publish token configured (NEWS_PUBLISH_TOKEN).' });
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
     const input = req.body && req.body.inscription;
     if(!input || typeof input !== 'object'){
-      return res.status(400).json({ error: 'Missing inscription payload' });
+      return res.status(400).json({ error: 'Payload inscription manquant ou invalide.' });
     }
-    const nom = String(input.nom || '').trim();
-    const prenom = String(input.prenom || '').trim();
-    const tel = String(input.tel || '').trim();
+
+    // Assainissement des champs texte
+    const nom = String(input.nom || '').trim().slice(0, 50);
+    const prenom = String(input.prenom || '').trim().slice(0, 50);
+    const tel = String(input.tel || '').trim().slice(0, 20);
     const age = Number(input.age || 0);
-    if(!nom || !prenom || !tel || !Number.isFinite(age) || age <= 0){
-      return res.status(400).json({ error: 'Invalid inscription fields' });
+
+    if(!nom || !prenom || !tel || !Number.isFinite(age) || age < 6 || age > 25){
+      return res.status(400).json({ error: 'Informations d\'inscription invalides.' });
     }
 
     const existing = await readRepoJson(INSCRIPTIONS_PATH, token);
     const nowIso = new Date().toISOString();
     const inscription = {
-      id: String(input.id || nowIso + '-' + Math.floor(Math.random() * 100000)),
+      id: String(input.id || (nowIso + '-' + Math.floor(Math.random() * 100000))),
       nom,
       prenom,
       age: Math.round(age),
@@ -124,31 +183,33 @@ app.post('/api/inscriptions', async (req,res)=>{
       date: String(input.date || new Date().toLocaleString('fr-FR')),
       createdAt: String(input.createdAt || nowIso)
     };
+
     const updated = existing.data.concat([inscription]);
     await writeRepoJson(INSCRIPTIONS_PATH, updated, 'Add inscription via public form', token, existing.sha);
     return res.json({ ok: true, inscription });
   }catch(err){
-    console.error(err);
-    return res.status(500).json({ error: String(err) });
+    console.error('Erreur POST /api/inscriptions:', err);
+    return res.status(500).json({ error: 'Erreur lors de l\'enregistrement de l\'inscription.' });
   }
 });
 
-app.put('/api/inscriptions', async (req,res)=>{
+// Mise à jour de la liste complète des inscriptions (authentifié)
+app.put('/api/inscriptions', requireAdminAuth, async (req, res) => {
   try{
     const token = getToken();
-    if(!token) return res.status(500).json({ error: 'No publish token configured (NEWS_PUBLISH_TOKEN).' });
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
     const inscriptions = req.body && req.body.inscriptions;
     if(!Array.isArray(inscriptions)){
-      return res.status(400).json({ error: 'Missing inscriptions payload' });
+      return res.status(400).json({ error: 'Données inscriptions invalides.' });
     }
     const existing = await readRepoJson(INSCRIPTIONS_PATH, token);
     await writeRepoJson(INSCRIPTIONS_PATH, inscriptions, 'Sync inscriptions from admin', token, existing.sha);
     return res.json({ ok: true, count: inscriptions.length });
   }catch(err){
-    console.error(err);
-    return res.status(500).json({ error: String(err) });
+    console.error('Erreur PUT /api/inscriptions:', err);
+    return res.status(500).json({ error: 'Erreur lors de la synchronisation des inscriptions.' });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=> console.log('Publish-news service listening on', PORT));
+app.listen(PORT, () => console.log('Publish-news service listening on port', PORT));

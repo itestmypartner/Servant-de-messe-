@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Servants de Messe de la paroisse Saint-Bernard d'Adiopodoumé">
+  <meta name="description" content="Servants de Messe de la paroisse Saint-Bernard d'Adiopodoumé - Groupe liturgique au service de l'autel.">
+  <meta property="og:title" content="Servants de Messe — Paroisse Saint-Bernard d'Adiopodoumé">
+  <meta property="og:description" content="Communauté d'enfants engagés au service de l'autel avec joie, amour, respect et fidélité.">
+  <meta property="og:image" content="logoservantdemesse.jpg">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
   <title>Servants de Messe — Paroisse Saint-Bernard d'Adiopodoumé</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,6 +35,7 @@
           <li><a href="#accueil">Accueil</a></li>
           <li><a href="#apropos">À propos</a></li>
           <li><a href="#actualites">Actualités</a></li>
+          <li><a href="formation-responsables/index.html">Formation</a></li>
           <li><a href="#rejoindre">Nous rejoindre</a></li>
           <li><a href="#contact">Contact</a></li>
         </ul>
@@ -42,7 +48,7 @@
     <section class="hero">
       <div class="container hero-content">
         <img src="logoservantdemesse.jpg" alt="Servants de Messe" class="hero-logo">
-        <p class="hero-devise">« Servir et non être servir »</p>
+        <p class="hero-devise">« Servir et non être servi »</p>
         <h1>Bienvenue chez les Servants de Messe de la paroisse Saint-Bernard d'Adiopodoumé</h1>
         <p class="hero-text">
           Nous sommes une communauté d'enfants engagés au service de l'autel. Notre mission est d'accompagner, auprès des prêtres et de toute la communauté, lors des célébrations et au quotidien, avec joie, amour, respect et fidélité.
@@ -141,7 +147,7 @@
         </div>
 
         <div class="news-footer">
-          <a href="/archive.html" class="btn btn-primary">Voir toutes les actualités</a>
+          <a href="archive.html" class="btn btn-primary">Voir toutes les actualités</a>
         </div>
       </div>
 
@@ -163,7 +169,7 @@
 
     <script>
     (function(){
-      // Try localStorage news first, then fallback to /data/news.json
+      // Try localStorage news first, then fallback to data/news.json
       var NEWS_KEY = 'news_items';
       var grid = document.getElementById('newsGrid');
       var modal = document.getElementById('newsModal');
@@ -178,6 +184,15 @@
         var safe = String(text == null ? '' : text);
         var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
         return safe.replace(/[&<>"']/g, function(c){ return map[c]; });
+      }
+
+      function sanitizeImageUrl(url){
+        if(!url || typeof url !== 'string') return '';
+        var clean = url.trim();
+        if(clean.indexOf('data:image/') === 0 || clean.indexOf('https://') === 0 || clean.indexOf('http://') === 0 || /^[a-zA-Z0-9_\-\.\/]+$/.test(clean)){
+          return escapeHtml(clean);
+        }
+        return '';
       }
 
       function renderContentText(text){
@@ -195,13 +210,17 @@
 
       function renderCard(item, displayIndex){
         var div = document.createElement('article');
-        div.className = 'news-card' + (item.image ? '' : ' no-image');
-        div.innerHTML = "" + (item.image?'<img src="'+item.image+'" alt="'+(item.title||'')+'" loading="lazy" decoding="async">':'') +
+        var safeImg = sanitizeImageUrl(item.image);
+        var safeTitle = escapeHtml(item.title || '');
+        var safeExcerpt = escapeHtml(item.excerpt || '');
+        var safeDate = item.date ? escapeHtml(new Date(item.date).toLocaleDateString('fr-FR')) : '';
+        div.className = 'news-card' + (safeImg ? '' : ' no-image');
+        div.innerHTML = (safeImg ? '<img src="' + safeImg + '" alt="' + safeTitle + '" loading="lazy" decoding="async">' : '') +
           '<div class="news-body">' +
-          '<div class="meta">'+(item.date?new Date(item.date).toLocaleDateString('fr-FR'):'')+'</div>' +
-          '<h3>'+ (item.title||'') +'</h3>' +
-          '<p>'+ (item.excerpt||'') +'</p>' +
-          '<div class="actions"><button class="btn btn-primary read-btn" data-idx="'+displayIndex+'" type="button">Lire</button></div>' +
+          '<div class="meta">' + safeDate + '</div>' +
+          '<h3>' + safeTitle + '</h3>' +
+          '<p>' + safeExcerpt + '</p>' +
+          '<div class="actions"><button class="btn btn-primary read-btn" data-idx="' + displayIndex + '" type="button">Lire</button></div>' +
           '</div>';
         return div;
       }
@@ -261,8 +280,8 @@
           }
         }catch(e){console.error('localStorage error:', e);}
 
-        // fallback fetch
-        fetch('/data/news.json')
+        // fallback fetch (relative for GitHub Pages compatibility)
+        fetch('data/news.json')
           .then(function(r){ if(!r.ok) throw new Error('not ok'); return r.json(); })
           .then(function(data){ renderList(data); })
           .catch(function(err){ console.error('fetch error:', err); renderList([]); });
@@ -313,7 +332,8 @@
       <div class="footer-block">
         <h3>Contact</h3>
         <p>Paroisse : <a href="tel:+2250707494059">(+225) 07 07 49 40 59</a></p>
-        <p>Responsable : Respo Odi<br><a href="tel:+2250594262922">+225 05 94 26 29 22</a></p>
+        <p>Responsable Formation : DJEBLE Haniel<br><a href="tel:+2250150252467">+225 01 50 25 24 67</a></p>
+        <p>Responsable Adjoint : Respo Odi<br><a href="tel:+2250594262922">+225 05 94 26 29 22</a></p>
       </div>
       <div class="footer-block">
         <h3>Horaires des messes</h3>
