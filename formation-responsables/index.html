@@ -91,10 +91,18 @@
 
   <!-- ==================== EN-TÊTE D'IMPRESSION A4 OFFICIELLE ==================== -->
   <div class="print-only-header">
-    <h2 class="font-cinzel fs-4 mb-1">PAROISSE SAINT-BERNARD D'ADIOPODOUMÉ</h2>
-    <p class="small text-muted mb-1">Groupe des Servants de Messe • Commission Formation Liturgique</p>
-    <h3 class="fs-5 fw-bold text-uppercase mt-2 mb-1">EMPLOI DU TEMPS OFFICIEL DES FORMATIONS DU SAMEDI</h3>
-    <p class="small text-secondary mb-0">Niveaux : Postulant • Samuel • Tarcisius • Augustin</p>
+    <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom border-2 border-dark">
+      <img src="logoservantdemesse.jpg" alt="Logo Servants de Messe" class="print-header-logo">
+      <div class="text-center px-3 flex-grow-1">
+        <h2 class="font-cinzel fs-5 fw-bold mb-1 text-uppercase text-dark">Paroisse Saint-Bernard d'Adiopodoumé</h2>
+        <p class="small text-dark mb-1 fw-semibold">Groupe des Servants de Messe • Commission Formation Liturgique</p>
+        <h3 class="fs-6 fw-bold text-uppercase text-dark mb-1" id="printMonthSubtitle">
+          Emploi du Temps des Formations du Samedi — <span id="printMonthText">Octobre 2026</span>
+        </h3>
+        <p class="small text-muted mb-0" style="font-size:0.75rem;">Niveaux officiels : Postulant • Samuel • Tarcisius • Augustin</p>
+      </div>
+      <img src="logoeglise.jpeg" alt="Logo Paroisse Saint-Bernard" class="print-header-logo">
+    </div>
   </div>
 
   <main class="container py-4 flex-grow-1">
@@ -410,21 +418,14 @@
       </div>
     </div>
 
-    <!-- ==================== SIGNATURES OFFICIELLES D'IMPRESSION ==================== -->
-    <div class="print-signatures pt-4">
-      <div>
-        <p class="fw-bold mb-0">Le Responsable Chargé de la Formation</p>
-        <p class="small text-muted mb-2">Commission Liturgique des Servants de Messe</p>
-        <div class="handwritten-signature" style="font-size:2.8rem;">DJEBLE Haniel</div>
-        <p class="fw-bold mb-0">DJEBLE Haniel</p>
-        <p class="small text-muted">Tél : 01 50 25 24 67 • Paroisse Saint-Bernard d'Adiopodoumé</p>
-      </div>
-      <div class="text-end">
-        <p class="fw-bold mb-0">Vu et approuvé par le Curé</p>
-        <p class="small text-muted mb-5">Paroisse Saint-Bernard d'Adiopodoumé</p>
-        <br>
-        <p class="fw-bold mb-0">Le Curé de la Paroisse</p>
-        <p class="small text-muted">Signature & Sceau Paroissial</p>
+    <!-- ==================== SIGNATURE OFFICIELLE DU RESPONSABLE (IMPRESSION PDF) ==================== -->
+    <div class="print-signatures pt-3">
+      <div class="text-end ms-auto" style="min-width: 260px;">
+        <p class="fw-bold mb-0 text-dark">Le Responsable Chargé de la Formation</p>
+        <p class="small text-secondary mb-1">Commission des Servants de Messe</p>
+        <div class="handwritten-signature" style="font-size:2.6rem;">DJEBLE Haniel</div>
+        <p class="fw-bold mb-0 text-dark">DJEBLE Haniel</p>
+        <p class="small text-muted mb-0">Contact : +225 01 50 25 24 67</p>
       </div>
     </div>
 

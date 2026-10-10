@@ -346,43 +346,95 @@ footer {
   border-top: 2px solid var(--liturgical-gold);
 }
 
-/* ==================== STYLES D'IMPRESSION A4 OFFICIELLE ==================== */
+/* ==================== STYLES D'IMPRESSION A4 OFFICIELLE & PDF ==================== */
+.print-only-header,
+.print-signatures {
+  display: none;
+}
+
+.print-header-logo {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #0b1329;
+}
+
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
   body {
     background: #ffffff !important;
     color: #000000 !important;
-    font-size: 10pt;
+    font-size: 9.5pt;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
   .navbar-custom,
   .hero-banner,
+  .stat-widget,
+  .row.g-3.mb-4,
+  #responsables-section,
+  #monthNavContainer,
+  #levelFilterContainer,
+  #niveaux-section,
+  .card-trainer-highlight,
   .no-print,
   .btn,
   .action-col,
   .modal,
   .toast-container,
-  footer,
-  #levelFilterContainer,
-  #monthNavContainer {
+  footer {
     display: none !important;
   }
 
   .print-only-header {
     display: block !important;
-    text-align: center;
-    border-bottom: 2px solid #000000;
-    padding-bottom: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
+  }
+
+  .print-header-logo {
+    display: block !important;
+    width: 65px !important;
+    height: 65px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 1.5px solid #000000 !important;
+  }
+
+  #planning-section {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    margin-bottom: 12px !important;
+  }
+
+  #planning-section .card-header {
+    display: none !important;
   }
 
   .card-soft {
-    border: 1px solid #000000 !important;
+    border: none !important;
     box-shadow: none !important;
-    margin-bottom: 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .table-responsive {
+    overflow: visible !important;
   }
 
   .table-schedule {
-    border: 1px solid #000000 !important;
+    width: 100% !important;
+    border: 1.5px solid #000000 !important;
+    border-collapse: collapse !important;
   }
 
   .table-schedule th {
@@ -390,24 +442,36 @@ footer {
     color: #000000 !important;
     border: 1px solid #000000 !important;
     font-size: 8pt !important;
+    padding: 7px 8px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px;
   }
 
   .table-schedule td {
     border: 1px solid #000000 !important;
-    font-size: 9pt !important;
-    padding: 8px !important;
+    font-size: 8.5pt !important;
+    padding: 7px 8px !important;
+    color: #000000 !important;
+  }
+
+  .table-schedule .badge {
+    border: 1px solid #475569 !important;
+    color: #000000 !important;
+    background: #f8fafc !important;
+    font-size: 7.5pt !important;
+    padding: 2px 6px !important;
   }
 
   .print-signatures {
     display: flex !important;
-    justify-content: space-between;
-    margin-top: 40px;
-    padding-top: 16px;
+    justify-content: flex-end !important;
+    margin-top: 24px;
+    padding-top: 12px;
     border-top: 1px solid #000000;
   }
-}
 
-.print-only-header,
-.print-signatures {
-  display: none;
+  .handwritten-signature {
+    color: #000000 !important;
+    font-size: 2.6rem !important;
+  }
 }

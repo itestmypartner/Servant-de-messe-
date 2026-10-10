@@ -208,6 +208,11 @@
       statMonthLabel.textContent = MONTH_NAMES[currentMonth] + ' ' + currentYear;
     }
 
+    var printMonthText = document.getElementById('printMonthText');
+    if (printMonthText) {
+      printMonthText.textContent = MONTH_NAMES[currentMonth] + ' ' + currentYear;
+    }
+
     if (scheduleCountEl) {
       scheduleCountEl.textContent = filtered.length + ' séance(s) programmée(s)';
     }
