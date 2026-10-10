@@ -248,16 +248,16 @@
 
       html += 
         '<tr>' +
-          '<td class="fw-bold text-dark text-nowrap"><i class="bi bi-calendar-event text-secondary me-2"></i>' + capitalizeFirst(dateFormatted) + '</td>' +
-          '<td class="text-nowrap"><span class="badge bg-light text-dark border"><i class="bi bi-clock me-1"></i>' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span></td>' +
-          '<td><span class="' + badgeClass + '">' + escapeHtml(s.level) + '</span></td>' +
-          '<td>' +
+          '<td class="col-date fw-bold text-dark"><i class="bi bi-calendar-event text-secondary me-1"></i>' + capitalizeFirst(dateFormatted) + '</td>' +
+          '<td class="col-time"><span class="badge bg-light text-dark border"><i class="bi bi-clock me-1"></i>' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span></td>' +
+          '<td class="col-level"><span class="' + badgeClass + '">' + escapeHtml(s.level) + '</span></td>' +
+          '<td class="col-topic">' +
             '<div class="fw-semibold text-dark">' + escapeHtml(s.topic) + '</div>' +
             (s.objectives ? '<div class="small text-muted mt-1"><i class="bi bi-info-circle me-1"></i>' + escapeHtml(s.objectives) + '</div>' : '') +
           '</td>' +
-          '<td class="text-nowrap"><i class="bi bi-person-fill text-muted me-1"></i>' + escapeHtml(s.trainer) + '</td>' +
-          '<td class="text-nowrap"><span class="small text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>' + escapeHtml(s.location) + '</span></td>' +
-          '<td class="action-col text-end text-nowrap">' +
+          '<td class="col-trainer"><i class="bi bi-person-fill text-muted me-1"></i>' + escapeHtml(s.trainer) + '</td>' +
+          '<td class="col-location"><span class="small text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>' + escapeHtml(s.location) + '</span></td>' +
+          '<td class="action-col text-end">' +
             (isAdmin ? 
               '<div class="btn-group btn-group-sm">' +
                 '<button class="btn btn-outline-secondary edit-session-btn" data-id="' + s.id + '" title="Modifier"><i class="bi bi-pencil"></i></button>' +
