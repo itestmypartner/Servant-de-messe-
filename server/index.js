@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const app = express();
 
 // Configuration
@@ -7,6 +8,8 @@ const OWNER = 'itestmypartner';
 const REPO = 'Servant-de-messe-';
 const NEWS_PATH = 'data/news.json';
 const INSCRIPTIONS_PATH = 'data/inscriptions.json';
+const FORMATIONS_PATH = 'data/formations.json';
+const CONFIG_PATH = 'data/config.json';
 const BRANCH = 'main';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '200700';
 
@@ -55,13 +58,48 @@ function rateLimiter(windowMs, maxRequests) {
   };
 }
 
-// Middleware d'authentification admin
-function requireAdminAuth(req, res, next) {
+// Middleware d'authentification admin (vérifie d'abord un hash personnalisé
+// stocké dans data/config.json, sinon retombe sur ADMIN_PASSWORD env)
+async function requireAdminAuth(req, res, next) {
   const providedPassword = req.headers['x-admin-password'] || (req.body && req.body.publishPassword);
-  if (!providedPassword || providedPassword !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Accès non autorisé : mot de passe admin requis ou invalide.' });
+  if (!providedPassword) {
+    return res.status(401).json({ error: 'Accès non autorisé : mot de passe admin requis.' });
   }
-  next();
+  try {
+    if (await verifyAdminPassword(providedPassword)) return next();
+  } catch (err) {
+    console.error('Erreur vérification mot de passe admin:', err);
+  }
+  return res.status(401).json({ error: 'Accès non autorisé : mot de passe admin invalide.' });
+}
+
+function sha256(str) {
+  return crypto.createHash('sha256').update(String(str)).digest('hex');
+}
+
+// Cache court du hash personnalisé (évite un appel GitHub à chaque requête)
+let adminHashCache = { at: 0, hash: null };
+
+async function getAdminPasswordHash() {
+  const token = getToken();
+  if (!token) return null;
+  if (Date.now() - adminHashCache.at < 60 * 1000) return adminHashCache.hash;
+  try {
+    const cfg = await readRepoJsonAny(CONFIG_PATH, token);
+    adminHashCache = {
+      at: Date.now(),
+      hash: (cfg.data && typeof cfg.data === 'object' && cfg.data.adminPasswordHash) || null
+    };
+  } catch (err) {
+    adminHashCache = { at: Date.now(), hash: null };
+  }
+  return adminHashCache.hash;
+}
+
+async function verifyAdminPassword(password) {
+  const hash = await getAdminPasswordHash();
+  if (hash) return sha256(password) === hash;
+  return password === ADMIN_PASSWORD;
 }
 
 function getToken(){
@@ -76,13 +114,14 @@ function githubHeaders(token){
   };
 }
 
-async function readRepoJson(filePath, token){
+// Lecture d'un fichier JSON du repo (tableau OU objet)
+async function readRepoJsonAny(filePath, token){
   const headers = githubHeaders(token);
   const getUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}?ref=${BRANCH}`;
   const getRes = await fetch(getUrl, { headers });
 
   if(getRes.status === 404){
-    return { exists: false, sha: null, data: [] };
+    return { exists: false, sha: null, data: null };
   }
   if(!getRes.ok){
     const err = await getRes.text();
@@ -91,14 +130,22 @@ async function readRepoJson(filePath, token){
 
   const payload = await getRes.json();
   const decoded = Buffer.from(payload.content || '', 'base64').toString('utf8');
-  let parsed = [];
+  let parsed = null;
   if(decoded.trim()){
     parsed = JSON.parse(decoded);
   }
-  if(!Array.isArray(parsed)){
+  return { exists: true, sha: payload.sha, data: parsed };
+}
+
+async function readRepoJson(filePath, token){
+  const result = await readRepoJsonAny(filePath, token);
+  if(!result.exists){
+    return { exists: false, sha: null, data: [] };
+  }
+  if(!Array.isArray(result.data)){
     throw new Error('Stored JSON is not an array');
   }
-  return { exists: true, sha: payload.sha, data: parsed };
+  return result;
 }
 
 async function writeRepoJson(filePath, data, commitMessage, token, sha){
@@ -208,6 +255,111 @@ app.put('/api/inscriptions', requireAdminAuth, async (req, res) => {
   }catch(err){
     console.error('Erreur PUT /api/inscriptions:', err);
     return res.status(500).json({ error: 'Erreur lors de la synchronisation des inscriptions.' });
+  }
+});
+
+// ==================== FORMATIONS (planning des samedis) ====================
+
+// Lecture publique du planning de formation
+app.get('/api/formations', async (req, res) => {
+  try{
+    const token = getToken();
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
+    const existing = await readRepoJsonAny(FORMATIONS_PATH, token);
+    const data = (existing.data && typeof existing.data === 'object' && !Array.isArray(existing.data)) ? existing.data : {};
+    return res.json({
+      ok: true,
+      sessions: Array.isArray(data.sessions) ? data.sessions : [],
+      trainers: Array.isArray(data.trainers) ? data.trainers : []
+    });
+  }catch(err){
+    console.error('Erreur GET /api/formations:', err);
+    return res.status(500).json({ error: 'Impossible de lire le planning de formation.' });
+  }
+});
+
+// Synchronisation complète du planning (authentifié)
+app.put('/api/formations', requireAdminAuth, async (req, res) => {
+  try{
+    const token = getToken();
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
+
+    const sessions = req.body && req.body.sessions;
+    const trainers = req.body && req.body.trainers;
+    if(!Array.isArray(sessions) || sessions.length > 2000 || !Array.isArray(trainers) || trainers.length > 200){
+      return res.status(400).json({ error: 'Données formations invalides.' });
+    }
+
+    const cleanSessions = sessions.map(s => ({
+      id: String(s.id || ('sess_' + Date.now())).slice(0, 60),
+      date: String(s.date || '').slice(0, 10),
+      startTime: String(s.startTime || '').slice(0, 5),
+      endTime: String(s.endTime || '').slice(0, 5),
+      level: String(s.level || 'Tous').slice(0, 30),
+      topic: String(s.topic || '').slice(0, 200),
+      trainer: String(s.trainer || '').slice(0, 80),
+      location: String(s.location || '').slice(0, 120),
+      objectives: String(s.objectives || '').slice(0, 500)
+    })).filter(s => s.date && s.topic);
+
+    const cleanTrainers = trainers.map(t => ({
+      id: String(t.id || ('tr_' + Date.now())).slice(0, 60),
+      name: String(t.name || '').slice(0, 80),
+      role: String(t.role || 'Formateur').slice(0, 80),
+      tel: String(t.tel || '').slice(0, 25)
+    })).filter(t => t.name);
+
+    const existing = await readRepoJsonAny(FORMATIONS_PATH, token);
+    const payload = { sessions: cleanSessions, trainers: cleanTrainers };
+    await writeRepoJson(FORMATIONS_PATH, payload, 'Sync formations schedule', token, existing.sha);
+    return res.json({ ok: true, count: cleanSessions.length });
+  }catch(err){
+    console.error('Erreur PUT /api/formations:', err);
+    return res.status(500).json({ error: 'Erreur lors de la synchronisation du planning.' });
+  }
+});
+
+// ==================== AUTHENTIFICATION ADMIN ====================
+
+// Vérification du mot de passe (rate limité contre le brute-force)
+app.post('/api/admin/verify', rateLimiter(10 * 60 * 1000, 30), async (req, res) => {
+  try{
+    const password = req.body && req.body.password;
+    if(password && await verifyAdminPassword(password)){
+      return res.json({ ok: true });
+    }
+    return res.status(401).json({ error: 'Mot de passe incorrect.' });
+  }catch(err){
+    console.error('Erreur /api/admin/verify:', err);
+    return res.status(500).json({ error: 'Erreur de vérification.' });
+  }
+});
+
+// Changement du mot de passe admin (stocké en hash dans data/config.json)
+app.post('/api/admin/change-password', rateLimiter(10 * 60 * 1000, 10), async (req, res) => {
+  try{
+    const currentPassword = req.body && req.body.currentPassword;
+    const newPassword = req.body && req.body.newPassword;
+    if(!newPassword || String(newPassword).length < 4 || String(newPassword).length > 64){
+      return res.status(400).json({ error: 'Le nouveau mot de passe doit contenir entre 4 et 64 caractères.' });
+    }
+    if(!(await verifyAdminPassword(currentPassword))){
+      return res.status(401).json({ error: 'Mot de passe actuel incorrect.' });
+    }
+    const token = getToken();
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
+
+    const existing = await readRepoJsonAny(CONFIG_PATH, token);
+    const config = Object.assign({}, (existing.data && typeof existing.data === 'object') ? existing.data : {}, {
+      adminPasswordHash: sha256(newPassword),
+      updatedAt: new Date().toISOString()
+    });
+    await writeRepoJson(CONFIG_PATH, config, 'Update admin password hash', token, existing.sha);
+    adminHashCache = { at: 0, hash: null };
+    return res.json({ ok: true });
+  }catch(err){
+    console.error('Erreur /api/admin/change-password:', err);
+    return res.status(500).json({ error: 'Erreur lors du changement de mot de passe.' });
   }
 });
 

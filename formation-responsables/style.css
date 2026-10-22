@@ -340,10 +340,97 @@ body {
   box-shadow: 0 0 0 3px rgba(197, 155, 39, 0.2);
 }
 
-/* ==================== PIED DE PAGE ==================== */
-footer {
-  background: var(--navy-dark) !important;
-  border-top: 2px solid var(--liturgical-gold);
+/* ==================== STYLES RESPONSIVES MOBILES AVANCÉS ==================== */
+.level-filter-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  gap: 6px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.level-filter-scroll::-webkit-scrollbar {
+  display: none;
+}
+.level-filter-scroll .level-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Cartes ergonomiques pour smartphone */
+.mobile-session-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border-left-width: 5px !important;
+}
+.mobile-session-card:active {
+  transform: scale(0.99);
+}
+
+.border-level-postulant { border-left-color: var(--color-postulant) !important; }
+.border-level-samuel { border-left-color: var(--color-samuel) !important; }
+.border-level-tarcisius { border-left-color: var(--color-tarcisius) !important; }
+.border-level-augustin { border-left-color: var(--color-augustin) !important; }
+.border-level-tous { border-left-color: var(--color-tous) !important; }
+
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    background: #0b1329;
+    padding: 16px;
+    border-radius: 14px;
+    margin-top: 10px;
+    border: 1px solid rgba(197, 155, 39, 0.3);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  }
+
+  .navbar-nav .nav-link {
+    padding: 10px 14px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .navbar-action-group {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
+    width: 100%;
+    margin-top: 14px;
+  }
+
+  .navbar-action-group .btn {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .hero-banner {
+    padding: 1.25rem !important;
+    border-radius: 12px;
+  }
+
+  .hero-banner h1 {
+    font-size: 1.45rem !important;
+  }
+
+  .hero-tag {
+    font-size: 0.72rem;
+    padding: 3px 10px;
+  }
+
+  .card-soft {
+    border-radius: 12px;
+  }
+
+  .signature-box {
+    width: 100%;
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  .handwritten-signature {
+    font-size: 2.2rem;
+  }
 }
 
 /* ==================== STYLES D'IMPRESSION A4 OFFICIELLE & PDF ==================== */
@@ -395,8 +482,14 @@ footer {
   .modal,
   .toast-container,
   footer,
+  #scheduleMobileContainer,
   #planning-section .card-header {
     display: none !important;
+  }
+
+  #scheduleTableWrapper {
+    display: block !important;
+    overflow: visible !important;
   }
 
   .container,
@@ -517,5 +610,187 @@ footer {
   .handwritten-signature {
     color: #000000 !important;
     font-size: 2.6rem !important;
+  }
+}
+
+/* ==================== CARTE PROCHAINE SÉANCE ==================== */
+.next-session-card {
+  background: linear-gradient(120deg, #ffffff 0%, var(--liturgical-gold-light) 100%);
+  border: 1px solid var(--liturgical-gold-border);
+  border-left: 5px solid var(--liturgical-gold);
+  box-shadow: var(--card-shadow);
+}
+
+.next-session-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--liturgical-gold);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(197, 155, 39, 0.4);
+}
+
+/* ==================== CARTES NIVEAUX CLIQUABLES ==================== */
+.level-card-clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.level-card-clickable:hover,
+.level-card-clickable:focus {
+  transform: translateY(-4px);
+  box-shadow: var(--card-hover-shadow);
+  outline: none;
+}
+
+/* ==================== VUE CALENDRIER MENSUEL ==================== */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.cal-head {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  text-align: center;
+  padding: 6px 0;
+}
+
+.cal-head-sat {
+  color: var(--liturgical-gold-hover);
+}
+
+.cal-cell {
+  min-height: 88px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px;
+  font-size: 0.75rem;
+}
+
+.cal-cell-empty {
+  background: transparent;
+  border: none;
+}
+
+.cal-cell-sat {
+  background: var(--liturgical-gold-light);
+  border-color: var(--liturgical-gold-border);
+}
+
+.cal-cell-today {
+  border: 2px solid var(--liturgical-gold);
+  box-shadow: 0 0 0 3px rgba(197, 155, 39, 0.15);
+}
+
+.cal-day {
+  font-weight: 700;
+  color: #334155;
+  font-size: 0.8rem;
+}
+
+.cal-event {
+  display: block;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.cal-event-postulant { background: var(--color-postulant-bg); color: var(--color-postulant); border: 1px solid var(--color-postulant-border); }
+.cal-event-samuel { background: var(--color-samuel-bg); color: var(--color-samuel); border: 1px solid var(--color-samuel-border); }
+.cal-event-tarcisius { background: var(--color-tarcisius-bg); color: var(--color-tarcisius); border: 1px solid var(--color-tarcisius-border); }
+.cal-event-augustin { background: var(--color-augustin-bg); color: var(--color-augustin); border: 1px solid var(--color-augustin-border); }
+.cal-event-tous { background: var(--color-tous-bg); color: var(--color-tous); border: 1px solid var(--color-tous-border); }
+
+@media (max-width: 767.98px) {
+  .cal-cell {
+    min-height: 62px;
+    padding: 4px;
+    border-radius: 8px;
+  }
+  .cal-event {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+  }
+  .cal-event i {
+    display: none;
+  }
+}
+
+/* ==================== FICHE DE PRÉSENCE IMPRIMABLE ==================== */
+#printPresenceSheet {
+  display: none;
+}
+
+.presence-doc .presence-meta {
+  width: 100%;
+  margin-bottom: 12px;
+  font-size: 10pt;
+}
+
+.presence-doc .presence-meta td {
+  padding: 2px 8px 2px 0;
+  color: #000000;
+}
+
+.presence-doc .presence-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1.5px solid #000000;
+}
+
+.presence-doc .presence-table th,
+.presence-doc .presence-table td {
+  border: 1px solid #000000;
+  padding: 7px 8px;
+  font-size: 9.5pt;
+  color: #000000;
+}
+
+.presence-doc .presence-table th {
+  background: #f1f5f9;
+  text-transform: uppercase;
+  font-size: 8.5pt;
+  letter-spacing: 0.5px;
+}
+
+.presence-doc .pp-num {
+  text-align: center;
+}
+
+@media print {
+  /* Masquer la vue calendrier et la carte "prochaine séance" à l'impression */
+  #calendarViewContainer,
+  #nextSessionCard {
+    display: none !important;
+  }
+
+  /* Mode fiche de présence : tout masquer sauf la fiche */
+  body.printing-presence header,
+  body.printing-presence main,
+  body.printing-presence footer,
+  body.printing-presence .print-only-header,
+  body.printing-presence .print-signatures {
+    display: none !important;
+  }
+
+  body.printing-presence #printPresenceSheet {
+    display: block !important;
   }
 }

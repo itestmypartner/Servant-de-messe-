@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Emploi du temps officiel des formations des Servants de Messe de la Paroisse Saint-Bernard d'Adiopodoumé — Responsable : DJEBLE Haniel.">
   <title>Emploi du Temps des Formations — Servants de Messe St-Bernard</title>
+
+  <!-- APERÇU DE PARTAGE (WHATSAPP, FACEBOOK...) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Emploi du Temps des Formations — Servants de Messe">
+  <meta property="og:description" content="Planning officiel des formations du samedi — Paroisse Saint-Bernard d'Adiopodoumé. Niveaux : Postulant, Samuel, Tarcisius, Augustin.">
+  <meta property="og:image" content="https://servant-de-messe-4651.onrender.com/formation-responsables/logoservantdemesse.jpg">
+  <meta property="og:url" content="https://servant-de-messe-4651.onrender.com/formation-responsables/">
+  <meta name="theme-color" content="#0b1329">
+
+  <!-- PWA : APPLICATION INSTALLABLE -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="logoservantdemesse.jpg">
   
   <!-- BOOTSTRAP 5.3.3 CSS & BOOTSTRAP ICONS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -80,6 +92,9 @@
           </button>
           <button id="addSessionBtn" class="btn btn-gold btn-sm" type="button" style="display:none;" title="Programmer une formation">
             <i class="bi bi-plus-circle me-1"></i>Nouvelle séance
+          </button>
+          <button id="securityBtn" class="btn btn-outline-warning btn-sm" type="button" style="display:none;" title="Changer le mot de passe responsable">
+            <i class="bi bi-key me-1"></i>Sécurité
           </button>
           <button id="adminLoginBtn" class="btn btn-outline-light btn-sm" type="button" title="Connexion responsable">
             <i class="bi bi-shield-lock me-1"></i>Espace Responsable
@@ -182,6 +197,9 @@
       </div>
     </div>
 
+    <!-- ==================== PROCHAINE SÉANCE (COMPTE À REBOURS) ==================== -->
+    <div id="nextSessionCard" class="mb-4" style="display:none;"></div>
+
     <!-- ==================== FICHE RESPONSABLE TITULAIRE (DJEBLE HANIEL) ==================== -->
     <div id="responsables-section" class="card card-soft card-trainer-highlight mb-4">
       <div class="card-body p-3 p-md-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
@@ -221,34 +239,37 @@
 
     <!-- ==================== SÉLECTEUR DE MOIS ==================== -->
     <div id="monthNavContainer" class="card card-soft mb-3">
-      <div class="card-body p-3 d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
-        <div class="d-flex align-items-center gap-2">
-          <button id="prevMonthBtn" class="btn btn-outline-secondary btn-sm" type="button">
-            <i class="bi bi-chevron-left me-1"></i>Mois précédent
+      <div class="card-body p-2 p-md-3 d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2 gap-md-3">
+        <div class="d-flex align-items-center justify-content-between w-100 w-sm-auto gap-2">
+          <button id="prevMonthBtn" class="btn btn-outline-secondary btn-sm flex-fill flex-sm-grow-0" type="button">
+            <i class="bi bi-chevron-left me-1"></i><span class="d-none d-sm-inline">Mois </span>Préc.
           </button>
-          <h3 id="currentMonthTitle" class="h5 fw-bold font-cinzel text-dark mb-0 px-3 text-center" style="min-width: 180px;">
+          <h3 id="currentMonthTitle" class="h6 h5-sm fw-bold font-cinzel text-dark mb-0 px-2 px-md-3 text-center text-nowrap">
             Octobre 2026
           </h3>
-          <button id="nextMonthBtn" class="btn btn-outline-secondary btn-sm" type="button">
-            Mois suivant<i class="bi bi-chevron-right ms-1"></i>
+          <button id="nextMonthBtn" class="btn btn-outline-secondary btn-sm flex-fill flex-sm-grow-0" type="button">
+            Suiv.<span class="d-none d-sm-inline"> Mois</span><i class="bi bi-chevron-right ms-1"></i>
           </button>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center w-100 w-sm-auto justify-content-end gap-2 pt-2 pt-sm-0 border-top border-sm-0">
+          <button id="dupMonthBtn" class="btn btn-gold-subtle btn-sm text-nowrap" type="button" style="display:none;" title="Reprendre les séances du mois précédent">
+            <i class="bi bi-front me-1"></i><span class="d-none d-md-inline">Dupliquer mois préc.</span>
+          </button>
           <label for="monthSelect" class="small fw-bold text-muted text-nowrap mb-0">
             <i class="bi bi-calendar-event me-1"></i>Accès rapide :
           </label>
-          <select id="monthSelect" class="form-select form-select-sm" style="width: auto;">
+          <select id="monthSelect" class="form-select form-select-sm w-100 w-sm-auto" style="min-width: 140px;">
             <!-- Rempli dynamiquement -->
           </select>
         </div>
       </div>
     </div>
 
-    <!-- ==================== FILTRES DES NIVEAUX ==================== -->
+    <!-- ==================== FILTRES DES NIVEAUX (DÉFILEMENT MOBILE TACTILE) ==================== -->
     <div id="levelFilterContainer" class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-      <div class="d-flex align-items-center gap-1 flex-wrap">
-        <span class="small fw-bold text-muted me-1"><i class="bi bi-funnel-fill me-1"></i>FILTRE :</span>
+      <div class="level-filter-scroll d-flex align-items-center gap-1">
+        <span class="small fw-bold text-muted me-1 flex-shrink-0"><i class="bi bi-funnel-fill me-1"></i>FILTRE :</span>
         <button type="button" class="btn btn-sm btn-dark level-chip active" data-level="all">
           <i class="bi bi-grid-fill"></i> Tous
         </button>
@@ -266,14 +287,23 @@
         </button>
       </div>
 
-      <div>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <!-- BASCULE LISTE / CALENDRIER -->
+        <div class="btn-group btn-group-sm" role="group" aria-label="Mode d'affichage">
+          <button id="viewListBtn" class="btn btn-dark" type="button" title="Vue liste">
+            <i class="bi bi-list-ul"></i><span class="d-none d-sm-inline ms-1">Liste</span>
+          </button>
+          <button id="viewCalendarBtn" class="btn btn-outline-dark" type="button" title="Vue calendrier">
+            <i class="bi bi-calendar3"></i><span class="d-none d-sm-inline ms-1">Calendrier</span>
+          </button>
+        </div>
         <button id="adminQuickBtn" class="btn btn-sm btn-gold-subtle" type="button">
-          <i class="bi bi-gear-fill me-1"></i>Gérer les formations
+          <i class="bi bi-gear-fill me-1"></i>Gérer
         </button>
       </div>
     </div>
 
-    <!-- ==================== TABLEAU STRUCTURÉ DU PLANNING ==================== -->
+    <!-- ==================== TABLEAU & CARTES MOBILES DU PLANNING ==================== -->
     <div id="planning-section" class="card card-soft mb-5 overflow-hidden">
       <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-2">
@@ -282,12 +312,16 @@
             Programme officiel des Samedis
           </h4>
         </div>
-        <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-3 py-2 fw-semibold" id="scheduleCount">
-          0 séance programmée
-        </span>
+        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+          <span id="levelBreakdown" class="small text-muted d-none d-lg-inline"></span>
+          <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-3 py-2 fw-semibold" id="scheduleCount">
+            0 séance programmée
+          </span>
+        </div>
       </div>
 
-      <div class="table-responsive">
+      <!-- VUE TABLEAU (DESKTOP & IMPRESSION PDF A4) -->
+      <div class="table-responsive d-none d-md-block" id="scheduleTableWrapper">
         <table class="table table-hover table-schedule align-middle">
           <thead>
             <tr>
@@ -305,6 +339,16 @@
           </tbody>
         </table>
       </div>
+
+      <!-- VUE CARTES MOBILES (SMARTPHONES : FLUIDE, ERGONOMIQUE ET SANS COUPE) -->
+      <div class="d-md-none p-3" id="scheduleMobileContainer">
+        <!-- Rendu dynamique par JS pour mobile -->
+      </div>
+
+      <!-- VUE CALENDRIER MENSUEL (BASCULE JS) -->
+      <div class="p-3" id="calendarViewContainer" style="display:none;">
+        <!-- Grille calendrier rendue dynamiquement -->
+      </div>
     </div>
 
     <!-- ==================== GUIDE PÉDAGOGIQUE DES 4 NIVEAUX ==================== -->
@@ -314,14 +358,14 @@
           <h5 class="h6 fw-bold font-cinzel text-uppercase text-dark mb-1">
             <i class="bi bi-mortarboard me-2 text-warning"></i>Guide Pédagogique des 4 Niveaux
           </h5>
-          <p class="text-muted small mb-0">Parcours d'apprentissage et de sanctification des Servants de Messe.</p>
+          <p class="text-muted small mb-0">Parcours d'apprentissage et de sanctification des Servants de Messe. <span class="text-warning-emphasis fw-semibold">Cliquez sur un niveau pour voir son programme détaillé.</span></p>
         </div>
       </div>
 
       <div class="row g-3">
         <!-- 1. POSTULANT -->
         <div class="col-md-6 col-lg-3">
-          <div class="card card-soft h-100 border-top border-4 border-success">
+          <div class="card card-soft h-100 border-top border-4 border-success level-card-clickable" data-level-guide="postulant" role="button" tabindex="0" title="Voir le programme détaillé du niveau Postulant">
             <div class="card-body p-3">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="badge badge-postulant rounded-pill px-2 py-1">Niveau 1</span>
@@ -340,7 +384,7 @@
 
         <!-- 2. SAMUEL -->
         <div class="col-md-6 col-lg-3">
-          <div class="card card-soft h-100 border-top border-4 border-primary">
+          <div class="card card-soft h-100 border-top border-4 border-primary level-card-clickable" data-level-guide="samuel" role="button" tabindex="0" title="Voir le programme détaillé du niveau Samuel">
             <div class="card-body p-3">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="badge badge-samuel rounded-pill px-2 py-1">Niveau 2</span>
@@ -359,7 +403,7 @@
 
         <!-- 3. TARCISIUS -->
         <div class="col-md-6 col-lg-3">
-          <div class="card card-soft h-100 border-top border-4" style="border-top-color: var(--color-tarcisius) !important;">
+          <div class="card card-soft h-100 border-top border-4 level-card-clickable" style="border-top-color: var(--color-tarcisius) !important;" data-level-guide="tarcisius" role="button" tabindex="0" title="Voir le programme détaillé du niveau Tarcisius">
             <div class="card-body p-3">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="badge badge-tarcisius rounded-pill px-2 py-1">Niveau 3</span>
@@ -378,7 +422,7 @@
 
         <!-- 4. AUGUSTIN -->
         <div class="col-md-6 col-lg-3">
-          <div class="card card-soft h-100 border-top border-4 border-warning">
+          <div class="card card-soft h-100 border-top border-4 border-warning level-card-clickable" data-level-guide="augustin" role="button" tabindex="0" title="Voir le programme détaillé du niveau Augustin">
             <div class="card-body p-3">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <span class="badge badge-augustin rounded-pill px-2 py-1">Niveau 4</span>
@@ -469,7 +513,7 @@
             <div class="mb-3">
               <label for="adminPassword" class="form-label small">Mot de passe responsable</label>
               <input type="password" id="adminPassword" class="form-control" placeholder="••••••" required autofocus>
-              <div class="form-text text-muted" style="font-size:0.75rem;">Mot de passe par défaut : 200700</div>
+              <div class="form-text text-muted" style="font-size:0.75rem;">Code réservé au responsable chargé de la formation.</div>
             </div>
           </div>
           <div class="modal-footer p-2">
@@ -539,9 +583,18 @@
               </div>
             </div>
 
-            <div class="mb-0">
+            <div class="mb-3">
               <label for="formObjectives" class="form-label small">Objectifs pédagogiques / Consignes</label>
               <textarea id="formObjectives" class="form-control" rows="2" placeholder="Ex: Pratique liturgique au sanctuaire, récitation des réponses de la messe..."></textarea>
+            </div>
+
+            <!-- RÉCURRENCE : RÉPÉTER TOUS LES SAMEDIS RESTANTS DU MOIS -->
+            <div class="form-check bg-light rounded p-3 border" id="formRepeatRow">
+              <input class="form-check-input ms-0 me-2" type="checkbox" id="formRepeat">
+              <label class="form-check-label small fw-semibold" for="formRepeat">
+                <i class="bi bi-arrow-repeat me-1 text-warning"></i>Répéter cette séance tous les samedis restants du mois
+              </label>
+              <div class="form-text text-muted" style="font-size:0.72rem;">La même séance (horaires, niveau, thème) sera créée pour chaque samedi suivant du mois.</div>
             </div>
           </div>
           <div class="modal-footer p-2">
@@ -615,6 +668,85 @@
       </div>
     </div>
   </div>
+
+  <!-- 5. MODAL CHANGEMENT DE MOT DE PASSE -->
+  <div class="modal fade" id="pwdModal" tabindex="-1" aria-labelledby="pwdModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+      <div class="modal-content border-0">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-dark fs-6" id="pwdModalLabel">
+            <i class="bi bi-key me-2 text-warning"></i>Changer le mot de passe responsable
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <form id="pwdForm">
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label for="pwdCurrent" class="form-label small">Mot de passe actuel *</label>
+              <input type="password" id="pwdCurrent" class="form-control" required autocomplete="current-password">
+            </div>
+            <div class="mb-3">
+              <label for="pwdNew" class="form-label small">Nouveau mot de passe *</label>
+              <input type="password" id="pwdNew" class="form-control" required minlength="4" maxlength="64" autocomplete="new-password">
+            </div>
+            <div class="mb-0">
+              <label for="pwdConfirm" class="form-label small">Confirmer le nouveau mot de passe *</label>
+              <input type="password" id="pwdConfirm" class="form-control" required autocomplete="new-password">
+            </div>
+          </div>
+          <div class="modal-footer p-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-dark btn-sm px-3">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. MODAL AJOUT AU CALENDRIER -->
+  <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+      <div class="modal-content border-0">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-dark fs-6" id="calendarModalLabel">
+            <i class="bi bi-calendar-plus me-2 text-warning"></i>Ajouter au calendrier
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div id="calendarModalInfo" class="small text-muted mb-3"></div>
+          <div class="d-grid gap-2">
+            <button type="button" id="icsDownloadBtn" class="btn btn-dark btn-sm">
+              <i class="bi bi-download me-1"></i>Télécharger le fichier .ics (Apple, Outlook)
+            </button>
+            <a id="googleCalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm">
+              <i class="bi bi-google me-1"></i>Ouvrir dans Google Agenda
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. MODAL PROGRAMME DÉTAILLÉ D'UN NIVEAU -->
+  <div class="modal fade" id="levelModal" tabindex="-1" aria-labelledby="levelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-dark fs-6" id="levelModalLabel">
+            <i class="bi bi-mortarboard me-2 text-warning"></i><span id="levelModalTitle">Programme du niveau</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body p-4" id="levelModalBody">
+          <!-- Rempli dynamiquement -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FICHE DE PRÉSENCE IMPRIMABLE (INVISIBLE À L'ÉCRAN) -->
+  <div id="printPresenceSheet"></div>
 
   <!-- TOAST NOTIFICATION BOOTSTRAP -->
   <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;">
