@@ -80,17 +80,17 @@
         <h2 class="section-title">Notre mission</h2>
         <div class="cards">
           <article class="card">
-            <span class="card-icon">🙏</span>
+            <span class="card-icon"></span>
             <h3>Servir</h3>
             <p>Accompagner, auprès des prêtres et de toute la communauté, lors des célébrations et au quotidien, avec joie, amour, respect et fidélité.</p>
           </article>
           <article class="card">
-            <span class="card-icon">📖</span>
+            <span class="card-icon"></span>
             <h3>Se former</h3>
             <p>Approfondir notre foi et notre connaissance de la liturgie.</p>
           </article>
           <article class="card">
-            <span class="card-icon">🤝</span>
+            <span class="card-icon"></span>
             <h3>Vivre en communauté</h3>
             <p>Développer l'entraide, le respect et la fraternité.</p>
           </article>
@@ -143,7 +143,7 @@
           <!-- Les cartes sont injectées ici par JS -->
         </div>
         <div id="newsEmpty" class="news-empty" style="display:none;">
-          📭 <strong>Aucune actualité pour le moment.</strong><br>
+          <strong>Aucune actualité pour le moment.</strong><br>
           Revenez bientôt pour suivre nos dernières nouvelles.
         </div>
 
@@ -230,7 +230,7 @@
         if(!item) return;
         modalTitle.textContent = item.title || '';
         modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+ renderContentText(item.content || item.excerpt || '') +'</p>';
-        modalDate.textContent = item.date ? '📅 ' + new Date(item.date).toLocaleDateString('fr-FR') : '';
+        modalDate.textContent = item.date ? '' + new Date(item.date).toLocaleDateString('fr-FR') : '';
         modal.style.display = 'flex';
         modal.style.visibility = 'visible';
         document.body.style.overflow = 'hidden';

@@ -36,12 +36,12 @@
 
     <div class="admin-header">
       <div class="admin-actions">
-        <button id="exportBtn" class="admin-btn-secondary" type="button">📥 Exporter CSV</button>
-        <button id="syncInscriptionsBtn" class="admin-btn-secondary" type="button">🔄 Synchroniser inscriptions</button>
-        <a href="tresorier.html" class="admin-btn-secondary">💰 Trésorier</a>
-        <a href="formation-responsables/index.html" class="admin-btn-secondary" target="_blank">📖 Emploi du Temps Formateurs</a>
-        <button id="settingsBtn" class="admin-btn-secondary" type="button">⚙️ Paramètres</button>
-        <button id="logoutBtn" class="admin-btn-danger" type="button">🚪 Déconnexion</button>
+        <button id="exportBtn" class="admin-btn-secondary" type="button">Exporter CSV</button>
+        <button id="syncInscriptionsBtn" class="admin-btn-secondary" type="button">Synchroniser inscriptions</button>
+        <a href="tresorier.html" class="admin-btn-secondary">Trésorier</a>
+        <a href="formation-responsables/index.html" class="admin-btn-secondary" target="_blank">Emploi du Temps Formateurs</a>
+        <button id="settingsBtn" class="admin-btn-secondary" type="button">Paramètres</button>
+        <button id="logoutBtn" class="admin-btn-danger" type="button">Déconnexion</button>
       </div>
     </div>
 
@@ -587,7 +587,7 @@
         }catch(error){
           showMessage(clearMessage, '⚠️ Synchronisation impossible (' + (error.message || 'serveur injoignable') + ')', 'error');
         }finally{
-          setButtonLoading(syncInscriptionsBtn, false, null, '🔄 Synchroniser inscriptions');
+          setButtonLoading(syncInscriptionsBtn, false, null, 'Synchroniser inscriptions');
         }
       }
 

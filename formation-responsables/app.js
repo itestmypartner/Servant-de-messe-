@@ -275,8 +275,8 @@
     var dupBtn = document.getElementById('dupMonthBtn');
     if (adminBtn) {
       adminBtn.innerHTML = isAdmin ?
-        '🚪 Quitter Admin' :
-        '🔒 Espace Responsable';
+        'Quitter Admin' :
+        'Espace Responsable';
       adminBtn.className = isAdmin ? 'btn btn-outline-gold btn-sm' : 'btn btn-outline-light btn-sm';
     }
     if (addBtn) addBtn.style.display = isAdmin ? 'inline-flex' : 'none';
@@ -429,11 +429,11 @@
 
       var emptyHtml =
         '<div class="empty-state">' +
-          '<div class="empty-icon">📅</div>' +
+          '<div class="empty-icon"></div>' +
           '<div class="empty-title">' + emptyMsg + '</div>' +
           '<p class="empty-text">Le planning de ce mois est actuellement vierge. Vous pouvez ajouter les samedis de formation au fur et à mesure.</p>' +
           (isAdmin ?
-            '<button type="button" class="btn btn-gold btn-sm" id="emptyAddBtn">➕ Programmer une séance pour ' + MONTH_NAMES[currentMonth] + '</button>' :
+            '<button type="button" class="btn btn-gold btn-sm" id="emptyAddBtn">Programmer une séance pour ' + MONTH_NAMES[currentMonth] + '</button>' :
             '<span class="empty-hint">Connectez-vous à l\'Espace Responsable pour saisir les dates.</span>') +
         '</div>';
 
@@ -469,23 +469,23 @@
       // Vue Tableau (Desktop & Impression)
       html +=
         '<tr style="--i:' + i + '">' +
-          '<td class="col-date cell-date">📅 ' + capitalizeFirst(dateFormatted) + '</td>' +
-          '<td class="col-time"><span class="time-pill">🕐 ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span></td>' +
+          '<td class="col-date cell-date">' + capitalizeFirst(dateFormatted) + '</td>' +
+          '<td class="col-time"><span class="time-pill">' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span></td>' +
           '<td class="col-level"><span class="' + badgeClass + '">' + escapeHtml(s.level) + '</span></td>' +
           '<td class="col-topic">' +
             '<div class="topic-title">' + escapeHtml(s.topic) + '</div>' +
             (s.objectives ? '<div class="topic-obj">ℹ️ ' + escapeHtml(s.objectives) + '</div>' : '') +
           '</td>' +
-          '<td class="col-trainer cell-muted">👤 ' + escapeHtml(s.trainer) + '</td>' +
-          '<td class="col-location"><span class="cell-muted">📍 ' + escapeHtml(s.location) + '</span></td>' +
+          '<td class="col-trainer cell-muted">' + escapeHtml(s.trainer) + '</td>' +
+          '<td class="col-location"><span class="cell-muted">' + escapeHtml(s.location) + '</span></td>' +
           '<td class="action-col">' +
             '<div class="acts">' +
-              '<button class="btn btn-icon ai-wa share-single-btn" data-id="' + s.id + '" title="Partager sur WhatsApp">💬</button>' +
-              '<button class="btn btn-icon ai-cal cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier">📆</button>' +
-              '<button class="btn btn-icon ai-pres presence-session-btn" data-id="' + s.id + '" title="Imprimer la fiche de présence">✅</button>' +
+              '<button class="btn btn-icon ai-wa share-single-btn" data-id="' + s.id + '" title="Partager sur WhatsApp">WhatsApp</button>' +
+              '<button class="btn btn-icon ai-cal cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier">Agenda</button>' +
+              '<button class="btn btn-icon ai-pres presence-session-btn" data-id="' + s.id + '" title="Imprimer la fiche de présence">Présence</button>' +
               (isAdmin ?
-                '<button class="btn btn-icon ai-edit edit-session-btn" data-id="' + s.id + '" title="Modifier">✏️</button>' +
-                '<button class="btn btn-icon ai-del delete-session-btn" data-id="' + s.id + '" title="Supprimer">🗑️</button>' : '') +
+                '<button class="btn btn-icon ai-edit edit-session-btn" data-id="' + s.id + '" title="Modifier">Modifier</button>' +
+                '<button class="btn btn-icon ai-del delete-session-btn" data-id="' + s.id + '" title="Supprimer">Supprimer</button>' : '') +
             '</div>' +
           '</td>' +
         '</tr>';
@@ -494,25 +494,25 @@
       mobileHtml +=
         '<div class="mobile-session-card ' + lvlBorderClass + '" style="--i:' + i + '">' +
           '<div class="ms-head">' +
-            '<div class="ms-date">📅 ' + capitalizeFirst(dateFull) + '</div>' +
+            '<div class="ms-date">' + capitalizeFirst(dateFull) + '</div>' +
             '<span class="' + badgeClass + '">' + escapeHtml(s.level) + '</span>' +
           '</div>' +
           '<h6 class="ms-topic">' + escapeHtml(s.topic) + '</h6>' +
           (s.objectives ? '<div class="ms-obj">ℹ️ ' + escapeHtml(s.objectives) + '</div>' : '') +
           '<div class="ms-meta">' +
-            '<span>🕐 ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span>' +
-            '<span>👤 ' + escapeHtml(s.trainer) + '</span>' +
-            '<span>📍 ' + escapeHtml(s.location) + '</span>' +
+            '<span>' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span>' +
+            '<span>' + escapeHtml(s.trainer) + '</span>' +
+            '<span>' + escapeHtml(s.location) + '</span>' +
           '</div>' +
           '<div class="ms-actions">' +
-            '<button class="btn btn-success btn-sm share-single-btn" data-id="' + s.id + '">💬 WhatsApp</button>' +
-            '<button class="btn btn-icon ai-cal cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier">📆</button>' +
-            '<button class="btn btn-icon ai-pres presence-session-btn" data-id="' + s.id + '" title="Fiche de présence">✅</button>' +
+            '<button class="btn btn-success btn-sm share-single-btn" data-id="' + s.id + '">WhatsApp</button>' +
+            '<button class="btn btn-icon ai-cal cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier">Agenda</button>' +
+            '<button class="btn btn-icon ai-pres presence-session-btn" data-id="' + s.id + '" title="Fiche de présence">Présence</button>' +
           '</div>' +
           (isAdmin ?
             '<div class="ms-admin">' +
-              '<button class="btn btn-outline btn-sm edit-session-btn" data-id="' + s.id + '">✏️ Modifier</button>' +
-              '<button class="btn btn-danger btn-sm delete-session-btn" data-id="' + s.id + '">🗑️ Supprimer</button>' +
+              '<button class="btn btn-outline btn-sm edit-session-btn" data-id="' + s.id + '">Modifier</button>' +
+              '<button class="btn btn-danger btn-sm delete-session-btn" data-id="' + s.id + '">Supprimer</button>' +
             '</div>' : '') +
         '</div>';
     });
@@ -559,7 +559,7 @@
     card.innerHTML =
       '<div class="next-session-card">' +
         '<div class="next-left">' +
-          '<div class="next-session-icon">📣</div>' +
+          '<div class="next-session-icon"></div>' +
           '<div>' +
             '<div class="next-count">Prochaine formation — ' + countdown + '</div>' +
             '<div class="next-title">' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(next.startTime) + ' - ' + escapeHtml(next.endTime) + '</div>' +
@@ -567,8 +567,8 @@
           '</div>' +
         '</div>' +
         '<div class="next-actions">' +
-          '<button class="btn btn-outline btn-sm cal-session-btn" data-id="' + next.id + '">📆 Calendrier</button>' +
-          '<button class="btn btn-success btn-sm share-single-btn" data-id="' + next.id + '">💬 Partager</button>' +
+          '<button class="btn btn-outline btn-sm cal-session-btn" data-id="' + next.id + '">Calendrier</button>' +
+          '<button class="btn btn-success btn-sm share-single-btn" data-id="' + next.id + '">Partager</button>' +
         '</div>' +
       '</div>';
   }
@@ -692,13 +692,13 @@
       html +=
         '<div class="trainer-item">' +
           '<div class="trainer-item-left">' +
-            '<div class="trainer-item-avatar">👤</div>' +
+            '<div class="trainer-item-avatar"></div>' +
             '<div>' +
               '<div class="trainer-item-name">' + escapeHtml(tr.name) + '</div>' +
               '<div class="trainer-item-role">' + escapeHtml(tr.role || 'Formateur') + '</div>' +
             '</div>' +
           '</div>' +
-          (tr.tel ? '<a href="tel:' + tr.tel.replace(/\s/g, '') + '" class="btn btn-outline btn-sm">📞 Appeler</a>' : '') +
+          (tr.tel ? '<a href="tel:' + tr.tel.replace(/\s/g, '') + '" class="btn btn-outline btn-sm">Appeler</a>' : '') +
         '</div>';
     });
     trainersListContainer.innerHTML = html;
@@ -1198,8 +1198,8 @@
     if (info) {
       info.innerHTML =
         '<div class="ci-t">' + escapeHtml(s.topic) + '</div>' +
-        '<div class="ci-l">📅 ' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</div>' +
-        '<div class="ci-l">📍 ' + escapeHtml(s.location) + ' • 👤 ' + escapeHtml(s.trainer) + '</div>';
+        '<div class="ci-l">' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</div>' +
+        '<div class="ci-l">' + escapeHtml(s.location) + ' • ' + escapeHtml(s.trainer) + '</div>';
     }
 
     var gLink = document.getElementById('googleCalLink');
@@ -1358,10 +1358,10 @@
     }
     if (body) {
       var modulesHtml = guide.modules.map(function (m) {
-        return '<li><span style="color:' + guide.color + ';">✔</span><span>' + m + '</span></li>';
+        return '<li><span style="color:' + guide.color + ';"></span><span>' + m + '</span></li>';
       }).join('');
       var evalHtml = guide.evaluation.map(function (m) {
-        return '<li><span style="color:' + guide.color + ';">🏅</span><span>' + m + '</span></li>';
+        return '<li><span style="color:' + guide.color + ';"></span><span>' + m + '</span></li>';
       }).join('');
 
       body.innerHTML =
@@ -1374,11 +1374,11 @@
         '</div>' +
         '<div class="guide-cols">' +
           '<div>' +
-            '<h6 class="guide-col-title">📖 Modules enseignés</h6>' +
+            '<h6 class="guide-col-title">Modules enseignés</h6>' +
             '<ul class="guide-list">' + modulesHtml + '</ul>' +
           '</div>' +
           '<div>' +
-            '<h6 class="guide-col-title">✅ Critères de passage</h6>' +
+            '<h6 class="guide-col-title">Critères de passage</h6>' +
             '<ul class="guide-list">' + evalHtml + '</ul>' +
           '</div>' +
         '</div>';

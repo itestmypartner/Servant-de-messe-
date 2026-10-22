@@ -24,7 +24,7 @@
     <div class="archive-container">
       <h1 class="section-title">Toutes les actualités</h1>
       <div id="archiveList" class="news-grid"></div>
-      <div id="archiveEmpty" class="archive-empty" style="display:none;">📭 <strong>Aucune actualité pour le moment.</strong><br>Revenez bientôt pour suivre nos dernières nouvelles !</div>
+      <div id="archiveEmpty" class="archive-empty" style="display:none;"><strong>Aucune actualité pour le moment.</strong><br>Revenez bientôt pour suivre nos dernières nouvelles !</div>
       <div style="text-align:center;margin-top:24px"><a href="index.html" class="btn btn-primary back-home">← Retour à l'accueil</a></div>
     </div>
   </main>
@@ -86,7 +86,7 @@
       function openModal(item){
         modalTitle.textContent = item.title || '';
         modalBody.innerHTML = '<p style="white-space:pre-wrap;line-height:1.8;color:#333;">'+ renderContentText(item.content || item.excerpt || '') +'</p>';
-        modalDate.textContent = item.date ? '📅 ' + new Date(item.date).toLocaleDateString('fr-FR') : '';
+        modalDate.textContent = item.date ? '' + new Date(item.date).toLocaleDateString('fr-FR') : '';
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
       }
