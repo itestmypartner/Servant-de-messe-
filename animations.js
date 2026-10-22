@@ -54,7 +54,7 @@
     '.card', '.card-soft', '.stat-widget', '.activities li',
     '.about-text', '.about-image', '.gallery-slider', '.section-title',
     '.level-card-clickable', '.next-session-card', '.signature-box',
-    '.mobile-session-card', '#niveaux-section .card', '.trainer-card',
+    '.mobile-session-card', '.trainer-item', '.month-nav', '.filter-bar',
     '.news-card', '.archive-item', '.admin-card', '.form-card'
   ].join(',');
 
@@ -127,7 +127,7 @@
   /* ==================== NAVBAR ÉTAT SCROLLÉ ==================== */
   function initNavbarScroll() {
     var header = document.querySelector('.header');
-    var navbar = document.querySelector('.navbar-custom');
+    var navbar = document.querySelector('.topbar');
     if (!header && !navbar) return;
     function update() {
       var scrolled = window.scrollY > 40;

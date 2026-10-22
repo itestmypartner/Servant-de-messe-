@@ -1,7 +1,7 @@
 /**
  * Emploi du Temps Officiel des Formations du Samedi
  * Paroisse Saint-Bernard d'Adiopodoumé - Servants de Messe
- * Interface propulsée par Bootstrap 5
+ * Design 100% personnalisé (sans framework CSS)
  * Responsable Chargé de la Formation : DJEBLE Haniel (01 50 25 24 67)
  *
  * Données synchronisées via l'API du serveur (/api/formations) :
@@ -49,10 +49,7 @@
   // PROGRAMMES PÉDAGOGIQUES DÉTAILLÉS DES 4 NIVEAUX
   var LEVEL_GUIDE = {
     postulant: {
-      name: 'Postulant',
-      badge: 'badge-postulant',
-      icon: 'bi-seedling',
-      color: 'var(--color-postulant)',
+      name: 'Postulant', badge: 'lvl-postulant', emoji: '🌱', color: 'var(--postulant)',
       duration: 'Durée indicative : 3 mois',
       motto: 'Les premiers pas au service de l\'autel.',
       modules: [
@@ -70,10 +67,7 @@
       ]
     },
     samuel: {
-      name: 'Samuel',
-      badge: 'badge-samuel',
-      icon: 'bi-bell',
-      color: 'var(--color-samuel)',
+      name: 'Samuel', badge: 'lvl-samuel', emoji: '🔔', color: 'var(--samuel)',
       duration: 'Durée indicative : 6 mois',
       motto: 'L\'écoute et le service actif.',
       modules: [
@@ -91,10 +85,7 @@
       ]
     },
     tarcisius: {
-      name: 'Tarcisius',
-      badge: 'badge-tarcisius',
-      icon: 'bi-shield-fill-check',
-      color: 'var(--color-tarcisius)',
+      name: 'Tarcisius', badge: 'lvl-tarcisius', emoji: '🛡️', color: 'var(--tarcisius)',
       duration: 'Durée indicative : 6 à 9 mois',
       motto: 'Fidélité et garde du Saint-Sacrement.',
       modules: [
@@ -112,10 +103,7 @@
       ]
     },
     augustin: {
-      name: 'Augustin',
-      badge: 'badge-augustin',
-      icon: 'bi-trophy',
-      color: 'var(--color-augustin)',
+      name: 'Augustin', badge: 'lvl-augustin', emoji: '🏆', color: 'var(--augustin)',
       duration: 'Niveau de perfectionnement continu',
       motto: 'Maturité, maîtrise et encadrement.',
       modules: [
@@ -167,8 +155,6 @@
   var calendarModal = document.getElementById('calendarModal');
   var levelModal = document.getElementById('levelModal');
   var whatsappPreview = document.getElementById('whatsappPreview');
-  var liveToastEl = document.getElementById('liveToast');
-  var toastMessageEl = document.getElementById('toastMessage');
 
   function init() {
     viewMode = localStorage.getItem(STORAGE_KEY_VIEW) || 'list';
@@ -178,8 +164,9 @@
     populateTrainerSelect();
     setupEvents();
     setupViewToggle();
+    setupBurger();
     render();
-    fetchRemoteData(); // synchronise depuis le serveur en arrière-plan
+    fetchRemoteData();
     registerServiceWorker();
   }
 
@@ -201,7 +188,6 @@
     }
   }
 
-  // Lecture publique du planning partagé depuis le serveur
   function fetchRemoteData() {
     fetch(API_BASE + '/api/formations')
       .then(function (res) {
@@ -211,8 +197,7 @@
       .then(function (data) {
         if (!data || !Array.isArray(data.sessions)) return;
         // Migration douce : si le serveur est vide mais que le navigateur
-        // contient des séances (ancienne version localStorage), on les garde —
-        // elles seront envoyées au serveur à la prochaine sauvegarde admin.
+        // contient des séances (ancienne version), on les garde.
         if (data.sessions.length === 0 && sessions.length > 0) {
           if (Array.isArray(data.trainers) && data.trainers.length) {
             trainers = data.trainers;
@@ -239,7 +224,6 @@
     localStorage.setItem(STORAGE_KEY_TRAINERS, JSON.stringify(trainers));
   }
 
-  // Sauvegarde locale + synchronisation serveur si responsable connecté
   function saveAll() {
     saveLocal();
     if (!adminPassword) return;
@@ -291,9 +275,9 @@
     var dupBtn = document.getElementById('dupMonthBtn');
     if (adminBtn) {
       adminBtn.innerHTML = isAdmin ?
-        '<i class="bi bi-box-arrow-right me-1"></i> Quitter Admin' :
-        '<i class="bi bi-shield-lock me-1"></i> Espace Responsable';
-      adminBtn.className = isAdmin ? 'btn btn-outline-warning btn-sm' : 'btn btn-outline-light btn-sm';
+        '🚪 Quitter Admin' :
+        '🔒 Espace Responsable';
+      adminBtn.className = isAdmin ? 'btn btn-outline-gold btn-sm' : 'btn btn-outline-light btn-sm';
     }
     if (addBtn) addBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     if (securityBtn) securityBtn.style.display = isAdmin ? 'inline-flex' : 'none';
@@ -443,15 +427,17 @@
         'Aucune formation programmée pour ' + MONTH_NAMES[currentMonth] + ' ' + currentYear :
         'Aucune séance du niveau ' + activeLevelFilter + ' ce mois-ci';
 
-      scheduleBodyEl.innerHTML =
-        '<tr><td colspan="7" class="text-center py-5">' +
-          '<div class="display-6 text-muted mb-3"><i class="bi bi-calendar-x"></i></div>' +
-          '<h5 class="fw-bold text-dark">' + emptyMsg + '</h5>' +
-          '<p class="text-muted small mb-3">Le planning de ce mois est actuellement vierge. Vous pouvez ajouter les samedis de formation au fur et à mesure.</p>' +
+      var emptyHtml =
+        '<div class="empty-state">' +
+          '<div class="empty-icon">📅</div>' +
+          '<div class="empty-title">' + emptyMsg + '</div>' +
+          '<p class="empty-text">Le planning de ce mois est actuellement vierge. Vous pouvez ajouter les samedis de formation au fur et à mesure.</p>' +
           (isAdmin ?
-            '<button type="button" class="btn btn-gold btn-sm px-3" id="emptyAddBtn"><i class="bi bi-plus-circle me-1"></i> Programmer une séance pour ' + MONTH_NAMES[currentMonth] + '</button>' :
-            '<span class="badge bg-light text-secondary border">Connectez-vous à l\'Espace Responsable pour saisir les dates.</span>') +
-        '</td></tr>';
+            '<button type="button" class="btn btn-gold btn-sm" id="emptyAddBtn">➕ Programmer une séance pour ' + MONTH_NAMES[currentMonth] + '</button>' :
+            '<span class="empty-hint">Connectez-vous à l\'Espace Responsable pour saisir les dates.</span>') +
+        '</div>';
+
+      scheduleBodyEl.innerHTML = '<tr><td colspan="7" class="empty-cell">' + emptyHtml + '</td></tr>';
 
       var emptyAdd = document.getElementById('emptyAddBtn');
       if (emptyAdd) {
@@ -459,16 +445,7 @@
       }
 
       if (scheduleMobileContainer) {
-        scheduleMobileContainer.innerHTML =
-          '<div class="text-center py-4 px-2">' +
-            '<div class="display-6 text-muted mb-2"><i class="bi bi-calendar-x"></i></div>' +
-            '<h6 class="fw-bold text-dark">Aucune formation programmée</h6>' +
-            '<p class="text-muted small mb-3">Le planning de ' + MONTH_NAMES[currentMonth] + ' ' + currentYear + ' est actuellement vierge.</p>' +
-            (isAdmin ?
-              '<button type="button" class="btn btn-gold btn-sm w-100" id="emptyAddMobileBtn"><i class="bi bi-plus-circle me-1"></i> Programmer une séance</button>' :
-              '<span class="badge bg-light text-secondary border small">Espace Responsable pour planifier.</span>') +
-          '</div>';
-
+        scheduleMobileContainer.innerHTML = emptyHtml.replace('id="emptyAddBtn"', 'id="emptyAddMobileBtn"');
         var emptyAddMobile = document.getElementById('emptyAddMobileBtn');
         if (emptyAddMobile) {
           emptyAddMobile.onclick = function () { openSessionForm(null); };
@@ -492,50 +469,50 @@
       // Vue Tableau (Desktop & Impression)
       html +=
         '<tr style="--i:' + i + '">' +
-          '<td class="col-date fw-bold text-dark"><i class="bi bi-calendar-event text-secondary me-1"></i>' + capitalizeFirst(dateFormatted) + '</td>' +
-          '<td class="col-time"><span class="badge bg-light text-dark border"><i class="bi bi-clock me-1"></i>' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span></td>' +
+          '<td class="col-date cell-date">📅 ' + capitalizeFirst(dateFormatted) + '</td>' +
+          '<td class="col-time"><span class="time-pill">🕐 ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span></td>' +
           '<td class="col-level"><span class="' + badgeClass + '">' + escapeHtml(s.level) + '</span></td>' +
           '<td class="col-topic">' +
-            '<div class="fw-semibold text-dark">' + escapeHtml(s.topic) + '</div>' +
-            (s.objectives ? '<div class="small text-muted mt-1"><i class="bi bi-info-circle me-1"></i>' + escapeHtml(s.objectives) + '</div>' : '') +
+            '<div class="topic-title">' + escapeHtml(s.topic) + '</div>' +
+            (s.objectives ? '<div class="topic-obj">ℹ️ ' + escapeHtml(s.objectives) + '</div>' : '') +
           '</td>' +
-          '<td class="col-trainer"><i class="bi bi-person-fill text-muted me-1"></i>' + escapeHtml(s.trainer) + '</td>' +
-          '<td class="col-location"><span class="small text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>' + escapeHtml(s.location) + '</span></td>' +
-          '<td class="action-col text-end">' +
-            '<div class="btn-group btn-group-sm">' +
-              '<button class="btn btn-outline-success share-single-btn" data-id="' + s.id + '" title="Partager sur WhatsApp"><i class="bi bi-whatsapp"></i></button>' +
-              '<button class="btn btn-outline-primary cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier"><i class="bi bi-calendar-plus"></i></button>' +
-              '<button class="btn btn-outline-dark presence-session-btn" data-id="' + s.id + '" title="Imprimer la fiche de présence"><i class="bi bi-clipboard-check"></i></button>' +
+          '<td class="col-trainer cell-muted">👤 ' + escapeHtml(s.trainer) + '</td>' +
+          '<td class="col-location"><span class="cell-muted">📍 ' + escapeHtml(s.location) + '</span></td>' +
+          '<td class="action-col">' +
+            '<div class="acts">' +
+              '<button class="btn btn-icon ai-wa share-single-btn" data-id="' + s.id + '" title="Partager sur WhatsApp">💬</button>' +
+              '<button class="btn btn-icon ai-cal cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier">📆</button>' +
+              '<button class="btn btn-icon ai-pres presence-session-btn" data-id="' + s.id + '" title="Imprimer la fiche de présence">✅</button>' +
               (isAdmin ?
-                '<button class="btn btn-outline-secondary edit-session-btn" data-id="' + s.id + '" title="Modifier"><i class="bi bi-pencil"></i></button>' +
-                '<button class="btn btn-outline-danger delete-session-btn" data-id="' + s.id + '" title="Supprimer"><i class="bi bi-trash"></i></button>' : '') +
+                '<button class="btn btn-icon ai-edit edit-session-btn" data-id="' + s.id + '" title="Modifier">✏️</button>' +
+                '<button class="btn btn-icon ai-del delete-session-btn" data-id="' + s.id + '" title="Supprimer">🗑️</button>' : '') +
             '</div>' +
           '</td>' +
         '</tr>';
 
       // Vue Cartes (Mobile)
       mobileHtml +=
-        '<div class="mobile-session-card ' + lvlBorderClass + ' mb-3 p-3 bg-white rounded-3 shadow-sm border" style="--i:' + i + '">' +
-          '<div class="d-flex align-items-center justify-content-between mb-2">' +
-            '<div class="fw-bold text-dark small"><i class="bi bi-calendar-event text-warning me-1"></i>' + capitalizeFirst(dateFull) + '</div>' +
+        '<div class="mobile-session-card ' + lvlBorderClass + '" style="--i:' + i + '">' +
+          '<div class="ms-head">' +
+            '<div class="ms-date">📅 ' + capitalizeFirst(dateFull) + '</div>' +
             '<span class="' + badgeClass + '">' + escapeHtml(s.level) + '</span>' +
           '</div>' +
-          '<h6 class="fw-bold text-dark mb-1 fs-6">' + escapeHtml(s.topic) + '</h6>' +
-          (s.objectives ? '<div class="small text-muted mb-2"><i class="bi bi-info-circle me-1"></i>' + escapeHtml(s.objectives) + '</div>' : '') +
-          '<div class="d-flex flex-wrap gap-2 small text-muted pt-2 border-top mb-3">' +
-            '<div class="bg-light px-2 py-1 rounded border text-nowrap"><i class="bi bi-clock me-1 text-secondary"></i>' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</div>' +
-            '<div class="bg-light px-2 py-1 rounded border text-nowrap"><i class="bi bi-person-fill me-1 text-secondary"></i>' + escapeHtml(s.trainer) + '</div>' +
-            '<div class="bg-light px-2 py-1 rounded border text-nowrap"><i class="bi bi-geo-alt-fill text-danger me-1"></i>' + escapeHtml(s.location) + '</div>' +
+          '<h6 class="ms-topic">' + escapeHtml(s.topic) + '</h6>' +
+          (s.objectives ? '<div class="ms-obj">ℹ️ ' + escapeHtml(s.objectives) + '</div>' : '') +
+          '<div class="ms-meta">' +
+            '<span>🕐 ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span>' +
+            '<span>👤 ' + escapeHtml(s.trainer) + '</span>' +
+            '<span>📍 ' + escapeHtml(s.location) + '</span>' +
           '</div>' +
-          '<div class="d-flex align-items-center gap-2">' +
-            '<button class="btn btn-sm btn-success flex-fill share-single-btn" data-id="' + s.id + '"><i class="bi bi-whatsapp me-1"></i>WhatsApp</button>' +
-            '<button class="btn btn-sm btn-outline-primary cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier"><i class="bi bi-calendar-plus"></i></button>' +
-            '<button class="btn btn-sm btn-outline-dark presence-session-btn" data-id="' + s.id + '" title="Fiche de présence"><i class="bi bi-clipboard-check"></i></button>' +
+          '<div class="ms-actions">' +
+            '<button class="btn btn-success btn-sm share-single-btn" data-id="' + s.id + '">💬 WhatsApp</button>' +
+            '<button class="btn btn-icon ai-cal cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier">📆</button>' +
+            '<button class="btn btn-icon ai-pres presence-session-btn" data-id="' + s.id + '" title="Fiche de présence">✅</button>' +
           '</div>' +
           (isAdmin ?
-            '<div class="d-flex align-items-center gap-2 mt-2">' +
-              '<button class="btn btn-sm btn-outline-secondary flex-fill edit-session-btn" data-id="' + s.id + '"><i class="bi bi-pencil me-1"></i>Modifier</button>' +
-              '<button class="btn btn-sm btn-outline-danger flex-fill delete-session-btn" data-id="' + s.id + '"><i class="bi bi-trash me-1"></i>Supprimer</button>' +
+            '<div class="ms-admin">' +
+              '<button class="btn btn-outline btn-sm edit-session-btn" data-id="' + s.id + '">✏️ Modifier</button>' +
+              '<button class="btn btn-danger btn-sm delete-session-btn" data-id="' + s.id + '">🗑️ Supprimer</button>' +
             '</div>' : '') +
         '</div>';
     });
@@ -546,7 +523,6 @@
     renderTrainersList();
   }
 
-  // Statistiques par niveau pour le mois affiché
   function renderLevelBreakdown(monthSessions) {
     var el = document.getElementById('levelBreakdown');
     if (!el) return;
@@ -561,7 +537,6 @@
     el.textContent = parts.join(' · ');
   }
 
-  // Carte "Prochaine séance" avec compte à rebours
   function renderNextSessionCard() {
     var card = document.getElementById('nextSessionCard');
     if (!card) return;
@@ -582,23 +557,22 @@
 
     card.style.display = 'block';
     card.innerHTML =
-      '<div class="next-session-card p-3 p-md-4 rounded-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">' +
-        '<div class="d-flex align-items-center gap-3">' +
-          '<div class="next-session-icon"><i class="bi bi-megaphone-fill"></i></div>' +
+      '<div class="next-session-card">' +
+        '<div class="next-left">' +
+          '<div class="next-session-icon">📣</div>' +
           '<div>' +
-            '<div class="text-uppercase fw-bold text-warning-emphasis" style="font-size:0.7rem;letter-spacing:0.8px;">Prochaine formation — ' + countdown + '</div>' +
-            '<div class="fw-bold text-dark fs-5">' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(next.startTime) + ' - ' + escapeHtml(next.endTime) + '</div>' +
-            '<div class="small text-muted"><span class="' + getBadgeClassForLevel(next.level) + ' me-1">' + escapeHtml(next.level) + '</span>' + escapeHtml(next.topic) + ' — ' + escapeHtml(next.location) + '</div>' +
+            '<div class="next-count">Prochaine formation — ' + countdown + '</div>' +
+            '<div class="next-title">' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(next.startTime) + ' - ' + escapeHtml(next.endTime) + '</div>' +
+            '<div class="next-sub"><span class="' + getBadgeClassForLevel(next.level) + '">' + escapeHtml(next.level) + '</span>' + escapeHtml(next.topic) + ' — ' + escapeHtml(next.location) + '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="d-flex gap-2 flex-shrink-0">' +
-          '<button class="btn btn-outline-primary btn-sm cal-session-btn" data-id="' + next.id + '"><i class="bi bi-calendar-plus me-1"></i>Calendrier</button>' +
-          '<button class="btn btn-success btn-sm share-single-btn" data-id="' + next.id + '"><i class="bi bi-whatsapp me-1"></i>Partager</button>' +
+        '<div class="next-actions">' +
+          '<button class="btn btn-outline btn-sm cal-session-btn" data-id="' + next.id + '">📆 Calendrier</button>' +
+          '<button class="btn btn-success btn-sm share-single-btn" data-id="' + next.id + '">💬 Partager</button>' +
         '</div>' +
       '</div>';
   }
 
-  // Vue calendrier mensuel
   function renderCalendarView() {
     var container = document.getElementById('calendarViewContainer');
     if (!container) return;
@@ -608,7 +582,7 @@
     var byDay = {};
     filtered.forEach(function (s) {
       var d = parseDateLocal(s.date);
-      if (d) byDay[d.getDate()] = byDay[d.getDate()] || [], byDay[d.getDate()].push(s);
+      if (d) { (byDay[d.getDate()] = byDay[d.getDate()] || []).push(s); }
     });
 
     var first = new Date(currentYear, currentMonth, 1);
@@ -638,7 +612,7 @@
       (byDay[day] || []).forEach(function (s, evIdx) {
         var lvl = (s.level || 'tous').toLowerCase();
         html += '<span class="cal-event cal-event-' + lvl + '" style="--i:' + evIdx + '" title="' + escapeHtml(s.startTime + ' - ' + s.topic + ' (' + s.level + ')') + '">' +
-          '<i class="bi bi-clock me-1"></i>' + escapeHtml(s.startTime) + ' ' + escapeHtml(truncate(s.topic, 18)) +
+          escapeHtml(s.startTime) + ' ' + escapeHtml(truncate(s.topic, 18)) +
         '</span>';
       });
 
@@ -647,7 +621,7 @@
 
     html += '</div>';
     if (!filtered.length) {
-      html += '<p class="text-center text-muted small mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Aucune séance ce mois-ci. Les samedis sont surlignés.</p>';
+      html += '<p class="cal-empty-note">ℹ️ Aucune séance ce mois-ci. Les samedis sont surlignés.</p>';
     }
     container.innerHTML = html;
   }
@@ -661,8 +635,8 @@
 
     function applyView() {
       var isCal = viewMode === 'calendar';
-      if (listBtn) { listBtn.className = isCal ? 'btn btn-outline-dark' : 'btn btn-dark'; }
-      if (calBtn) { calBtn.className = isCal ? 'btn btn-dark' : 'btn btn-outline-dark'; }
+      if (listBtn) listBtn.classList.toggle('active', !isCal);
+      if (calBtn) calBtn.classList.toggle('active', isCal);
       if (tableWrapper) tableWrapper.style.display = isCal ? 'none' : '';
       if (mobile) mobile.style.display = isCal ? 'none' : '';
       if (calContainer) calContainer.style.display = isCal ? 'block' : 'none';
@@ -683,13 +657,32 @@
     applyView();
   }
 
+  function setupBurger() {
+    var burger = document.getElementById('burgerBtn');
+    var nav = document.getElementById('topnav');
+    if (!burger || !nav) return;
+    burger.addEventListener('click', function () {
+      var open = nav.classList.toggle('open');
+      burger.classList.toggle('open', open);
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    // Fermer le menu au clic sur un lien
+    nav.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        nav.classList.remove('open');
+        burger.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
   function getBadgeClassForLevel(level) {
     var lvl = (level || '').toLowerCase();
-    if (lvl === 'postulant') return 'badge bg-success-subtle text-success-emphasis border border-success-subtle rounded-pill px-2 py-1';
-    if (lvl === 'samuel') return 'badge bg-primary-subtle text-primary-emphasis border border-primary-subtle rounded-pill px-2 py-1';
-    if (lvl === 'tarcisius') return 'badge badge-tarcisius rounded-pill px-2 py-1';
-    if (lvl === 'augustin') return 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2 py-1';
-    return 'badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle rounded-pill px-2 py-1';
+    if (lvl === 'postulant') return 'badge lvl-postulant';
+    if (lvl === 'samuel') return 'badge lvl-samuel';
+    if (lvl === 'tarcisius') return 'badge lvl-tarcisius';
+    if (lvl === 'augustin') return 'badge lvl-augustin';
+    return 'badge lvl-tous';
   }
 
   function renderTrainersList() {
@@ -697,19 +690,15 @@
     var html = '';
     trainers.forEach(function (tr) {
       html +=
-        '<div class="col-md-6 col-lg-4">' +
-          '<div class="p-3 bg-light border rounded d-flex align-items-center justify-content-between">' +
-            '<div class="d-flex align-items-center">' +
-              '<div class="rounded-circle bg-white border d-flex align-items-center justify-content-center me-3" style="width:40px;height:40px;">' +
-                '<i class="bi bi-person-badge text-primary fs-5"></i>' +
-              '</div>' +
-              '<div>' +
-                '<div class="fw-bold text-dark">' + escapeHtml(tr.name) + '</div>' +
-                '<div class="small text-muted">' + escapeHtml(tr.role || 'Formateur') + '</div>' +
-              '</div>' +
+        '<div class="trainer-item">' +
+          '<div class="trainer-item-left">' +
+            '<div class="trainer-item-avatar">👤</div>' +
+            '<div>' +
+              '<div class="trainer-item-name">' + escapeHtml(tr.name) + '</div>' +
+              '<div class="trainer-item-role">' + escapeHtml(tr.role || 'Formateur') + '</div>' +
             '</div>' +
-            (tr.tel ? '<a href="tel:' + tr.tel.replace(/\s/g, '') + '" class="btn btn-sm btn-outline-primary"><i class="bi bi-telephone-fill me-1"></i>Appeler</a>' : '') +
           '</div>' +
+          (tr.tel ? '<a href="tel:' + tr.tel.replace(/\s/g, '') + '" class="btn btn-outline btn-sm">📞 Appeler</a>' : '') +
         '</div>';
     });
     trainersListContainer.innerHTML = html;
@@ -723,14 +712,8 @@
     // Filtres niveaux (chips)
     levelChips.forEach(function (chip) {
       chip.addEventListener('click', function () {
-        levelChips.forEach(function (c) {
-          c.classList.remove('active');
-          c.classList.remove('btn-dark');
-          c.classList.add('btn-outline-dark');
-        });
+        levelChips.forEach(function (c) { c.classList.remove('active'); });
         chip.classList.add('active');
-        chip.classList.remove('btn-outline-dark');
-        chip.classList.add('btn-dark');
         activeLevelFilter = chip.getAttribute('data-level');
         render();
       });
@@ -743,6 +726,25 @@
       card.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
       });
+    });
+
+    // Fermeture des modales : boutons data-close, clic sur le fond, Échap
+    document.addEventListener('click', function (e) {
+      var closeBtn = e.target.closest('[data-close]');
+      if (closeBtn) {
+        var m = closeBtn.closest('.modal');
+        if (m) closeModal(m);
+        return;
+      }
+      if (e.target.classList && e.target.classList.contains('modal')) {
+        closeModal(e.target);
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        var open = document.querySelector('.modal.open');
+        if (open) closeModal(open);
+      }
     });
 
     // Clics délégués sur les actions
@@ -1069,7 +1071,6 @@
         showToast('Séance modifiée.');
       }
     } else {
-      // Séance initiale + récurrence éventuelle sur les samedis suivants du mois
       var dates = [date];
       if (repeat && repeat.checked && chosenDate) {
         var cursor = new Date(chosenDate.getTime());
@@ -1143,7 +1144,7 @@
     var added = 0;
     prevSessions.forEach(function (s) {
       var d = parseDateLocal(s.date);
-      var nth = Math.floor((d.getDate() - 1) / 7) + 1; // n-ième samedi du mois
+      var nth = Math.floor((d.getDate() - 1) / 7) + 1;
       var target = nthSaturdayOfMonth(currentYear, currentMonth, nth);
       if (!target) return;
       var iso = toISODate(target);
@@ -1196,9 +1197,9 @@
     var info = document.getElementById('calendarModalInfo');
     if (info) {
       info.innerHTML =
-        '<div class="fw-bold text-dark mb-1">' + escapeHtml(s.topic) + '</div>' +
-        '<div><i class="bi bi-calendar-event me-1"></i>' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</div>' +
-        '<div><i class="bi bi-geo-alt me-1"></i>' + escapeHtml(s.location) + ' • <i class="bi bi-person me-1"></i>' + escapeHtml(s.trainer) + '</div>';
+        '<div class="ci-t">' + escapeHtml(s.topic) + '</div>' +
+        '<div class="ci-l">📅 ' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</div>' +
+        '<div class="ci-l">📍 ' + escapeHtml(s.location) + ' • 👤 ' + escapeHtml(s.trainer) + '</div>';
     }
 
     var gLink = document.getElementById('googleCalLink');
@@ -1292,20 +1293,20 @@
 
       sheet.innerHTML =
         '<div class="presence-doc">' +
-          '<div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom border-2 border-dark">' +
+          '<div class="pp-head">' +
             '<img src="logoservantdemesse.jpg" alt="Logo" class="print-header-logo">' +
-            '<div class="text-center px-3 flex-grow-1">' +
-              '<h2 class="font-cinzel fs-5 fw-bold mb-1 text-uppercase text-dark">Paroisse Saint-Bernard d\'Adiopodoumé</h2>' +
-              '<p class="small text-dark mb-1 fw-semibold">Groupe des Servants de Messe • Fiche de Présence</p>' +
-              '<h3 class="fs-6 fw-bold text-uppercase text-dark mb-0">' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</h3>' +
+            '<div class="pp-head-text">' +
+              '<h2 class="pp-title font-cinzel">Paroisse Saint-Bernard d\'Adiopodoumé</h2>' +
+              '<p class="pp-sub">Groupe des Servants de Messe • Fiche de Présence</p>' +
+              '<p class="pp-date">' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</p>' +
             '</div>' +
             '<img src="logoeglise.jpeg" alt="Logo" class="print-header-logo">' +
           '</div>' +
           '<table class="presence-meta">' +
-            '<tr><td class="fw-bold">Niveau :</td><td>' + escapeHtml(s.level) + '</td>' +
-                '<td class="fw-bold">Formateur :</td><td>' + escapeHtml(s.trainer) + '</td></tr>' +
-            '<tr><td class="fw-bold">Thème :</td><td colspan="3">' + escapeHtml(s.topic) + '</td></tr>' +
-            '<tr><td class="fw-bold">Lieu :</td><td colspan="3">' + escapeHtml(s.location) + '</td></tr>' +
+            '<tr><td><strong>Niveau :</strong></td><td>' + escapeHtml(s.level) + '</td>' +
+                '<td><strong>Formateur :</strong></td><td>' + escapeHtml(s.trainer) + '</td></tr>' +
+            '<tr><td><strong>Thème :</strong></td><td colspan="3">' + escapeHtml(s.topic) + '</td></tr>' +
+            '<tr><td><strong>Lieu :</strong></td><td colspan="3">' + escapeHtml(s.location) + '</td></tr>' +
           '</table>' +
           '<table class="presence-table">' +
             '<thead><tr>' +
@@ -1317,9 +1318,9 @@
             '</tr></thead>' +
             '<tbody>' + rows + '</tbody>' +
           '</table>' +
-          '<div class="d-flex justify-content-between mt-4 small text-dark">' +
+          '<div class="pp-foot">' +
             '<div>Présents : ________ / ' + list.length + '</div>' +
-            '<div class="text-end"><span class="fw-bold">Visa du Formateur :</span> ______________________</div>' +
+            '<div><strong>Visa du Formateur :</strong> ______________________</div>' +
           '</div>' +
         '</div>';
 
@@ -1328,7 +1329,6 @@
       setTimeout(function () { document.body.classList.remove('printing-presence'); }, 2000);
     }
 
-    // Récupère la liste des inscrits si le responsable est connecté
     if (adminPassword) {
       fetch(API_BASE + '/api/inscriptions', { headers: apiHeaders() })
         .then(function (res) { return res.ok ? res.json() : null; })
@@ -1354,34 +1354,32 @@
     var title = document.getElementById('levelModalTitle');
     var body = document.getElementById('levelModalBody');
     if (title) {
-      title.innerHTML = '<span class="badge ' + guide.badge + ' me-2">Niveau</span>' + guide.name;
+      title.innerHTML = '<span class="badge ' + guide.badge + '">Niveau</span> ' + guide.name;
     }
     if (body) {
       var modulesHtml = guide.modules.map(function (m) {
-        return '<li><i class="bi bi-check2-circle me-2" style="color:' + guide.color + ';"></i>' + m + '</li>';
+        return '<li><span style="color:' + guide.color + ';">✔</span><span>' + m + '</span></li>';
       }).join('');
       var evalHtml = guide.evaluation.map(function (m) {
-        return '<li><i class="bi bi-award me-2" style="color:' + guide.color + ';"></i>' + m + '</li>';
+        return '<li><span style="color:' + guide.color + ';">🏅</span><span>' + m + '</span></li>';
       }).join('');
 
       body.innerHTML =
-        '<div class="d-flex align-items-center gap-3 mb-3">' +
-          '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:56px;height:56px;background:' + guide.color + '22;color:' + guide.color + ';">' +
-            '<i class="bi ' + guide.icon + ' fs-2"></i>' +
-          '</div>' +
+        '<div class="guide-hero">' +
+          '<div class="guide-icon" style="background:' + guide.color + '22;">' + guide.emoji + '</div>' +
           '<div>' +
-            '<div class="fst-italic text-muted">« ' + guide.motto + ' »</div>' +
-            '<div class="small fw-bold text-dark mt-1"><i class="bi bi-hourglass-split me-1"></i>' + guide.duration + '</div>' +
+            '<div class="guide-motto">« ' + guide.motto + ' »</div>' +
+            '<div class="guide-dur">⏳ ' + guide.duration + '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="row g-3">' +
-          '<div class="col-md-6">' +
-            '<h6 class="fw-bold text-uppercase small text-dark border-bottom pb-2"><i class="bi bi-journal-bookmark me-1"></i>Modules enseignés</h6>' +
-            '<ul class="list-unstyled small text-secondary mb-0">' + modulesHtml + '</ul>' +
+        '<div class="guide-cols">' +
+          '<div>' +
+            '<h6 class="guide-col-title">📖 Modules enseignés</h6>' +
+            '<ul class="guide-list">' + modulesHtml + '</ul>' +
           '</div>' +
-          '<div class="col-md-6">' +
-            '<h6 class="fw-bold text-uppercase small text-dark border-bottom pb-2"><i class="bi bi-clipboard-check me-1"></i>Critères de passage</h6>' +
-            '<ul class="list-unstyled small text-secondary mb-0">' + evalHtml + '</ul>' +
+          '<div>' +
+            '<h6 class="guide-col-title">✅ Critères de passage</h6>' +
+            '<ul class="guide-list">' + evalHtml + '</ul>' +
           '</div>' +
         '</div>';
     }
@@ -1464,32 +1462,44 @@
     }
   }
 
-  // ==================== UTILITAIRES ====================
+  // ==================== MODALES & TOASTS (CUSTOM) ====================
 
-  // Modales avec API Bootstrap 5
   function openModal(el) {
     if (!el) return;
-    if (window.bootstrap && bootstrap.Modal) {
-      bootstrap.Modal.getOrCreateInstance(el).show();
-    }
+    el.classList.add('open');
+    document.body.classList.add('modal-open');
   }
 
   function closeModal(el) {
     if (!el) return;
-    if (window.bootstrap && bootstrap.Modal) {
-      var modal = bootstrap.Modal.getInstance(el);
-      if (modal) modal.hide();
+    el.classList.remove('open');
+    if (!document.querySelector('.modal.open')) {
+      document.body.classList.remove('modal-open');
     }
   }
 
-  // Toast avec API Bootstrap 5
   function showToast(msg) {
-    if (!liveToastEl) return;
-    if (toastMessageEl) toastMessageEl.textContent = msg;
-    if (window.bootstrap && bootstrap.Toast) {
-      bootstrap.Toast.getOrCreateInstance(liveToastEl).show();
+    var zone = document.getElementById('toastZone');
+    if (!zone) {
+      zone = document.createElement('div');
+      zone.id = 'toastZone';
+      zone.className = 'toast-zone';
+      document.body.appendChild(zone);
     }
+    var t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    zone.appendChild(t);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { t.classList.add('show'); });
+    });
+    setTimeout(function () {
+      t.classList.remove('show');
+      setTimeout(function () { t.remove(); }, 400);
+    }, 3400);
   }
+
+  // ==================== UTILITAIRES ====================
 
   // Parse 'YYYY-MM-DD' en heure locale (évite le décalage UTC de new Date(str))
   function parseDateLocal(str) {

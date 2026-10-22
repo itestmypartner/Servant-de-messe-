@@ -17,752 +17,528 @@
   <!-- PWA : APPLICATION INSTALLABLE -->
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="logoservantdemesse.jpg">
-  
-  <!-- BOOTSTRAP 5.3.3 CSS & BOOTSTRAP ICONS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
   <!-- POLICES GOOGLE : CINZEL, PLUS JAKARTA SANS & ALEX BRUSH -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- FEUILLE DE STYLE PERSONNALISÉE -->
+  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- DESIGN PERSONNALISÉ (SANS FRAMEWORK) -->
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="animations.css">
 </head>
-<body class="bg-light">
+<body>
 
-  <!-- ==================== HEADER & NAVBAR RESPONSIVE BOOTSTRAP ==================== -->
-  <header class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top py-2">
-    <div class="container">
-      <!-- LOGOS & NOM OFFICIEL -->
-      <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+  <!-- ==================== NAVBAR ==================== -->
+  <header class="topbar" id="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="index.html">
         <img src="logoservantdemesse.jpg" alt="Logo Servants de Messe" class="brand-logo-img">
         <img src="logoeglise.jpeg" alt="Logo Paroisse Saint-Bernard" class="brand-logo-img">
-        <div class="ms-1">
-          <div class="font-cinzel fw-bold fs-6 text-white text-uppercase lh-1">Servants de Messe</div>
-          <div class="small text-secondary" style="font-size:0.75rem;">St-Bernard d'Adiopodoumé • Formation</div>
-        </div>
+        <span class="brand-text">
+          <span class="brand-name font-cinzel">Servants de Messe</span>
+          <span class="brand-sub">St-Bernard d'Adiopodoumé • Formation</span>
+        </span>
       </a>
 
-      <!-- BOUTON BURGER MOBILE -->
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Menu navigation">
-        <span class="navbar-toggler-icon"></span>
+      <button class="burger" id="burgerBtn" type="button" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
       </button>
 
-      <!-- MENU COLLAPSIBLE (ÉVITE TOUTE ERREUR 404) -->
-      <div class="collapse navbar-collapse" id="navbarContent">
-        <!-- LIENS DE NAVIGATION INTERNES -->
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
-          <li class="nav-item">
-            <a class="nav-link active" href="index.html">
-              <i class="bi bi-house-door me-1"></i>Accueil
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#planning-section">
-              <i class="bi bi-calendar3 me-1"></i>Planning
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#niveaux-section">
-              <i class="bi bi-layers me-1"></i>Les 4 Niveaux
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#responsables-section">
-              <i class="bi bi-person-badge me-1"></i>Encadrement
-            </a>
-          </li>
-          <li class="nav-item">
-            <!-- LIEN VERS LE SITE PAROISSIAL EN LIGNE (OUVRE SANS ERREUR 404) -->
-            <a class="nav-link text-warning" href="https://servant-de-messe-4651.onrender.com/" target="_blank" rel="noopener noreferrer" title="Accéder au site officiel de la paroisse">
-              <i class="bi bi-globe me-1"></i>Site Paroissial <i class="bi bi-box-arrow-up-right small ms-1" style="font-size:0.7rem;"></i>
-            </a>
-          </li>
+      <nav class="topnav" id="topnav">
+        <ul class="nav-links">
+          <li><a class="nav-link active" href="index.html">🏠 Accueil</a></li>
+          <li><a class="nav-link" href="#planning-section">📅 Planning</a></li>
+          <li><a class="nav-link" href="#niveaux-section">🎓 Les 4 Niveaux</a></li>
+          <li><a class="nav-link" href="#responsables-section">👤 Encadrement</a></li>
+          <li><a class="nav-link nav-link-ext" href="https://servant-de-messe-4651.onrender.com/" target="_blank" rel="noopener noreferrer" title="Accéder au site officiel de la paroisse">🌐 Site Paroissial ↗</a></li>
         </ul>
 
-        <!-- ACTIONS RAPIDES (BOUTONS) -->
-        <div class="d-flex align-items-center flex-wrap gap-2 pt-2 pt-lg-0">
-          <button id="whatsappShareBtn" class="btn btn-success btn-sm" type="button" title="Partager le planning sur WhatsApp">
-            <i class="bi bi-whatsapp me-1"></i><span>WhatsApp</span>
-          </button>
-          <button id="printBtn" class="btn btn-light btn-sm" type="button" title="Imprimer ou enregistrer en PDF">
-            <i class="bi bi-printer me-1"></i><span>Imprimer A4</span>
-          </button>
-          <button id="addSessionBtn" class="btn btn-gold btn-sm" type="button" style="display:none;" title="Programmer une formation">
-            <i class="bi bi-plus-circle me-1"></i>Nouvelle séance
-          </button>
-          <button id="securityBtn" class="btn btn-outline-warning btn-sm" type="button" style="display:none;" title="Changer le mot de passe responsable">
-            <i class="bi bi-key me-1"></i>Sécurité
-          </button>
-          <button id="adminLoginBtn" class="btn btn-outline-light btn-sm" type="button" title="Connexion responsable">
-            <i class="bi bi-shield-lock me-1"></i>Espace Responsable
-          </button>
+        <div class="nav-actions">
+          <button id="whatsappShareBtn" class="btn btn-success btn-sm" type="button" title="Partager le planning sur WhatsApp">💬 WhatsApp</button>
+          <button id="printBtn" class="btn btn-light btn-sm" type="button" title="Imprimer ou enregistrer en PDF">🖨️ Imprimer A4</button>
+          <button id="addSessionBtn" class="btn btn-gold btn-sm" type="button" style="display:none;" title="Programmer une formation">➕ Nouvelle séance</button>
+          <button id="securityBtn" class="btn btn-outline-gold btn-sm" type="button" style="display:none;" title="Changer le mot de passe responsable">🔑 Sécurité</button>
+          <button id="adminLoginBtn" class="btn btn-outline-light btn-sm" type="button" title="Connexion responsable">🔒 Espace Responsable</button>
         </div>
-      </div>
+      </nav>
     </div>
   </header>
 
-  <!-- ==================== EN-TÊTE D'IMPRESSION A4 OFFICIELLE ==================== -->
+  <!-- ==================== EN-TÊTE D'IMPRESSION A4 ==================== -->
   <div class="print-only-header">
-    <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom border-2 border-dark">
+    <div class="print-header-row">
       <img src="logoservantdemesse.jpg" alt="Logo Servants de Messe" class="print-header-logo">
-      <div class="text-center px-3 flex-grow-1">
-        <h2 class="font-cinzel fs-5 fw-bold mb-1 text-uppercase text-dark">Paroisse Saint-Bernard d'Adiopodoumé</h2>
-        <p class="small text-dark mb-1 fw-semibold">Groupe des Servants de Messe • Commission Formation Liturgique</p>
-        <h3 class="fs-6 fw-bold text-uppercase text-dark mb-1" id="printMonthSubtitle">
-          Emploi du Temps des Formations du Samedi — <span id="printMonthText">Octobre 2026</span>
-        </h3>
-        <p class="small text-muted mb-0" style="font-size:0.75rem;">Niveaux officiels : Postulant • Samuel • Tarcisius • Augustin</p>
+      <div class="print-header-text">
+        <h2 class="font-cinzel">Paroisse Saint-Bernard d'Adiopodoumé</h2>
+        <p>Groupe des Servants de Messe • Commission Formation Liturgique</p>
+        <h3>Emploi du Temps des Formations du Samedi — <span id="printMonthText">Octobre 2026</span></h3>
+        <p class="print-levels">Niveaux officiels : Postulant • Samuel • Tarcisius • Augustin</p>
       </div>
       <img src="logoeglise.jpeg" alt="Logo Paroisse Saint-Bernard" class="print-header-logo">
     </div>
   </div>
 
-  <main class="container py-4 flex-grow-1">
+  <main class="container main-stack">
 
-    <!-- ==================== HERO BANNER LITURGIQUE ==================== -->
-    <div class="hero-banner p-4 p-md-5 mb-4 position-relative">
-      <div class="row align-items-center gy-4">
-        <div class="col-lg-8">
-          <div class="hero-tag mb-3">
-            <i class="bi bi-award-fill"></i> Paroisse Saint-Bernard d'Adiopodoumé • Diocèse de Yopougon
-          </div>
-          <h1 class="display-6 fw-bold font-cinzel text-white mb-2">
-            Emploi du Temps des Formations
-          </h1>
-          <p class="lead text-light opacity-90 mb-3" style="font-size:1.05rem;">
-            Organisation officielle des enseignements et de la pratique liturgique du samedi pour les servants d'autel.
-          </p>
-          <div class="d-flex align-items-center flex-wrap gap-3 text-light small">
-            <div><i class="bi bi-check-circle-fill text-warning me-1"></i> 4 Paliers d'évolution</div>
-            <div><i class="bi bi-person-fill text-warning me-1"></i> Responsable Titulaire : <strong>DJEBLE Haniel</strong></div>
-            <div><i class="bi bi-telephone-fill text-warning me-1"></i> Contact : <strong>01 50 25 24 67</strong></div>
+    <!-- ==================== HERO BANNER ==================== -->
+    <section class="hero-banner">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-tag">🏅 Paroisse Saint-Bernard d'Adiopodoumé • Diocèse de Yopougon</div>
+          <h1 class="hero-title font-cinzel">Emploi du Temps des Formations</h1>
+          <p class="hero-lead">Organisation officielle des enseignements et de la pratique liturgique du samedi pour les servants d'autel.</p>
+          <div class="hero-meta">
+            <span>✅ 4 Paliers d'évolution</span>
+            <span>👤 Responsable Titulaire : <strong>DJEBLE Haniel</strong></span>
+            <span>📞 Contact : <strong>01 50 25 24 67</strong></span>
           </div>
         </div>
-        <div class="col-lg-4 text-lg-end text-center">
-          <div class="d-inline-flex flex-column align-items-center p-3 rounded-4" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
-            <i class="bi bi-quote text-warning fs-3 mb-1"></i>
-            <div class="fst-italic text-white small px-2">
-              « Servir et non être servi ! »
-            </div>
-            <div class="text-warning small fw-bold mt-1">Devise des Servants de Messe</div>
+        <div class="hero-quote">
+          <div class="quote-box">
+            <div class="quote-icon">❝</div>
+            <div class="quote-text">« Servir et non être servi ! »</div>
+            <div class="quote-sub">Devise des Servants de Messe</div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PROCHAINE SÉANCE ==================== -->
+    <div id="nextSessionCard" class="next-card-slot" style="display:none;"></div>
+
+    <!-- ==================== STATISTIQUES ==================== -->
+    <div class="stats-grid">
+      <div class="stat-widget">
+        <div class="stat-icon-wrapper si-gold">👤</div>
+        <div>
+          <div class="stat-label">Responsable Formation</div>
+          <div class="stat-value">DJEBLE Haniel</div>
+          <a href="tel:+2250150252467" class="stat-link">📞 01 50 25 24 67</a>
+        </div>
+      </div>
+      <div class="stat-widget">
+        <div class="stat-icon-wrapper si-blue">🗓️</div>
+        <div>
+          <div class="stat-label">Séances ce mois-ci</div>
+          <div class="stat-value" id="statMonthCount">0 séance planifiée</div>
+          <span class="stat-sub" id="statMonthLabel">Mois sélectionné</span>
+        </div>
+      </div>
+      <div class="stat-widget">
+        <div class="stat-icon-wrapper si-green">🎓</div>
+        <div>
+          <div class="stat-label">Parcours de Formation</div>
+          <div class="stat-value">4 Niveaux Distincts</div>
+          <span class="stat-sub">Postulant • Samuel • Tarcisius • Augustin</span>
         </div>
       </div>
     </div>
 
-    <!-- ==================== WIDGETS STATISTIQUES ==================== -->
-    <div class="row g-3 mb-4">
-      <div class="col-md-4">
-        <div class="stat-widget">
-          <div class="stat-icon-wrapper bg-warning-subtle text-warning-emphasis">
-            <i class="bi bi-person-check-fill"></i>
-          </div>
+    <!-- ==================== FICHE RESPONSABLE ==================== -->
+    <section id="responsables-section" class="card-soft trainer-highlight">
+      <div class="trainer-row-inner">
+        <div class="trainer-id">
+          <div class="trainer-avatar">👤</div>
           <div>
-            <div class="small text-muted fw-semibold">Responsable Formation</div>
-            <div class="fw-bold text-dark fs-6">DJEBLE Haniel</div>
-            <a href="tel:+2250150252467" class="small text-decoration-none text-success fw-semibold">
-              <i class="bi bi-telephone me-1"></i>01 50 25 24 67
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="stat-widget">
-          <div class="stat-icon-wrapper bg-primary-subtle text-primary">
-            <i class="bi bi-calendar-check-fill"></i>
-          </div>
-          <div>
-            <div class="small text-muted fw-semibold">Séances ce mois-ci</div>
-            <div class="fw-bold text-dark fs-6" id="statMonthCount">0 séance planifiée</div>
-            <span class="small text-muted" id="statMonthLabel">Mois sélectionné</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="stat-widget">
-          <div class="stat-icon-wrapper bg-success-subtle text-success">
-            <i class="bi bi-mortarboard-fill"></i>
-          </div>
-          <div>
-            <div class="small text-muted fw-semibold">Parcours de Formation</div>
-            <div class="fw-bold text-dark fs-6">4 Niveaux Distincts</div>
-            <span class="small text-muted">Postulant • Samuel • Tarcisius • Augustin</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== PROCHAINE SÉANCE (COMPTE À REBOURS) ==================== -->
-    <div id="nextSessionCard" class="mb-4" style="display:none;"></div>
-
-    <!-- ==================== FICHE RESPONSABLE TITULAIRE (DJEBLE HANIEL) ==================== -->
-    <div id="responsables-section" class="card card-soft card-trainer-highlight mb-4">
-      <div class="card-body p-3 p-md-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-        <div class="d-flex align-items-center gap-3">
-          <div class="rounded-circle bg-warning-subtle text-warning-emphasis d-flex align-items-center justify-content-center flex-shrink-0" style="width:52px;height:52px;">
-            <i class="bi bi-person-badge-fill fs-3 text-warning"></i>
-          </div>
-          <div>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <h2 class="h5 fw-bold mb-0 text-dark">DJEBLE Haniel</h2>
-              <span class="badge bg-warning text-dark fw-bold rounded-pill">Responsable Titulaire de la Formation</span>
+            <div class="trainer-name-row">
+              <h2 class="trainer-name">DJEBLE Haniel</h2>
+              <span class="badge badge-gold">Responsable Titulaire de la Formation</span>
             </div>
-            <p class="text-muted small mb-0 mt-1">
-              Chargé de l'élaboration et du suivi des modules pédagogiques et liturgiques • Paroisse Saint-Bernard d'Adiopodoumé.
-            </p>
-            <div class="mt-1">
-              <a href="tel:+2250150252467" class="btn btn-sm btn-outline-success py-0 px-2 rounded-pill mt-1">
-                <i class="bi bi-telephone-fill me-1"></i>Appeler : 01 50 25 24 67
-              </a>
-              <a href="https://wa.me/2250150252467" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success py-0 px-2 rounded-pill mt-1 ms-1">
-                <i class="bi bi-whatsapp me-1"></i>WhatsApp direct
-              </a>
+            <p class="trainer-desc">Chargé de l'élaboration et du suivi des modules pédagogiques et liturgiques • Paroisse Saint-Bernard d'Adiopodoumé.</p>
+            <div class="trainer-contacts">
+              <a href="tel:+2250150252467" class="btn btn-outline btn-sm">📞 Appeler : 01 50 25 24 67</a>
+              <a href="https://wa.me/2250150252467" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">💬 WhatsApp direct</a>
             </div>
           </div>
         </div>
-
-        <!-- BLOC DE SIGNATURE OFFICIELLE -->
-        <div class="text-md-end border-top border-md-0 pt-2 pt-md-0 flex-shrink-0">
-          <div class="signature-box text-center">
-            <div class="text-uppercase text-muted fw-bold" style="font-size:0.68rem; letter-spacing:0.6px;">Visa & Signature Officielle :</div>
-            <div class="handwritten-signature">DJEBLE Haniel</div>
-            <div class="small text-muted" style="font-size:0.7rem;">Responsable Formation</div>
-          </div>
+        <div class="signature-box">
+          <div class="signature-label">Visa & Signature Officielle :</div>
+          <div class="handwritten-signature">DJEBLE Haniel</div>
+          <div class="signature-sub">Responsable Formation</div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- ==================== SÉLECTEUR DE MOIS ==================== -->
-    <div id="monthNavContainer" class="card card-soft mb-3">
-      <div class="card-body p-2 p-md-3 d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2 gap-md-3">
-        <div class="d-flex align-items-center justify-content-between w-100 w-sm-auto gap-2">
-          <button id="prevMonthBtn" class="btn btn-outline-secondary btn-sm flex-fill flex-sm-grow-0" type="button">
-            <i class="bi bi-chevron-left me-1"></i><span class="d-none d-sm-inline">Mois </span>Préc.
-          </button>
-          <h3 id="currentMonthTitle" class="h6 h5-sm fw-bold font-cinzel text-dark mb-0 px-2 px-md-3 text-center text-nowrap">
-            Octobre 2026
-          </h3>
-          <button id="nextMonthBtn" class="btn btn-outline-secondary btn-sm flex-fill flex-sm-grow-0" type="button">
-            Suiv.<span class="d-none d-sm-inline"> Mois</span><i class="bi bi-chevron-right ms-1"></i>
-          </button>
-        </div>
-
-        <div class="d-flex align-items-center w-100 w-sm-auto justify-content-end gap-2 pt-2 pt-sm-0 border-top border-sm-0">
-          <button id="dupMonthBtn" class="btn btn-gold-subtle btn-sm text-nowrap" type="button" style="display:none;" title="Reprendre les séances du mois précédent">
-            <i class="bi bi-front me-1"></i><span class="d-none d-md-inline">Dupliquer mois préc.</span>
-          </button>
-          <label for="monthSelect" class="small fw-bold text-muted text-nowrap mb-0">
-            <i class="bi bi-calendar-event me-1"></i>Accès rapide :
-          </label>
-          <select id="monthSelect" class="form-select form-select-sm w-100 w-sm-auto" style="min-width: 140px;">
-            <!-- Rempli dynamiquement -->
-          </select>
-        </div>
+    <div id="monthNavContainer" class="card-soft month-nav">
+      <div class="month-nav-left">
+        <button id="prevMonthBtn" class="btn btn-outline btn-sm" type="button">◀ <span class="hide-xs">Mois </span>Préc.</button>
+        <h3 id="currentMonthTitle" class="month-title font-cinzel">Octobre 2026</h3>
+        <button id="nextMonthBtn" class="btn btn-outline btn-sm" type="button">Suiv.<span class="hide-xs"> Mois</span> ▶</button>
+      </div>
+      <div class="month-nav-right">
+        <button id="dupMonthBtn" class="btn btn-gold-subtle btn-sm" type="button" style="display:none;" title="Reprendre les séances du mois précédent">📋 <span class="hide-md">Dupliquer mois préc.</span></button>
+        <label for="monthSelect" class="month-label">🗓️ Accès rapide :</label>
+        <select id="monthSelect" class="select select-sm"><!-- Rempli dynamiquement --></select>
       </div>
     </div>
 
-    <!-- ==================== FILTRES DES NIVEAUX (DÉFILEMENT MOBILE TACTILE) ==================== -->
-    <div id="levelFilterContainer" class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-      <div class="level-filter-scroll d-flex align-items-center gap-1">
-        <span class="small fw-bold text-muted me-1 flex-shrink-0"><i class="bi bi-funnel-fill me-1"></i>FILTRE :</span>
-        <button type="button" class="btn btn-sm btn-dark level-chip active" data-level="all">
-          <i class="bi bi-grid-fill"></i> Tous
-        </button>
-        <button type="button" class="btn btn-sm btn-outline-dark level-chip" data-level="postulant">
-          <i class="bi bi-circle-fill text-success" style="font-size:0.6rem;"></i> Postulant
-        </button>
-        <button type="button" class="btn btn-sm btn-outline-dark level-chip" data-level="samuel">
-          <i class="bi bi-circle-fill text-primary" style="font-size:0.6rem;"></i> Samuel
-        </button>
-        <button type="button" class="btn btn-sm btn-outline-dark level-chip" data-level="tarcisius">
-          <i class="bi bi-circle-fill" style="color:var(--color-tarcisius); font-size:0.6rem;"></i> Tarcisius
-        </button>
-        <button type="button" class="btn btn-sm btn-outline-dark level-chip" data-level="augustin">
-          <i class="bi bi-circle-fill text-warning" style="font-size:0.6rem;"></i> Augustin
-        </button>
+    <!-- ==================== FILTRES & VUES ==================== -->
+    <div id="levelFilterContainer" class="filter-bar">
+      <div class="level-filter-scroll">
+        <span class="filter-label">🔽 FILTRE :</span>
+        <button type="button" class="chip level-chip active" data-level="all">⊞ Tous</button>
+        <button type="button" class="chip level-chip" data-level="postulant"><i class="dot dot-postulant"></i>Postulant</button>
+        <button type="button" class="chip level-chip" data-level="samuel"><i class="dot dot-samuel"></i>Samuel</button>
+        <button type="button" class="chip level-chip" data-level="tarcisius"><i class="dot dot-tarcisius"></i>Tarcisius</button>
+        <button type="button" class="chip level-chip" data-level="augustin"><i class="dot dot-augustin"></i>Augustin</button>
       </div>
-
-      <div class="ms-auto d-flex align-items-center gap-2">
-        <!-- BASCULE LISTE / CALENDRIER -->
-        <div class="btn-group btn-group-sm" role="group" aria-label="Mode d'affichage">
-          <button id="viewListBtn" class="btn btn-dark" type="button" title="Vue liste">
-            <i class="bi bi-list-ul"></i><span class="d-none d-sm-inline ms-1">Liste</span>
-          </button>
-          <button id="viewCalendarBtn" class="btn btn-outline-dark" type="button" title="Vue calendrier">
-            <i class="bi bi-calendar3"></i><span class="d-none d-sm-inline ms-1">Calendrier</span>
-          </button>
+      <div class="filter-actions">
+        <div class="view-toggle">
+          <button id="viewListBtn" class="vt-btn active" type="button" title="Vue liste">☰<span class="hide-xs"> Liste</span></button>
+          <button id="viewCalendarBtn" class="vt-btn" type="button" title="Vue calendrier">🗓️<span class="hide-xs"> Calendrier</span></button>
         </div>
-        <button id="adminQuickBtn" class="btn btn-sm btn-gold-subtle" type="button">
-          <i class="bi bi-gear-fill me-1"></i>Gérer
-        </button>
+        <button id="adminQuickBtn" class="btn btn-gold-subtle btn-sm" type="button">⚙️ Gérer</button>
       </div>
     </div>
 
-    <!-- ==================== TABLEAU & CARTES MOBILES DU PLANNING ==================== -->
-    <div id="planning-section" class="card card-soft mb-5 overflow-hidden">
-      <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-calendar-week fs-5 text-warning"></i>
-          <h4 class="h6 fw-bold text-uppercase font-cinzel text-dark mb-0">
-            Programme officiel des Samedis
-          </h4>
+    <!-- ==================== PLANNING ==================== -->
+    <section id="planning-section" class="card-soft planning-card">
+      <div class="planning-head">
+        <div class="planning-head-title">
+          <span class="ph-icon">📅</span>
+          <h4 class="font-cinzel">Programme officiel des Samedis</h4>
         </div>
-        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-          <span id="levelBreakdown" class="small text-muted d-none d-lg-inline"></span>
-          <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-3 py-2 fw-semibold" id="scheduleCount">
-            0 séance programmée
-          </span>
+        <div class="planning-head-stats">
+          <span id="levelBreakdown" class="level-breakdown"></span>
+          <span class="badge badge-soft" id="scheduleCount">0 séance programmée</span>
         </div>
       </div>
 
-      <!-- VUE TABLEAU (DESKTOP & IMPRESSION PDF A4) -->
-      <div class="table-responsive d-none d-md-block" id="scheduleTableWrapper">
-        <table class="table table-hover table-schedule align-middle">
+      <!-- VUE TABLEAU (DESKTOP & IMPRESSION) -->
+      <div class="table-wrap" id="scheduleTableWrapper">
+        <table class="table-schedule">
           <thead>
             <tr>
-              <th class="col-date" style="width: 17%;">Date (Samedi)</th>
-              <th class="col-time" style="width: 13%;">Horaire</th>
-              <th class="col-level" style="width: 12%;">Niveau</th>
-              <th class="col-topic" style="width: 30%;">Thème & Enseignement</th>
-              <th class="col-trainer" style="width: 14%;">Formateur</th>
-              <th class="col-location" style="width: 14%;">Lieu</th>
-              <th class="action-col text-end" style="width: 0%;">Action</th>
+              <th class="col-date">Date (Samedi)</th>
+              <th class="col-time">Horaire</th>
+              <th class="col-level">Niveau</th>
+              <th class="col-topic">Thème & Enseignement</th>
+              <th class="col-trainer">Formateur</th>
+              <th class="col-location">Lieu</th>
+              <th class="action-col">Action</th>
             </tr>
           </thead>
-          <tbody id="scheduleBody">
-            <!-- Rendu dynamique par JS -->
-          </tbody>
+          <tbody id="scheduleBody"><!-- Rendu dynamique --></tbody>
         </table>
       </div>
 
-      <!-- VUE CARTES MOBILES (SMARTPHONES : FLUIDE, ERGONOMIQUE ET SANS COUPE) -->
-      <div class="d-md-none p-3" id="scheduleMobileContainer">
-        <!-- Rendu dynamique par JS pour mobile -->
+      <!-- VUE CARTES MOBILES -->
+      <div class="mobile-cards" id="scheduleMobileContainer"><!-- Rendu dynamique --></div>
+
+      <!-- VUE CALENDRIER -->
+      <div id="calendarViewContainer" style="display:none;"><!-- Grille dynamique --></div>
+    </section>
+
+    <!-- ==================== GUIDE DES 4 NIVEAUX ==================== -->
+    <section id="niveaux-section">
+      <div class="section-head">
+        <h5 class="font-cinzel section-heading">🎓 Guide Pédagogique des 4 Niveaux</h5>
+        <p class="section-sub">Parcours d'apprentissage et de sanctification des Servants de Messe. <strong>Cliquez sur un niveau pour voir son programme détaillé.</strong></p>
       </div>
 
-      <!-- VUE CALENDRIER MENSUEL (BASCULE JS) -->
-      <div class="p-3" id="calendarViewContainer" style="display:none;">
-        <!-- Grille calendrier rendue dynamiquement -->
-      </div>
-    </div>
+      <div class="levels-grid">
+        <div class="card-soft level-card-clickable lvl-top-postulant" data-level-guide="postulant" role="button" tabindex="0" title="Voir le programme détaillé du niveau Postulant">
+          <div class="level-card-top">
+            <span class="badge lvl-postulant">Niveau 1</span>
+            <span class="level-emoji">🌱</span>
+          </div>
+          <h6 class="level-name">Postulant</h6>
+          <p class="level-motto">Les premiers pas au service de l'autel.</p>
+          <ul class="level-list">
+            <li>Posture, révérence et marche</li>
+            <li>Découverte du sanctuaire</li>
+            <li>Prière du servant de messe</li>
+          </ul>
+        </div>
 
-    <!-- ==================== GUIDE PÉDAGOGIQUE DES 4 NIVEAUX ==================== -->
-    <div id="niveaux-section" class="mb-5">
-      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="card-soft level-card-clickable lvl-top-samuel" data-level-guide="samuel" role="button" tabindex="0" title="Voir le programme détaillé du niveau Samuel">
+          <div class="level-card-top">
+            <span class="badge lvl-samuel">Niveau 2</span>
+            <span class="level-emoji">🔔</span>
+          </div>
+          <h6 class="level-name">Samuel</h6>
+          <p class="level-motto">L'écoute et le service actif.</p>
+          <ul class="level-list">
+            <li>Clochette et offrandes</li>
+            <li>Burettes et lavabo</li>
+            <li>Connaissance des vases sacrés</li>
+          </ul>
+        </div>
+
+        <div class="card-soft level-card-clickable lvl-top-tarcisius" data-level-guide="tarcisius" role="button" tabindex="0" title="Voir le programme détaillé du niveau Tarcisius">
+          <div class="level-card-top">
+            <span class="badge lvl-tarcisius">Niveau 3</span>
+            <span class="level-emoji">🛡️</span>
+          </div>
+          <h6 class="level-name">Tarcisius</h6>
+          <p class="level-motto">Fidélité et garde du Saint-Sacrement.</p>
+          <ul class="level-list">
+            <li>Céroféraire & Porte-croix</li>
+            <li>Encensoir et navette (théorie)</li>
+            <li>Accompagnement de la communion</li>
+          </ul>
+        </div>
+
+        <div class="card-soft level-card-clickable lvl-top-augustin" data-level-guide="augustin" role="button" tabindex="0" title="Voir le programme détaillé du niveau Augustin">
+          <div class="level-card-top">
+            <span class="badge lvl-augustin">Niveau 4</span>
+            <span class="level-emoji">🏆</span>
+          </div>
+          <h6 class="level-name">Augustin</h6>
+          <p class="level-motto">Maturité, maîtrise et encadrement.</p>
+          <ul class="level-list">
+            <li>Grandes célébrations solennelles</li>
+            <li>Thuriféraire expérimenté</li>
+            <li>Tutorat des plus jeunes</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== CORPS DES FORMATEURS ==================== -->
+    <section class="card-soft trainers-card">
+      <div class="trainers-head">
         <div>
-          <h5 class="h6 fw-bold font-cinzel text-uppercase text-dark mb-1">
-            <i class="bi bi-mortarboard me-2 text-warning"></i>Guide Pédagogique des 4 Niveaux
-          </h5>
-          <p class="text-muted small mb-0">Parcours d'apprentissage et de sanctification des Servants de Messe. <span class="text-warning-emphasis fw-semibold">Cliquez sur un niveau pour voir son programme détaillé.</span></p>
+          <h5 class="font-cinzel section-heading">👥 Corps des Formateurs & Responsables</h5>
+          <p class="section-sub">Responsable initial titulaire : DJEBLE Haniel.</p>
         </div>
+        <button id="addTrainerBtn" class="btn btn-outline btn-sm" type="button" style="display:none;">➕ Ajouter un formateur</button>
       </div>
+      <div id="trainersListContainer" class="trainers-grid"><!-- Injecté dynamiquement --></div>
+    </section>
 
-      <div class="row g-3">
-        <!-- 1. POSTULANT -->
-        <div class="col-md-6 col-lg-3">
-          <div class="card card-soft h-100 border-top border-4 border-success level-card-clickable" data-level-guide="postulant" role="button" tabindex="0" title="Voir le programme détaillé du niveau Postulant">
-            <div class="card-body p-3">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="badge badge-postulant rounded-pill px-2 py-1">Niveau 1</span>
-                <i class="bi bi-seedling text-success fs-5"></i>
-              </div>
-              <h6 class="fw-bold text-dark mb-1">Postulant</h6>
-              <p class="small text-muted mb-2">Les premiers pas au service de l'autel.</p>
-              <ul class="small text-secondary ps-3 mb-0" style="font-size:0.82rem;">
-                <li>Posture, révérence et marche</li>
-                <li>Découverte du sanctuaire</li>
-                <li>Prière du servant de messe</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. SAMUEL -->
-        <div class="col-md-6 col-lg-3">
-          <div class="card card-soft h-100 border-top border-4 border-primary level-card-clickable" data-level-guide="samuel" role="button" tabindex="0" title="Voir le programme détaillé du niveau Samuel">
-            <div class="card-body p-3">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="badge badge-samuel rounded-pill px-2 py-1">Niveau 2</span>
-                <i class="bi bi-bell text-primary fs-5"></i>
-              </div>
-              <h6 class="fw-bold text-dark mb-1">Samuel</h6>
-              <p class="small text-muted mb-2">L'écoute et le service actif.</p>
-              <ul class="small text-secondary ps-3 mb-0" style="font-size:0.82rem;">
-                <li>Clochette et offrandes</li>
-                <li>Burettes et lavabo</li>
-                <li>Connaissance des vases sacrés</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. TARCISIUS -->
-        <div class="col-md-6 col-lg-3">
-          <div class="card card-soft h-100 border-top border-4 level-card-clickable" style="border-top-color: var(--color-tarcisius) !important;" data-level-guide="tarcisius" role="button" tabindex="0" title="Voir le programme détaillé du niveau Tarcisius">
-            <div class="card-body p-3">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="badge badge-tarcisius rounded-pill px-2 py-1">Niveau 3</span>
-                <i class="bi bi-shield-fill-check fs-5" style="color: var(--color-tarcisius);"></i>
-              </div>
-              <h6 class="fw-bold text-dark mb-1">Tarcisius</h6>
-              <p class="small text-muted mb-2">Fidélité et garde du Saint-Sacrement.</p>
-              <ul class="small text-secondary ps-3 mb-0" style="font-size:0.82rem;">
-                <li>Céroféraire & Porte-croix</li>
-                <li>Encensoir et navette (théorie)</li>
-                <li>Accompagnement de la communion</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <!-- 4. AUGUSTIN -->
-        <div class="col-md-6 col-lg-3">
-          <div class="card card-soft h-100 border-top border-4 border-warning level-card-clickable" data-level-guide="augustin" role="button" tabindex="0" title="Voir le programme détaillé du niveau Augustin">
-            <div class="card-body p-3">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="badge badge-augustin rounded-pill px-2 py-1">Niveau 4</span>
-                <i class="bi bi-trophy text-warning fs-5"></i>
-              </div>
-              <h6 class="fw-bold text-dark mb-1">Augustin</h6>
-              <p class="small text-muted mb-2">Maturité, maîtrise et encadrement.</p>
-              <ul class="small text-secondary ps-3 mb-0" style="font-size:0.82rem;">
-                <li>Grandes célébrations solennelles</li>
-                <li>Thuriféraire expérimenté</li>
-                <li>Tutorat des plus jeunes</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== SECTION ENCADREMENT ==================== -->
-    <div class="card card-soft mb-4">
-      <div class="card-body p-3 p-md-4">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <div>
-            <h5 class="h6 fw-bold font-cinzel text-uppercase text-dark mb-0">
-              <i class="bi bi-people-fill me-2 text-warning"></i>Corps des Formateurs & Responsables
-            </h5>
-            <p class="small text-muted mb-0">Responsable initial titulaire : DJEBLE Haniel.</p>
-          </div>
-          <button id="addTrainerBtn" class="btn btn-outline-secondary btn-sm" type="button" style="display:none;">
-            <i class="bi bi-person-plus me-1"></i>Ajouter un formateur
-          </button>
-        </div>
-
-        <div id="trainersListContainer" class="row g-3">
-          <!-- Injecté dynamiquement par JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== SIGNATURE OFFICIELLE DU RESPONSABLE (IMPRESSION PDF) ==================== -->
-    <div class="print-signatures pt-3">
-      <div class="text-end ms-auto" style="min-width: 260px;">
-        <p class="fw-bold mb-0 text-dark">Le Responsable Chargé de la Formation</p>
-        <p class="small text-secondary mb-1">Commission des Servants de Messe</p>
+    <!-- ==================== SIGNATURE IMPRESSION ==================== -->
+    <div class="print-signatures">
+      <div class="print-sign-block">
+        <p class="print-sign-title">Le Responsable Chargé de la Formation</p>
+        <p class="print-sign-sub">Commission des Servants de Messe</p>
         <div class="handwritten-signature" style="font-size:2.6rem;">DJEBLE Haniel</div>
-        <p class="fw-bold mb-0 text-dark">DJEBLE Haniel</p>
-        <p class="small text-muted mb-0">Contact : +225 01 50 25 24 67</p>
+        <p class="print-sign-title">DJEBLE Haniel</p>
+        <p class="print-sign-sub">Contact : +225 01 50 25 24 67</p>
       </div>
     </div>
 
   </main>
 
-  <!-- ==================== PIED DE PAGE SANS LIEN 404 ==================== -->
-  <footer class="text-secondary py-4 mt-auto">
-    <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 text-center text-md-start small">
-      <div>
-        <strong class="text-white">Paroisse Saint-Bernard d'Adiopodoumé</strong> — Diocèse de Yopougon.<br>
-        Commission Formation sous la direction de <strong class="text-white">DJEBLE Haniel</strong> (Contact : 01 50 25 24 67).
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-text">
+        <strong>Paroisse Saint-Bernard d'Adiopodoumé</strong> — Diocèse de Yopougon.<br>
+        Commission Formation sous la direction de <strong>DJEBLE Haniel</strong> (Contact : 01 50 25 24 67).
       </div>
-      <div class="d-flex align-items-center gap-3">
-        <a href="index.html" class="text-light text-decoration-none fw-semibold">
-          <i class="bi bi-arrow-up-circle me-1"></i>Haut de page
-        </a>
-        <a href="https://servant-de-messe-4651.onrender.com/" target="_blank" rel="noopener noreferrer" class="text-warning text-decoration-none fw-semibold">
-          <i class="bi bi-globe me-1"></i>Site Paroissial Officiel
-        </a>
+      <div class="footer-links">
+        <a href="index.html">⬆ Haut de page</a>
+        <a href="https://servant-de-messe-4651.onrender.com/" target="_blank" rel="noopener noreferrer" class="footer-ext">🌐 Site Paroissial Officiel</a>
       </div>
     </div>
   </footer>
 
-  <!-- ==================== MODALES BOOTSTRAP 5 ==================== -->
+  <!-- ==================== MODALES ==================== -->
 
-  <!-- 1. MODAL ADMIN LOGIN -->
-  <div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
-      <div class="modal-content border-0">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold text-dark fs-6" id="adminModalLabel">
-            <i class="bi bi-shield-lock me-2 text-warning"></i>Espace Responsable
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+  <!-- 1. CONNEXION RESPONSABLE -->
+  <div class="modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminModalLabel">
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h5 id="adminModalLabel">🔒 Espace Responsable</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <form id="adminLoginForm">
+        <div class="modal-body">
+          <p class="hint">Entrez le code d'accès de responsable pour planifier, modifier ou supprimer des séances de formation.</p>
+          <div class="field">
+            <label for="adminPassword" class="label">Mot de passe responsable</label>
+            <input type="password" id="adminPassword" class="input" placeholder="••••••" required autofocus>
+            <div class="hint">Code réservé au responsable chargé de la formation.</div>
+          </div>
         </div>
-        <form id="adminLoginForm">
-          <div class="modal-body p-4">
-            <p class="small text-muted mb-3">
-              Entrez le code d'accès de responsable pour planifier, modifier ou supprimer des séances de formation.
-            </p>
-            <div class="mb-3">
-              <label for="adminPassword" class="form-label small">Mot de passe responsable</label>
-              <input type="password" id="adminPassword" class="form-control" placeholder="••••••" required autofocus>
-              <div class="form-text text-muted" style="font-size:0.75rem;">Code réservé au responsable chargé de la formation.</div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
+          <button type="submit" class="btn btn-dark btn-sm">Se connecter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. FORMULAIRE SÉANCE -->
+  <div class="modal" id="sessionModal" role="dialog" aria-modal="true" aria-labelledby="sessionModalLabel">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h5 id="sessionModalLabel">📅 <span id="sessionModalTitle">Planifier une séance de formation</span></h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <form id="sessionForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="field">
+              <label for="formDate" class="label">Date du Samedi *</label>
+              <input type="date" id="formDate" class="input" required>
+            </div>
+            <div class="field">
+              <label for="formLevel" class="label">Niveau des enfants *</label>
+              <select id="formLevel" class="select" required>
+                <option value="Postulant">Postulant</option>
+                <option value="Samuel">Samuel</option>
+                <option value="Tarcisius">Tarcisius</option>
+                <option value="Augustin">Augustin</option>
+                <option value="Tous">Tous les niveaux réunis</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="formStartTime" class="label">Heure de début *</label>
+              <input type="time" id="formStartTime" class="input" required>
+            </div>
+            <div class="field">
+              <label for="formEndTime" class="label">Heure de fin *</label>
+              <input type="time" id="formEndTime" class="input" required>
             </div>
           </div>
-          <div class="modal-footer p-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
-            <button type="submit" class="btn btn-dark btn-sm px-3">Se connecter</button>
+          <div class="field">
+            <label for="formTopic" class="label">Thème / Enseignement du jour *</label>
+            <input type="text" id="formTopic" class="input" placeholder="Ex: Service de l'autel, encensoir et burettes" required>
           </div>
-        </form>
+          <div class="form-grid">
+            <div class="field">
+              <label for="formTrainer" class="label">Formateur responsable *</label>
+              <select id="formTrainer" class="select" required><!-- Rempli dynamiquement --></select>
+            </div>
+            <div class="field">
+              <label for="formLocation" class="label">Lieu</label>
+              <input type="text" id="formLocation" class="input" placeholder="Ex: Église paroissiale" value="Église paroissiale">
+            </div>
+          </div>
+          <div class="field">
+            <label for="formObjectives" class="label">Objectifs pédagogiques / Consignes</label>
+            <textarea id="formObjectives" class="input textarea" rows="2" placeholder="Ex: Pratique liturgique au sanctuaire, récitation des réponses de la messe..."></textarea>
+          </div>
+          <div class="check-row" id="formRepeatRow">
+            <input type="checkbox" id="formRepeat">
+            <label for="formRepeat">🔁 Répéter cette séance tous les samedis restants du mois</label>
+          </div>
+          <div class="hint">La même séance (horaires, niveau, thème) sera créée pour chaque samedi suivant du mois.</div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
+          <button type="submit" class="btn btn-dark btn-sm">Enregistrer la séance</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. AJOUT FORMATEUR -->
+  <div class="modal" id="trainerModal" role="dialog" aria-modal="true" aria-labelledby="trainerModalLabel">
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h5 id="trainerModalLabel">➕ Ajouter un encadrant formateur</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <form id="trainerForm">
+        <div class="modal-body">
+          <div class="field">
+            <label for="trainerName" class="label">Nom et prénom *</label>
+            <input type="text" id="trainerName" class="input" placeholder="Ex: Kouassi Marc" required>
+          </div>
+          <div class="field">
+            <label for="trainerRole" class="label">Rôle liturgique</label>
+            <input type="text" id="trainerRole" class="input" placeholder="Ex: Formateur Adjoint">
+          </div>
+          <div class="field">
+            <label for="trainerTel" class="label">Numéro de téléphone</label>
+            <input type="tel" id="trainerTel" class="input" placeholder="Ex: +225 07 XX XX XX XX">
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
+          <button type="submit" class="btn btn-dark btn-sm">Ajouter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. WHATSAPP -->
+  <div class="modal" id="whatsappModal" role="dialog" aria-modal="true" aria-labelledby="whatsappModalLabel">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h5 id="whatsappModalLabel">💬 Message officiel WhatsApp</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="hint">Ce message pré-formaté avec la signature de <strong>DJEBLE Haniel</strong> est prêt à être partagé avec les parents et les servants :</p>
+        <textarea id="whatsappPreview" class="input textarea mono" rows="10" readonly></textarea>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline btn-sm" data-close>Fermer</button>
+        <button type="button" class="btn btn-dark btn-sm" id="copyWhatsAppTextBtn">📋 Copier le texte</button>
+        <button type="button" class="btn btn-success btn-sm" id="openWhatsAppAppBtn">💬 Ouvrir WhatsApp</button>
       </div>
     </div>
   </div>
 
-  <!-- 2. MODAL FORMULAIRE SÉANCE -->
-  <div class="modal fade" id="sessionModal" tabindex="-1" aria-labelledby="sessionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content border-0">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold text-dark fs-6" id="sessionModalLabel">
-            <i class="bi bi-calendar-plus me-2 text-warning"></i><span id="sessionModalTitle">Planifier une séance de formation</span>
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <form id="sessionForm">
-          <div class="modal-body p-4">
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label for="formDate" class="form-label small">Date du Samedi *</label>
-                <input type="date" id="formDate" class="form-control" required>
-              </div>
-              <div class="col-md-6">
-                <label for="formLevel" class="form-label small">Niveau des enfants *</label>
-                <select id="formLevel" class="form-select" required>
-                  <option value="Postulant">Postulant</option>
-                  <option value="Samuel">Samuel</option>
-                  <option value="Tarcisius">Tarcisius</option>
-                  <option value="Augustin">Augustin</option>
-                  <option value="Tous">Tous les niveaux réunis</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label for="formStartTime" class="form-label small">Heure de début *</label>
-                <input type="time" id="formStartTime" class="form-control" required>
-              </div>
-              <div class="col-md-6">
-                <label for="formEndTime" class="form-label small">Heure de fin *</label>
-                <input type="time" id="formEndTime" class="form-control" required>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label for="formTopic" class="form-label small">Thème / Enseignement du jour *</label>
-              <input type="text" id="formTopic" class="form-control" placeholder="Ex: Service de l'autel, encensoir et burettes" required>
-            </div>
-
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label for="formTrainer" class="form-label small">Formateur responsable *</label>
-                <select id="formTrainer" class="form-select" required>
-                  <!-- Rempli dynamiquement (DJEBLE Haniel) -->
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label for="formLocation" class="form-label small">Lieu</label>
-                <input type="text" id="formLocation" class="form-control" placeholder="Ex: Église paroissiale" value="Église paroissiale">
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label for="formObjectives" class="form-label small">Objectifs pédagogiques / Consignes</label>
-              <textarea id="formObjectives" class="form-control" rows="2" placeholder="Ex: Pratique liturgique au sanctuaire, récitation des réponses de la messe..."></textarea>
-            </div>
-
-            <!-- RÉCURRENCE : RÉPÉTER TOUS LES SAMEDIS RESTANTS DU MOIS -->
-            <div class="form-check bg-light rounded p-3 border" id="formRepeatRow">
-              <input class="form-check-input ms-0 me-2" type="checkbox" id="formRepeat">
-              <label class="form-check-label small fw-semibold" for="formRepeat">
-                <i class="bi bi-arrow-repeat me-1 text-warning"></i>Répéter cette séance tous les samedis restants du mois
-              </label>
-              <div class="form-text text-muted" style="font-size:0.72rem;">La même séance (horaires, niveau, thème) sera créée pour chaque samedi suivant du mois.</div>
-            </div>
-          </div>
-          <div class="modal-footer p-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
-            <button type="submit" class="btn btn-dark btn-sm px-3">Enregistrer la séance</button>
-          </div>
-        </form>
+  <!-- 5. CHANGEMENT DE MOT DE PASSE -->
+  <div class="modal" id="pwdModal" role="dialog" aria-modal="true" aria-labelledby="pwdModalLabel">
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h5 id="pwdModalLabel">🔑 Changer le mot de passe responsable</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
       </div>
+      <form id="pwdForm">
+        <div class="modal-body">
+          <div class="field">
+            <label for="pwdCurrent" class="label">Mot de passe actuel *</label>
+            <input type="password" id="pwdCurrent" class="input" required autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label for="pwdNew" class="label">Nouveau mot de passe *</label>
+            <input type="password" id="pwdNew" class="input" required minlength="4" maxlength="64" autocomplete="new-password">
+          </div>
+          <div class="field">
+            <label for="pwdConfirm" class="label">Confirmer le nouveau mot de passe *</label>
+            <input type="password" id="pwdConfirm" class="input" required autocomplete="new-password">
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
+          <button type="submit" class="btn btn-dark btn-sm">Enregistrer</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- 3. MODAL AJOUT FORMATEUR -->
-  <div class="modal fade" id="trainerModal" tabindex="-1" aria-labelledby="trainerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
-      <div class="modal-content border-0">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold text-dark fs-6" id="trainerModalLabel">
-            <i class="bi bi-person-plus me-2 text-warning"></i>Ajouter un encadrant formateur
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <form id="trainerForm">
-          <div class="modal-body p-4">
-            <div class="mb-3">
-              <label for="trainerName" class="form-label small">Nom et prénom *</label>
-              <input type="text" id="trainerName" class="form-control" placeholder="Ex: Kouassi Marc" required>
-            </div>
-            <div class="mb-3">
-              <label for="trainerRole" class="form-label small">Rôle liturgique</label>
-              <input type="text" id="trainerRole" class="form-control" placeholder="Ex: Formateur Adjoint">
-            </div>
-            <div class="mb-0">
-              <label for="trainerTel" class="form-label small">Numéro de téléphone</label>
-              <input type="tel" id="trainerTel" class="form-control" placeholder="Ex: +225 07 XX XX XX XX">
-            </div>
-          </div>
-          <div class="modal-footer p-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
-            <button type="submit" class="btn btn-dark btn-sm px-3">Ajouter</button>
-          </div>
-        </form>
+  <!-- 6. AJOUT AU CALENDRIER -->
+  <div class="modal" id="calendarModal" role="dialog" aria-modal="true" aria-labelledby="calendarModalLabel">
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h5 id="calendarModalLabel">📅 Ajouter au calendrier</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
       </div>
-    </div>
-  </div>
-
-  <!-- 4. MODAL WHATSAPP -->
-  <div class="modal fade" id="whatsappModal" tabindex="-1" aria-labelledby="whatsappModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content border-0">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold text-dark fs-6" id="whatsappModalLabel">
-            <i class="bi bi-whatsapp me-2 text-success"></i>Message officiel WhatsApp
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <div class="modal-body p-4">
-          <p class="small text-muted mb-2">
-            Ce message pré-formaté avec la signature de <strong>DJEBLE Haniel</strong> est prêt à être partagé avec les parents et les servants :
-          </p>
-          <textarea id="whatsappPreview" class="form-control font-monospace small bg-light" rows="10" readonly></textarea>
-        </div>
-        <div class="modal-footer p-2">
-          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Fermer</button>
-          <button type="button" class="btn btn-outline-dark btn-sm" id="copyWhatsAppTextBtn">
-            <i class="bi bi-clipboard me-1"></i>Copier le texte
-          </button>
-          <button type="button" class="btn btn-success btn-sm" id="openWhatsAppAppBtn">
-            <i class="bi bi-whatsapp me-1"></i>Ouvrir WhatsApp
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 5. MODAL CHANGEMENT DE MOT DE PASSE -->
-  <div class="modal fade" id="pwdModal" tabindex="-1" aria-labelledby="pwdModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
-      <div class="modal-content border-0">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold text-dark fs-6" id="pwdModalLabel">
-            <i class="bi bi-key me-2 text-warning"></i>Changer le mot de passe responsable
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <form id="pwdForm">
-          <div class="modal-body p-4">
-            <div class="mb-3">
-              <label for="pwdCurrent" class="form-label small">Mot de passe actuel *</label>
-              <input type="password" id="pwdCurrent" class="form-control" required autocomplete="current-password">
-            </div>
-            <div class="mb-3">
-              <label for="pwdNew" class="form-label small">Nouveau mot de passe *</label>
-              <input type="password" id="pwdNew" class="form-control" required minlength="4" maxlength="64" autocomplete="new-password">
-            </div>
-            <div class="mb-0">
-              <label for="pwdConfirm" class="form-label small">Confirmer le nouveau mot de passe *</label>
-              <input type="password" id="pwdConfirm" class="form-control" required autocomplete="new-password">
-            </div>
-          </div>
-          <div class="modal-footer p-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
-            <button type="submit" class="btn btn-dark btn-sm px-3">Enregistrer</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- 6. MODAL AJOUT AU CALENDRIER -->
-  <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
-      <div class="modal-content border-0">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold text-dark fs-6" id="calendarModalLabel">
-            <i class="bi bi-calendar-plus me-2 text-warning"></i>Ajouter au calendrier
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <div class="modal-body p-4">
-          <div id="calendarModalInfo" class="small text-muted mb-3"></div>
-          <div class="d-grid gap-2">
-            <button type="button" id="icsDownloadBtn" class="btn btn-dark btn-sm">
-              <i class="bi bi-download me-1"></i>Télécharger le fichier .ics (Apple, Outlook)
-            </button>
-            <a id="googleCalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm">
-              <i class="bi bi-google me-1"></i>Ouvrir dans Google Agenda
-            </a>
-          </div>
+      <div class="modal-body">
+        <div id="calendarModalInfo" class="cal-info"></div>
+        <div class="stack-sm">
+          <button type="button" id="icsDownloadBtn" class="btn btn-dark btn-sm btn-block">📥 Télécharger le fichier .ics (Apple, Outlook)</button>
+          <a id="googleCalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm btn-block">🗓️ Ouvrir dans Google Agenda</a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 7. MODAL PROGRAMME DÉTAILLÉ D'UN NIVEAU -->
-  <div class="modal fade" id="levelModal" tabindex="-1" aria-labelledby="levelModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content border-0">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold text-dark fs-6" id="levelModalLabel">
-            <i class="bi bi-mortarboard me-2 text-warning"></i><span id="levelModalTitle">Programme du niveau</span>
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <div class="modal-body p-4" id="levelModalBody">
-          <!-- Rempli dynamiquement -->
-        </div>
+  <!-- 7. PROGRAMME D'UN NIVEAU -->
+  <div class="modal" id="levelModal" role="dialog" aria-modal="true" aria-labelledby="levelModalLabel">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h5 id="levelModalLabel">🎓 <span id="levelModalTitle">Programme du niveau</span></h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
       </div>
+      <div class="modal-body" id="levelModalBody"><!-- Rempli dynamiquement --></div>
     </div>
   </div>
 
-  <!-- FICHE DE PRÉSENCE IMPRIMABLE (INVISIBLE À L'ÉCRAN) -->
+  <!-- FICHE DE PRÉSENCE IMPRIMABLE -->
   <div id="printPresenceSheet"></div>
 
-  <!-- TOAST NOTIFICATION BOOTSTRAP -->
-  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;">
-    <div id="liveToast" class="toast align-items-center text-bg-dark border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body" id="toastMessage">
-          Notification
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>
-      </div>
-    </div>
-  </div>
-
-  <!-- BOOTSTRAP 5 BUNDLE JS (AVEC POPPER) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <!-- TOASTS -->
+  <div class="toast-zone" id="toastZone"></div>
 
   <!-- MOTION DESIGN GLOBAL -->
   <script src="animations.js"></script>

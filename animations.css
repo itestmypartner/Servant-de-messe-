@@ -127,15 +127,15 @@ body {
   animation: mdOrbDrift 9s ease-in-out infinite;
   pointer-events: none;
 }
-.hero-banner .row > div,
+.hero-banner .row > div, .hero-grid > div,
 .hero-content > * {
   animation: mdFadeUp 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.hero-banner .row > div:nth-child(2),
+.hero-banner .row > div:nth-child(2), .hero-grid > div:nth-child(2),
 .hero-content > *:nth-child(2) { animation-delay: 0.12s; }
-.hero-banner .row > div:nth-child(3),
+.hero-banner .row > div:nth-child(3), .hero-grid > div:nth-child(3),
 .hero-content > *:nth-child(3) { animation-delay: 0.24s; }
-.hero-banner .row > div:nth-child(4),
+.hero-banner .row > div:nth-child(4), .hero-grid > div:nth-child(4),
 .hero-content > *:nth-child(4) { animation-delay: 0.36s; }
 .hero-content > *:nth-child(5) { animation-delay: 0.48s; }
 
@@ -178,11 +178,11 @@ body {
   transform: scale(1.15) rotate(-6deg);
   animation-play-state: paused;
 }
-.level-card-clickable i.bi {
+.level-card-clickable .level-emoji {
   display: inline-block;
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.level-card-clickable:hover i.bi {
+.level-card-clickable:hover .level-emoji {
   transform: scale(1.35) rotate(-8deg);
 }
 
@@ -249,10 +249,10 @@ body {
 }
 
 /* ---------- NAVIGATION : souligné animé + état scrollé ---------- */
-.nav a, .navbar-nav .nav-link {
+.nav a, .topnav .nav-link {
   position: relative;
 }
-.nav a::after, .navbar-nav .nav-link::after {
+.nav a::after, .topnav .nav-link::after {
   content: "";
   position: absolute;
   left: 0.85rem;
@@ -266,8 +266,8 @@ body {
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .nav a::after { left: 0; right: 0; bottom: -4px; }
-.nav a:hover::after, .navbar-nav .nav-link:hover::after,
-.navbar-nav .nav-link.active::after {
+.nav a:hover::after, .topnav .nav-link:hover::after,
+.topnav .nav-link.active::after {
   transform: scaleX(1);
 }
 .brand-logo-img, .logo-img {
@@ -283,11 +283,11 @@ body {
   padding: 0.45rem 0;
   transition: padding 0.3s ease;
 }
-.navbar-custom {
+.topbar {
   transition: box-shadow 0.3s ease;
 }
-.navbar-custom.md-scrolled {
-  box-shadow: 0 10px 30px rgba(11, 19, 41, 0.5);
+.topbar.md-scrolled {
+  box-shadow: 0 10px 30px rgba(11, 19, 41, 0.55);
 }
 
 /* ---------- BADGES : pop à l'apparition ---------- */
@@ -357,23 +357,19 @@ body {
   transform: scale(1.035) rotate(0.5deg);
 }
 
-/* ---------- MODALES & TOASTS ---------- */
-.modal.fade .modal-dialog {
-  transition: transform 0.38s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.28s ease;
-  transform: scale(0.88) translateY(24px);
+/* ---------- MODALES (CUSTOM) ---------- */
+.modal-card {
+  animation: mdZoomIn 0.38s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
-.modal.show .modal-dialog {
-  transform: scale(1) translateY(0);
-}
-.toast {
-  animation: mdToastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+.modal.open {
+  animation: mdPageFade 0.25s ease both;
 }
 
 /* ---------- FORMULAIRES ---------- */
-.form-control, .form-select {
+.input, .select, .textarea, .form-control, .form-select {
   transition: border-color 0.2s ease, box-shadow 0.25s ease, transform 0.2s ease;
 }
-.form-control:focus, .form-select:focus {
+.input:focus, .select:focus, .textarea:focus, .form-control:focus, .form-select:focus {
   transform: translateY(-1px);
 }
 

@@ -3,7 +3,7 @@
  * Cache-first pour les ressources statiques, réseau d'abord pour l'API.
  */
 
-var CACHE_NAME = 'formations-sm-v2';
+var CACHE_NAME = 'formations-sm-v3';
 
 var STATIC_ASSETS = [
   './',
@@ -18,7 +18,6 @@ var STATIC_ASSETS = [
 ];
 
 var CDN_ORIGINS = [
-  'cdn.jsdelivr.net',
   'fonts.googleapis.com',
   'fonts.gstatic.com'
 ];
@@ -60,7 +59,7 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // Statiques locaux + CDN (Bootstrap, Google Fonts) : cache d'abord
+  // Statiques locaux + CDN (Google Fonts) : cache d'abord
   var isCdn = CDN_ORIGINS.indexOf(url.hostname) !== -1;
   var isLocal = url.origin === location.origin;
   if (!isLocal && !isCdn) return;
