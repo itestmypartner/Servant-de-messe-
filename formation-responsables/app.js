@@ -210,6 +210,17 @@
       })
       .then(function (data) {
         if (!data || !Array.isArray(data.sessions)) return;
+        // Migration douce : si le serveur est vide mais que le navigateur
+        // contient des séances (ancienne version localStorage), on les garde —
+        // elles seront envoyées au serveur à la prochaine sauvegarde admin.
+        if (data.sessions.length === 0 && sessions.length > 0) {
+          if (Array.isArray(data.trainers) && data.trainers.length) {
+            trainers = data.trainers;
+          }
+          populateTrainerSelect();
+          render();
+          return;
+        }
         sessions = data.sessions;
         if (Array.isArray(data.trainers) && data.trainers.length) {
           trainers = data.trainers;
