@@ -482,7 +482,7 @@
     var html = '';
     var mobileHtml = '';
 
-    filtered.forEach(function (s) {
+    filtered.forEach(function (s, i) {
       var d = parseDateLocal(s.date);
       var dateFormatted = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
       var dateFull = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -491,7 +491,7 @@
 
       // Vue Tableau (Desktop & Impression)
       html +=
-        '<tr>' +
+        '<tr style="--i:' + i + '">' +
           '<td class="col-date fw-bold text-dark"><i class="bi bi-calendar-event text-secondary me-1"></i>' + capitalizeFirst(dateFormatted) + '</td>' +
           '<td class="col-time"><span class="badge bg-light text-dark border"><i class="bi bi-clock me-1"></i>' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</span></td>' +
           '<td class="col-level"><span class="' + badgeClass + '">' + escapeHtml(s.level) + '</span></td>' +
@@ -515,7 +515,7 @@
 
       // Vue Cartes (Mobile)
       mobileHtml +=
-        '<div class="mobile-session-card ' + lvlBorderClass + ' mb-3 p-3 bg-white rounded-3 shadow-sm border">' +
+        '<div class="mobile-session-card ' + lvlBorderClass + ' mb-3 p-3 bg-white rounded-3 shadow-sm border" style="--i:' + i + '">' +
           '<div class="d-flex align-items-center justify-content-between mb-2">' +
             '<div class="fw-bold text-dark small"><i class="bi bi-calendar-event text-warning me-1"></i>' + capitalizeFirst(dateFull) + '</div>' +
             '<span class="' + badgeClass + '">' + escapeHtml(s.level) + '</span>' +
@@ -635,9 +635,9 @@
       html += '<div class="' + classes + '" data-day="' + day + '">';
       html += '<div class="cal-day">' + day + '</div>';
 
-      (byDay[day] || []).forEach(function (s) {
+      (byDay[day] || []).forEach(function (s, evIdx) {
         var lvl = (s.level || 'tous').toLowerCase();
-        html += '<span class="cal-event cal-event-' + lvl + '" title="' + escapeHtml(s.startTime + ' - ' + s.topic + ' (' + s.level + ')') + '">' +
+        html += '<span class="cal-event cal-event-' + lvl + '" style="--i:' + evIdx + '" title="' + escapeHtml(s.startTime + ' - ' + s.topic + ' (' + s.level + ')') + '">' +
           '<i class="bi bi-clock me-1"></i>' + escapeHtml(s.startTime) + ' ' + escapeHtml(truncate(s.topic, 18)) +
         '</span>';
       });

@@ -1,0 +1,456 @@
+/* ============================================================
+   MOTION DESIGN — SERVANTS DE MESSE
+   Animations & transitions globales pour toute la plateforme.
+   Compatible : site principal (CSS custom) + app Formations (Bootstrap 5).
+   ============================================================ */
+
+/* ---------- KEYFRAMES ---------- */
+@keyframes mdPageFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mdFadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mdFadeDown { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mdFadeLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes mdFadeRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes mdZoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes mdFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@keyframes mdFloatSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes mdGradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes mdShineSweep { 0% { left: -120%; } 55% { left: 140%; } 100% { left: 140%; } }
+@keyframes mdRipple { to { transform: scale(2.8); opacity: 0; } }
+@keyframes mdRowIn { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes mdEventPop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes mdBadgePop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes mdPulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(197, 155, 39, 0.45); } 50% { box-shadow: 0 0 0 12px rgba(197, 155, 39, 0); } }
+@keyframes mdIconBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes mdSpin { to { transform: rotate(360deg); } }
+@keyframes mdLoaderPulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(197,155,39,0)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 18px rgba(197,155,39,0.55)); } }
+@keyframes mdTextShimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+@keyframes mdSwing { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes mdBounceIn { 0% { transform: translateY(30px) scale(0.7); opacity: 0; } 60% { transform: translateY(-6px) scale(1.05); } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+@keyframes mdDotPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+@keyframes mdToastIn { from { opacity: 0; transform: translateX(70px) scale(0.9); } to { opacity: 1; transform: translateX(0) scale(1); } }
+@keyframes mdUnderlineGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes mdWiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-7deg); } 75% { transform: rotate(7deg); } }
+@keyframes mdOrbDrift { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(30px, -25px) scale(1.1); } 66% { transform: translate(-20px, 15px) scale(0.95); } }
+
+/* ---------- ENTRÉE DE PAGE ---------- */
+body {
+  animation: mdPageFade 0.55s ease both;
+}
+
+/* ---------- LOADER DE PAGE (injecté par animations.js) ---------- */
+.md-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: linear-gradient(135deg, #0b1329, #152244);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  transition: opacity 0.5s ease, visibility 0.5s;
+}
+.md-loader.md-loader-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.md-loader img {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #c59b27;
+  animation: mdLoaderPulse 1.6s ease-in-out infinite;
+}
+.md-loader .md-loader-ring {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid rgba(197, 155, 39, 0.2);
+  border-top-color: #c59b27;
+  animation: mdSpin 0.8s linear infinite;
+}
+.md-loader .md-loader-text {
+  color: #f7df94;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+  animation: mdFadeUp 0.8s ease both;
+}
+
+/* ---------- BARRE DE PROGRESSION SCROLL (injectée) ---------- */
+#mdScrollProgress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: linear-gradient(90deg, #c59b27, #f7df94, #c59b27);
+  background-size: 200% 100%;
+  animation: mdGradientShift 3s linear infinite;
+  z-index: 99998;
+  box-shadow: 0 0 10px rgba(197, 155, 39, 0.7);
+  transition: width 0.08s linear;
+}
+
+/* ---------- SYSTÈME REVEAL AU SCROLL ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal.reveal-left { transform: translateX(-34px); }
+.reveal.reveal-right { transform: translateX(34px); }
+.reveal.reveal-zoom { transform: scale(0.92); }
+.reveal.revealed { opacity: 1; transform: none; }
+
+/* ---------- HERO : gradient animé + entrées en cascade ---------- */
+.hero-banner {
+  background: linear-gradient(120deg, var(--primary-navy, #0b1329) 0%, var(--secondary-navy, #152244) 40%, #1c2e5c 70%, var(--secondary-navy, #152244) 100%) !important;
+  background-size: 250% 250% !important;
+  animation: mdGradientShift 14s ease-in-out infinite, mdZoomIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.hero-banner::before {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  left: -60px;
+  bottom: -80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(197, 155, 39, 0.22), transparent 65%);
+  animation: mdOrbDrift 9s ease-in-out infinite;
+  pointer-events: none;
+}
+.hero-banner .row > div,
+.hero-content > * {
+  animation: mdFadeUp 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.hero-banner .row > div:nth-child(2),
+.hero-content > *:nth-child(2) { animation-delay: 0.12s; }
+.hero-banner .row > div:nth-child(3),
+.hero-content > *:nth-child(3) { animation-delay: 0.24s; }
+.hero-banner .row > div:nth-child(4),
+.hero-content > *:nth-child(4) { animation-delay: 0.36s; }
+.hero-content > *:nth-child(5) { animation-delay: 0.48s; }
+
+.hero-logo {
+  animation: mdFloat 4s ease-in-out infinite !important;
+}
+.hero-devise {
+  animation: mdFadeDown 0.9s 0.2s ease both !important;
+}
+.hero-tag {
+  animation: mdFloatSoft 3.4s ease-in-out infinite !important;
+}
+
+/* ---------- TITRES DE SECTION : souligné animé ---------- */
+.section-title::after {
+  transform-origin: center;
+  animation: mdUnderlineGrow 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.3s;
+}
+
+/* ---------- CARTES : hover lift + shine sweep ---------- */
+.card, .card-soft, .stat-widget, .mobile-session-card, .level-card-clickable {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+}
+.card:hover, .card-soft:hover, .stat-widget:hover, .level-card-clickable:hover {
+  transform: translateY(-8px);
+}
+.card-icon {
+  display: inline-block;
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.card:hover .card-icon {
+  transform: scale(1.3) rotate(-8deg);
+}
+.stat-icon-wrapper {
+  animation: mdFloatSoft 3.6s ease-in-out infinite;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.stat-widget:hover .stat-icon-wrapper {
+  transform: scale(1.15) rotate(-6deg);
+  animation-play-state: paused;
+}
+.level-card-clickable i.bi {
+  display: inline-block;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.level-card-clickable:hover i.bi {
+  transform: scale(1.35) rotate(-8deg);
+}
+
+/* Shine sweep lumineux au survol des cartes */
+.card-soft, .stat-widget, .next-session-card {
+  position: relative;
+  overflow: hidden;
+}
+.card-soft::after, .stat-widget::after, .next-session-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.65s ease;
+  pointer-events: none;
+}
+.card-soft:hover::after, .stat-widget:hover::after, .next-session-card:hover::after {
+  left: 140%;
+}
+
+/* ---------- CARTE PROCHAINE SÉANCE : halo pulsé ---------- */
+.next-session-card {
+  animation: mdPulseGlow 2.6s ease-in-out infinite, mdFadeUp 0.7s ease both;
+}
+.next-session-icon {
+  animation: mdIconBounce 1.8s ease-in-out infinite;
+}
+
+/* ---------- BOUTONS : lift, pression, shine, ripple ---------- */
+.btn, .level-chip, .gallery-btn {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.25s ease, background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+.btn:hover, .level-chip:hover, .gallery-btn:hover {
+  transform: translateY(-3px);
+}
+.btn:active, .level-chip:active {
+  transform: translateY(0) scale(0.95);
+}
+.btn-gold::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: skewX(-20deg);
+  animation: mdShineSweep 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.md-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(0);
+  animation: mdRipple 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ---------- NAVIGATION : souligné animé + état scrollé ---------- */
+.nav a, .navbar-nav .nav-link {
+  position: relative;
+}
+.nav a::after, .navbar-nav .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: 0.25rem;
+  height: 2px;
+  border-radius: 2px;
+  background: #c59b27;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav a::after { left: 0; right: 0; bottom: -4px; }
+.nav a:hover::after, .navbar-nav .nav-link:hover::after,
+.navbar-nav .nav-link.active::after {
+  transform: scaleX(1);
+}
+.brand-logo-img, .logo-img {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+}
+.brand-logo-img:hover, .logo-img:hover {
+  transform: scale(1.1) rotate(-4deg);
+}
+.header.md-scrolled {
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.14);
+}
+.header.md-scrolled .header-inner {
+  padding: 0.45rem 0;
+  transition: padding 0.3s ease;
+}
+.navbar-custom {
+  transition: box-shadow 0.3s ease;
+}
+.navbar-custom.md-scrolled {
+  box-shadow: 0 10px 30px rgba(11, 19, 41, 0.5);
+}
+
+/* ---------- BADGES : pop à l'apparition ---------- */
+.badge, .level-chip {
+  animation: mdBadgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ---------- LIGNES & CARTES DE PLANNING : cascade ---------- */
+.table-schedule tbody tr {
+  animation: mdRowIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+  transition: background-color 0.15s ease, transform 0.2s ease;
+}
+.table-schedule tbody tr:hover {
+  transform: translateX(5px);
+}
+.mobile-session-card {
+  animation: mdRowIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.cal-event {
+  animation: mdEventPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.cal-cell {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.cal-cell:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 12px 26px rgba(11, 19, 41, 0.14);
+  position: relative;
+  z-index: 2;
+}
+.cal-cell-today .cal-day {
+  animation: mdDotPulse 1.6s ease-in-out infinite;
+  color: #b38a1f;
+}
+
+/* ---------- LISTE ACTIVITÉS ---------- */
+.activities li {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.activities li:hover {
+  transform: translateX(10px);
+}
+
+/* ---------- GALERIE ---------- */
+.gallery-photo {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.gallery-photo.is-active {
+  animation: mdZoomIn 0.6s ease both;
+}
+.gallery-btn:active {
+  transform: scale(0.9);
+}
+.gallery-dot {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s;
+}
+.gallery-dot.is-active {
+  animation: mdDotPulse 1.8s ease-in-out infinite;
+}
+.about-image {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s;
+}
+.about-image:hover {
+  transform: scale(1.035) rotate(0.5deg);
+}
+
+/* ---------- MODALES & TOASTS ---------- */
+.modal.fade .modal-dialog {
+  transition: transform 0.38s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.28s ease;
+  transform: scale(0.88) translateY(24px);
+}
+.modal.show .modal-dialog {
+  transform: scale(1) translateY(0);
+}
+.toast {
+  animation: mdToastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ---------- FORMULAIRES ---------- */
+.form-control, .form-select {
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+.form-control:focus, .form-select:focus {
+  transform: translateY(-1px);
+}
+
+/* ---------- SIGNATURE ---------- */
+.handwritten-signature {
+  transition: transform 0.3s ease;
+}
+.handwritten-signature:hover {
+  animation: mdSwing 0.7s ease-in-out;
+}
+
+/* ---------- FOOTER ---------- */
+footer a {
+  display: inline-block;
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+footer a:hover {
+  transform: translateY(-2px);
+}
+
+/* ---------- BOUTON RETOUR EN HAUT (injecté) ---------- */
+.md-back-top {
+  position: fixed;
+  bottom: 26px;
+  right: 26px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #c59b27, #b38a1f);
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 9990;
+  opacity: 0;
+  transform: translateY(24px) scale(0.7);
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+  box-shadow: 0 8px 22px rgba(11, 19, 41, 0.35);
+}
+.md-back-top.md-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: mdBounceIn 0.5s ease;
+}
+.md-back-top:hover {
+  transform: translateY(-4px) scale(1.08);
+  box-shadow: 0 12px 28px rgba(197, 155, 39, 0.5);
+}
+
+/* ---------- EFFET TILT (activé par JS) ---------- */
+.md-tilt {
+  transition: transform 0.18s ease-out, box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* ---------- IMPRESSION : désactiver toutes les animations ---------- */
+@media print {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
+  .md-loader, #mdScrollProgress, .md-back-top { display: none !important; }
+}
+
+/* ---------- ACCESSIBILITÉ : mouvement réduit ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}

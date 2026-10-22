@@ -7,6 +7,7 @@
   <title>Archive — Actualités | Servants de Messe</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="news.css">
+  <link rel="stylesheet" href="animations.css">
   <style>
     .archive-container{max-width:980px;margin:36px auto;padding:18px}
     .archive-empty{padding:40px 18px;text-align:center;color:#566;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.04);font-size:16px;line-height:1.6}
@@ -143,5 +144,6 @@
       fetch('data/news.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(data){ render(data); }).catch(function(){ render([]); });
     })();
   </script>
+  <script src="animations.js"></script>
 </body>
 </html>
