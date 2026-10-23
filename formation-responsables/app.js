@@ -2189,12 +2189,12 @@
     setTimeout(function () { document.body.classList.remove('printing-presence'); }, 2000);
   }
 
-  // Planning du mois affiché → vrai PDF
+  // Planning du mois affiché → PDF portrait classique (le tableau gère seul le retour à la ligne)
   function downloadPlanningPdf() {
     var list = getMonthSessions();
     var title = (currentMonthTitleEl ? currentMonthTitleEl.textContent : '') || 'Planning';
     var JsPDF = window.jspdf && window.jspdf.jsPDF;
-    var probe = JsPDF && new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    var probe = JsPDF && new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     if (!probe || typeof probe.autoTable !== 'function') {
       legacyPrintDocument({
         subtitle: 'Planning des formations — ' + title, date: list.length + ' séance(s)',
@@ -2206,202 +2206,98 @@
     loadPdfAssets().then(function (assets) { renderPlanningPdf(probe, assets, list, title); });
   }
 
-  // PDF « Planning » : paysage, bandeau marine, pastilles de date, tableau encadré double filet
   function renderPlanningPdf(doc, assets, list, title) {
     if (assets.fontScript) {
       doc.addFileToVFS('AlexBrush.ttf', assets.fontScript);
       doc.addFont('AlexBrush.ttf', 'AlexBrush', 'normal');
     }
     var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
-    var M = 12;
-    var NAVY = [22, 40, 74], NAVY2 = [38, 64, 112], GOLD = [201, 168, 76], CREAM = [253, 250, 241], INK = [40, 48, 66], MUTED = [110, 118, 135];
-    var LV = {
-      Postulant: [5, 150, 105], Samuel: [2, 132, 199], Tarcisius: [124, 58, 237], Augustin: [217, 119, 6]
-    };
-    function tint(c, k) { return c.map(function (v) { return Math.round(v + (255 - v) * k); }); }
-    function crossAt(x, y, s, col) {
-      doc.setDrawColor(col[0], col[1], col[2]); doc.setLineWidth(0.6);
-      doc.line(x, y - s, x, y + s); doc.line(x - s * 0.62, y - s * 0.3, x + s * 0.62, y - s * 0.3);
-    }
-    function diamond(x, y, s, col) {
-      doc.setFillColor(col[0], col[1], col[2]);
-      doc.triangle(x - s, y, x, y - s, x + s, y, 'F'); doc.triangle(x - s, y, x, y + s, x + s, y, 'F');
-    }
-    function ornamentLine(y, x1, x2) {
-      var mid = (x1 + x2) / 2;
-      doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.35);
-      doc.line(x1, y, mid - 6, y); doc.line(mid + 6, y, x2, y);
-      diamond(mid, y, 1.6, GOLD); diamond(mid - 4, y, 0.8, GOLD); diamond(mid + 4, y, 0.8, GOLD);
-    }
-    function watermark() {
-      if (!assets.logoGroupe || !doc.GState) return;
-      doc.setGState(new doc.GState({ opacity: 0.045 }));
-      doc.addImage(assets.logoGroupe, 'JPEG', W / 2 - 45, H / 2 - 35, 90, 90);
-      doc.setGState(new doc.GState({ opacity: 1 }));
-    }
-    function pageFrame() {
-      doc.setFillColor(CREAM[0], CREAM[1], CREAM[2]); doc.rect(0, 0, W, H, 'F');
-      doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.5); doc.rect(5, 5, W - 10, H - 10);
-      doc.setLineWidth(0.2); doc.rect(6.5, 6.5, W - 13, H - 13);
-      [[5, 5], [W - 5, 5], [5, H - 5], [W - 5, H - 5]].forEach(function (p) { diamond(p[0], p[1], 2, GOLD); });
-      watermark();
+    var M = 14, TW = W - 2 * M;
+    var NAVY = [22, 40, 74], INK = [30, 30, 30], MUTED = [95, 100, 110], LINE = [22, 40, 74];
+
+    function header() {
+      if (assets.logoGroupe) doc.addImage(assets.logoGroupe, 'JPEG', M, 10, 20, 20);
+      if (assets.logoParoisse) doc.addImage(assets.logoParoisse, 'JPEG', W - M - 20, 10, 20, 20);
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.setFont('times', 'bold'); doc.setFontSize(13);
+      doc.text('PAROISSE SAINT-BERNARD D\'ADIOPODOUMÉ', W / 2, 16, { align: 'center' });
+      doc.setFont('times', 'normal'); doc.setFontSize(10); doc.setTextColor(INK[0], INK[1], INK[2]);
+      doc.text('Groupe des Servants de Messe — Commission Formation', W / 2, 21.5, { align: 'center' });
+      doc.setFont('times', 'italic'); doc.setFontSize(9); doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+      doc.text('« Servir et non être servi »', W / 2, 26.5, { align: 'center' });
+      doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.setLineWidth(0.8); doc.line(M, 33, W - M, 33);
+      doc.setLineWidth(0.25); doc.line(M, 34.2, W - M, 34.2);
     }
 
-    // ---------- Page 1 : décor + bandeau ----------
-    pageFrame();
-    var bx = M, by = 11, bw = W - 2 * M, bh = 34;
-    doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]); doc.roundedRect(bx, by, bw, bh, 4, 4, 'F');
-    doc.setFillColor(NAVY2[0], NAVY2[1], NAVY2[2]); doc.roundedRect(bx + 40, by + bh - 7, bw - 80, 7, 2, 2, 'F');
-    doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.4); doc.roundedRect(bx + 1.8, by + 1.8, bw - 3.6, bh - 3.6, 3, 3);
-    [[bx + 8, by + 7], [bx + bw - 8, by + 7]].forEach(function (p) { crossAt(p[0], p[1], 2.4, GOLD); });
-    function logoCircle(img, cx) {
-      doc.setFillColor(255, 255, 255); doc.circle(cx, by + bh / 2, 12.5, 'F');
-      doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.8); doc.circle(cx, by + bh / 2, 12.5);
-      if (img) doc.addImage(img, 'JPEG', cx - 8.3, by + bh / 2 - 8.3, 16.6, 16.6);
-    }
-    logoCircle(assets.logoGroupe, bx + 26);
-    logoCircle(assets.logoParoisse, bx + bw - 26);
-    doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
-    doc.text('PAROISSE SAINT-BERNARD D\'ADIOPODOUMÉ  •  SERVANTS DE MESSE', W / 2, by + 8, { align: 'center', charSpace: 0.6 });
-    doc.setTextColor(255, 255, 255); doc.setFont('times', 'bold'); doc.setFontSize(21);
-    doc.text('Planning des Formations', W / 2, by + 18, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(214, 222, 238);
-    doc.text('« Servir et non être servi »', W / 2, by + 23.5, { align: 'center' });
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]);
-    doc.text(stripTags(title).toUpperCase() + '   •   ' + list.length + ' SÉANCE' + (list.length > 1 ? 'S' : ''), W / 2, by + bh - 2.3, { align: 'center', charSpace: 0.8 });
+    header();
+    doc.setFont('times', 'bold'); doc.setFontSize(15); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text('PLANNING DES FORMATIONS', W / 2, 44, { align: 'center' });
+    doc.setFont('times', 'normal'); doc.setFontSize(10.5); doc.setTextColor(INK[0], INK[1], INK[2]);
+    doc.text('Mois de ' + stripTags(title) + '  —  ' + list.length + ' séance' + (list.length > 1 ? 's' : '') + ' programmée' + (list.length > 1 ? 's' : ''), W / 2, 50, { align: 'center' });
 
-    // Légende des niveaux (pastilles)
-    var ly = by + bh + 7, lx = W / 2 - 92;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text('NIVEAUX', lx, ly + 1.2);
-    lx += 17;
-    Object.keys(LV).forEach(function (k) {
-      var c = LV[k];
-      doc.setFillColor(tint(c, 0.86)[0], tint(c, 0.86)[1], tint(c, 0.86)[2]);
-      doc.setDrawColor(c[0], c[1], c[2]); doc.setLineWidth(0.3);
-      doc.roundedRect(lx, ly - 2.6, 36, 5.4, 2.7, 2.7, 'FD');
-      doc.setFillColor(c[0], c[1], c[2]); doc.circle(lx + 3.6, ly + 0.1, 1.1, 'F');
-      doc.setTextColor(c[0], c[1], c[2]); doc.text(k, lx + 7, ly + 1.2);
-      lx += 40;
-    });
-
-    // ---------- Tableau encadré ----------
-    var tx = M + 4, startY = ly + 8;
     var rows = list.map(function (s) {
+      var d = parseDateLocal(s.date);
+      var dateTxt = d ? capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long' })) + '\n' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : (s.date || '');
       var obj = (s.objectives || '').trim();
-      return ['', (s.startTime || '') + '\n' + (s.endTime || ''), s.level || '', (s.topic || '') + (obj ? '\n\nObjectifs : ' + obj : ''), s.trainer || '', s.location || ''];
+      return [
+        dateTxt,
+        (s.startTime || '') + (s.endTime ? '\n' + s.endTime : ''),
+        s.level || '',
+        (s.topic || '') + (obj ? '\n\nObjectifs : ' + obj : ''),
+        s.trainer || '',
+        s.location || ''
+      ];
     });
-    if (!rows.length) rows = [['', '', '', 'Aucune séance programmée pour ce mois.', '', '']];
-    var colW = { 0: 24, 1: 22, 2: 30, 3: 108, 4: 46, 5: 35 };
-    var tableTop = startY;
+    if (!rows.length) rows = [[{ content: 'Aucune séance programmée pour ce mois.', colSpan: 6, styles: { halign: 'center', fontStyle: 'italic', textColor: MUTED } }]];
+
     doc.autoTable({
-      startY: startY,
-      margin: { left: tx, right: W - tx - 265, top: 18, bottom: 20 },
-      tableWidth: 265,
-      head: [['DATE', 'HORAIRE', 'NIVEAU', 'THÈME & OBJECTIFS PÉDAGOGIQUES', 'FORMATEUR', 'LIEU']],
+      startY: 56,
+      margin: { left: M, right: M, top: 40, bottom: 22 },
+      tableWidth: TW,
+      head: [['Date', 'Horaire', 'Niveau', 'Thème et objectifs', 'Formateur', 'Lieu']],
       body: rows,
       theme: 'grid',
-      styles: { font: 'helvetica', fontSize: 9, textColor: INK, cellPadding: { top: 3, bottom: 3, left: 3, right: 3 }, lineColor: [214, 220, 232], lineWidth: 0.25, valign: 'middle', minCellHeight: 17 },
-      headStyles: { fillColor: NAVY, textColor: GOLD, fontStyle: 'bold', fontSize: 8, halign: 'center', minCellHeight: 9, lineColor: NAVY, cellPadding: 2 },
-      bodyStyles: { fillColor: [255, 255, 255] },
-      alternateRowStyles: { fillColor: [247, 249, 253] },
+      styles: { font: 'helvetica', fontSize: 8.8, textColor: INK, lineColor: LINE, lineWidth: 0.25, cellPadding: 2.4, valign: 'middle', overflow: 'linebreak' },
+      headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 9 },
+      alternateRowStyles: { fillColor: [244, 246, 250] },
       columnStyles: {
-        0: { cellWidth: colW[0], halign: 'center' }, 1: { cellWidth: colW[1], halign: 'center', fontStyle: 'bold' },
-        2: { cellWidth: colW[2], halign: 'center' }, 3: { cellWidth: colW[3] },
-        4: { cellWidth: colW[4], fontStyle: 'bold' }, 5: { cellWidth: colW[5], textColor: MUTED }
+        0: { cellWidth: 30, halign: 'center' },
+        1: { cellWidth: 18, halign: 'center' },
+        2: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+        3: { cellWidth: 'auto' },
+        4: { cellWidth: 32 },
+        5: { cellWidth: 24, halign: 'center' }
       },
-      willDrawCell: function (data) {
-        if (data.section !== 'body' || !list.length) return;
-        if (data.column.index === 2 || data.column.index === 3) data.cell.text = [];
-      },
-      didDrawCell: function (data) {
-        if (data.section !== 'body' || !list.length) return;
-        var s = list[data.row.index]; if (!s) return;
-        var c = data.cell, i = data.column.index;
-        var lv = LV[s.level] || NAVY;
-        if (i === 0) {
-          // Barre colorée du niveau + pastille date (jour en grand)
-          doc.setFillColor(lv[0], lv[1], lv[2]); doc.rect(c.x, c.y, 1.6, c.height, 'F');
-          var d = parseDateLocal(s.date);
-          if (!d) return;
-          var cx = c.x + c.width / 2 + 0.8, cy = c.y + c.height / 2;
-          doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]); doc.roundedRect(cx - 8, cy - 7.5, 16, 15, 2.5, 2.5, 'F');
-          doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]); doc.roundedRect(cx - 8, cy - 7.5, 16, 4.6, 2.5, 2.5, 'F');
-          doc.rect(cx - 8, cy - 5.4, 16, 2.5, 'F');
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-          doc.text(d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '').toUpperCase(), cx, cy - 4.2, { align: 'center' });
-          doc.setFontSize(13); doc.setTextColor(255, 255, 255);
-          doc.text(String(d.getDate()), cx, cy + 3.2, { align: 'center' });
-          doc.setFontSize(5.8); doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]);
-          doc.text(d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase(), cx, cy + 6.3, { align: 'center' });
-        } else if (i === 2 && s.level) {
-          var pw = Math.min(c.width - 4, 25), px = c.x + (c.width - pw) / 2, py = c.y + c.height / 2;
-          var bg = tint(lv, 0.86);
-          doc.setFillColor(bg[0], bg[1], bg[2]); doc.setDrawColor(lv[0], lv[1], lv[2]); doc.setLineWidth(0.35);
-          doc.roundedRect(px, py - 3, pw, 6, 3, 3, 'FD');
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(lv[0], lv[1], lv[2]);
-          doc.text(s.level, c.x + c.width / 2, py + 1.1, { align: 'center' });
-        } else if (i === 3) {
-          var pad = 3, w = c.width - 2 * pad, y = c.y + pad + 3;
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
-          var tl = doc.splitTextToSize(s.topic || '', w);
-          var obj = (s.objectives || '').trim();
-          doc.setFont('helvetica', 'italic'); doc.setFontSize(8);
-          var ol = obj ? doc.splitTextToSize(obj, w - 4) : [];
-          var total = tl.length * 4.2 + (ol.length ? 2.5 + ol.length * 3.6 : 0);
-          y = c.y + (c.height - total) / 2 + 3;
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-          doc.text(tl, c.x + pad, y);
-          if (ol.length) {
-            var oy = y + tl.length * 4.2 - 1.2;
-            doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.6);
-            doc.line(c.x + pad, oy, c.x + pad, oy + ol.length * 3.6 + 0.6);
-            doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-            doc.text(ol, c.x + pad + 2.5, oy + 2.9);
-          }
-        }
-      },
-      didDrawPage: function (data) {
-        // Double cadre autour du tableau, sur chaque page
-        var top = data.pageNumber === 1 ? tableTop : 18, bot = data.cursor.y;
-        doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.9);
-        doc.roundedRect(tx - 1.5, top - 1.5, 268, bot - top + 3, 2.5, 2.5);
-        doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.35);
-        doc.roundedRect(tx - 3.2, top - 3.2, 271.4, bot - top + 6.4, 3.5, 3.5);
-      },
-      willDrawPage: function (data) {
-        if (data.pageNumber > 1) {
-          pageFrame();
-          doc.setFont('times', 'bold'); doc.setFontSize(12); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-          doc.text('Planning des Formations — ' + stripTags(title) + ' (suite)', W / 2, 13.5, { align: 'center' });
-        }
-      }
+      tableLineColor: NAVY, tableLineWidth: 0.6,
+      rowPageBreak: 'avoid',
+      willDrawPage: function (data) { if (data.pageNumber > 1) header(); }
     });
-    var tEnd = doc.lastAutoTable.finalY;
 
-    // ---------- Signature + pied ----------
-    var fy = tEnd + 10;
-    if (fy + 30 > H - 10) { doc.addPage(); pageFrame(); fy = 22; }
-    ornamentLine(fy - 3, M + 10, W / 2 - 30);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text('Chaque servant se présente 15 min avant le début de la séance, en tenue correcte.', M + 10, fy + 4);
-    doc.text('Contact : responsable de la formation • servantstbernard.web.app', M + 10, fy + 9);
-    var sx = W - M - 10, signer = signerName();
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(8.5);
+    // Signature
+    var fy = doc.lastAutoTable.finalY + 14;
+    if (fy + 28 > H - 18) { doc.addPage(); header(); fy = 50; }
+    var sx = W - M;
+    doc.setFont('times', 'italic'); doc.setFontSize(10); doc.setTextColor(INK[0], INK[1], INK[2]);
     doc.text('Fait à Adiopodoumé, le ' + new Date().toLocaleDateString('fr-FR'), sx, fy, { align: 'right' });
-    if (assets.fontScript) { doc.setFont('AlexBrush', 'normal'); doc.setFontSize(26); } else { doc.setFont('times', 'bolditalic'); doc.setFontSize(15); }
+    doc.setFont('times', 'bold'); doc.setFontSize(10);
+    doc.text('Le Responsable de la Formation', sx, fy + 7, { align: 'right' });
+    if (assets.fontScript) { doc.setFont('AlexBrush', 'normal'); doc.setFontSize(22); } else { doc.setFont('times', 'bolditalic'); doc.setFontSize(13); }
     doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-    doc.text(signer, sx, fy + 13, { align: 'right' });
-    doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.4); doc.line(sx - 62, fy + 16, sx, fy + 16);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
-    doc.text('LE RESPONSABLE DE LA FORMATION', sx, fy + 20, { align: 'right' });
+    var signer = signerName();
+    var sw = doc.getTextWidth(signer);
+    doc.text(signer, sx - Math.max(0, (60 - sw) / 2), fy + 19, { align: 'right' });
+    doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.3);
+    doc.line(sx - Math.max(60, sw), fy + 21.5, sx, fy + 21.5);
 
-    // Numéros de page
+    // Pied de page
     var n = doc.internal.getNumberOfPages();
     for (var p = 1; p <= n; p++) {
       doc.setPage(p);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150, 150, 160);
-      doc.text('Servants de Messe • Saint-Bernard d\'Adiopodoumé  —  page ' + p + ' / ' + n, W / 2, H - 8, { align: 'center' });
+      doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.25); doc.line(M, H - 14, W - M, H - 14);
+      doc.setFont('times', 'normal'); doc.setFontSize(8); doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
+      doc.text('Servants de Messe — Paroisse Saint-Bernard d\'Adiopodoumé', M, H - 9.5);
+      doc.text('Page ' + p + ' / ' + n, W - M, H - 9.5, { align: 'right' });
     }
     doc.save('smsb-planning-' + slugify(title) + '.pdf');
     showToast('PDF du planning téléchargé.');
