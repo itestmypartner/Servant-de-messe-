@@ -931,3 +931,22 @@ details.gnotice-details > summary { cursor: pointer; font-size: 0.85rem; font-we
   .trainer-row-inner { flex-direction: column; }
   .trainer-contacts .btn { flex: 1 1 100%; text-align: center; }
 }
+
+/* ==================== BUREAU PAROISSIAL ==================== */
+.bureau-block { margin-bottom: 20px; }
+.bureau-block-title { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+.bureau-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.bureau-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; transition: box-shadow 0.2s, transform 0.2s; }
+.bureau-card:hover { box-shadow: 0 10px 24px -12px rgba(31, 79, 160, 0.3); transform: translateY(-2px); }
+.bureau-lead { border-color: var(--gold-border, #d8b45a); background: #fffdf5; }
+.bureau-role { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--navy2); margin-bottom: 4px; }
+.bureau-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; }
+.bureau-acts { display: flex; gap: 6px; }
+.bureau-tel { flex: 1; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--navy); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.bureau-tel:hover { background: #eaf2fd; }
+.bureau-wa { display: inline-flex; align-items: center; justify-content: center; width: 34px; font-size: 0.72rem; font-weight: 800; color: #fff; background: #25d366; border-radius: 8px; text-decoration: none; }
+.stag-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.stag-chip { font-size: 0.82rem; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; }
+@media (max-width: 640px) { .bureau-grid { grid-template-columns: 1fr 1fr; } .bureau-name { font-size: 0.86rem; } }
+@media (max-width: 420px) { .bureau-grid { grid-template-columns: 1fr; } }
+@media print { #bureau-section { display: none !important; } }
