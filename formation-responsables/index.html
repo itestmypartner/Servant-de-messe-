@@ -660,10 +660,16 @@
             <input type="text" id="svNotePrivee" class="input" maxlength="300" placeholder="Suivi, motivation, discipline…">
           </div>
           <div class="field">
-            <label for="svPhoto" class="label">Photo (miniature gratuite)</label>
-            <input type="file" id="svPhoto" class="input" accept="image/*">
-            <img id="svPhotoPrev" class="sv-avatar-lg" alt="" hidden>
-            <div class="hint">Compressée automatiquement — aucun coût de stockage.</div>
+            <span class="label">Photo du servant</span>
+            <div class="photo-picker">
+              <img id="svPhotoPrev" class="sv-avatar-lg" alt="Photo du servant" hidden>
+              <div class="photo-picker-btns">
+                <label class="btn btn-outline btn-sm" for="svPhoto">📷 Prendre / choisir la photo</label>
+                <button type="button" id="svPhotoDel" class="btn btn-outline btn-sm txt-danger" hidden>Retirer la photo</button>
+              </div>
+            </div>
+            <input type="file" id="svPhoto" accept="image/*" hidden>
+            <div class="hint">La photo est compressée automatiquement (~15 Ko) — gratuit, sans stockage payant.</div>
           </div>
           <div class="field">
             <span class="label">Compétences (postes de messe maîtrisés)</span>

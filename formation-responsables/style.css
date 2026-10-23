@@ -900,3 +900,7 @@ body { overflow-x: hidden; }
 .alerte { border-radius: 10px; padding: 10px 14px; font-size: 0.86rem; border: 1px solid; }
 .alerte-warn { background: #fef6e7; border-color: #f3d391; color: #7a5a00; }
 .alerte-info { background: #eaf1fb; border-color: #bcd3f0; color: #1e3a6e; }
+
+/* ==================== PHOTO PICKER ==================== */
+.photo-picker { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.photo-picker-btns { display: flex; flex-direction: column; gap: 6px; }

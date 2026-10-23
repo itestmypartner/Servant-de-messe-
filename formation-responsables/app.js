@@ -1381,6 +1381,7 @@
 
   // Photo de profil : miniature 96px JPEG en base64 (stockée dans le document, sans coût Storage)
   var pendingAvatar = null;
+  var deletePhoto = false;
   function fileToAvatar(file, cb) {
     if (!file) { cb(null); return; }
     var reader = new FileReader();
@@ -1597,12 +1598,31 @@
     var svPhotoInput = $('svPhoto');
     if (svPhotoInput) {
       svPhotoInput.addEventListener('change', function () {
-        if (!this.files || !this.files[0]) return;
-        fileToAvatar(this.files[0], function (dataUrl) {
+        var f = this.files && this.files[0];
+        if (!f) return;
+        if (f.type.indexOf('image/') !== 0) { showToast('Ce fichier n\'est pas une image.'); return; }
+        fileToAvatar(f, function (dataUrl) {
+          if (!dataUrl) { showToast('Image illisible — essayez une autre photo.'); return; }
           pendingAvatar = dataUrl;
+          deletePhoto = false;
           var prev = $('svPhotoPrev');
-          if (prev && dataUrl) { prev.src = dataUrl; prev.hidden = false; }
+          if (prev) { prev.src = dataUrl; prev.hidden = false; }
+          var del = $('svPhotoDel');
+          if (del) del.hidden = false;
+          showToast('Photo prête — elle sera enregistrée avec la fiche.');
         });
+      });
+    }
+    var svPhotoDel = $('svPhotoDel');
+    if (svPhotoDel) {
+      svPhotoDel.addEventListener('click', function () {
+        pendingAvatar = null;
+        deletePhoto = true;
+        var prev = $('svPhotoPrev');
+        if (prev) { prev.removeAttribute('src'); prev.hidden = true; }
+        this.hidden = true;
+        if (svPhotoInput) svPhotoInput.value = '';
+        showToast('Photo retirée — validez pour confirmer.');
       });
     }
 
@@ -1622,7 +1642,8 @@
           return c && c.checked;
         })
       };
-      if (pendingAvatar) data.photo = pendingAvatar;
+      if (deletePhoto) data.photo = '';
+      else if (pendingAvatar) data.photo = pendingAvatar;
       var sv = editingServantId && servants.find(function (x) { return x.id === editingServantId; });
       if (sv) {
         if (sv.niveau !== data.niveau) sv.niveauDepuis = toISODate(new Date());
@@ -1721,11 +1742,14 @@
     if ($('svNotePrivee')) $('svNotePrivee').value = sv ? (sv.notePrivee || '') : '';
     $('svActif').checked = sv ? sv.actif !== false : true;
     pendingAvatar = null;
+    deletePhoto = false;
     var photoPrev = $('svPhotoPrev');
     if (photoPrev) {
       if (sv && sv.photo) { photoPrev.src = sv.photo; photoPrev.hidden = false; }
       else { photoPrev.removeAttribute('src'); photoPrev.hidden = true; }
     }
+    var photoDel = $('svPhotoDel');
+    if (photoDel) photoDel.hidden = !(sv && sv.photo);
     var photoIn = $('svPhoto');
     if (photoIn) photoIn.value = '';
     var have = sv && Array.isArray(sv.competences) ? sv.competences : [];
