@@ -947,6 +947,8 @@
         var name = document.getElementById('trainerName').value.trim();
         var role = document.getElementById('trainerRole').value.trim();
         var tel = document.getElementById('trainerTel').value.trim();
+        var niveau = (document.getElementById('trainerNiveau') || {}).value || '';
+        var email = ((document.getElementById('trainerEmail') || {}).value || '').trim().toLowerCase();
         if (!name) return;
         var existing = editingTrainerId && trainers.find(function (t) { return t.id === editingTrainerId; });
         if (existing) {
@@ -955,8 +957,10 @@
           existing.name = name;
           existing.role = role || 'Formateur';
           existing.tel = tel || '';
+          existing.niveau = niveau;
+          existing.email = email;
         } else {
-          trainers.push({ id: 'tr_' + Date.now(), name: name, role: role || 'Formateur', tel: tel || '' });
+          trainers.push({ id: 'tr_' + Date.now(), name: name, role: role || 'Formateur', tel: tel || '', niveau: niveau, email: email });
         }
         var savedTrainer = trainers.find(function (t) { return t.id === (existing ? editingTrainerId : trainers[trainers.length - 1].id); });
         if (savedTrainer) persistTrainer(savedTrainer);
@@ -1352,6 +1356,27 @@
 
   function safeId(txt) { return String(txt).replace(/[^a-z0-9]/gi, '_'); }
 
+  // Photo de profil : miniature 96px JPEG en base64 (stockée dans le document, sans coût Storage)
+  var pendingAvatar = null;
+  function fileToAvatar(file, cb) {
+    if (!file) { cb(null); return; }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var side = Math.min(img.width, img.height);
+        var canvas = document.createElement('canvas');
+        canvas.width = 96; canvas.height = 96;
+        var ctx = canvas.getContext('2d');
+        var sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, 96, 96);
+        cb(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
   function $(id) { return document.getElementById(id); }
 
   function fetchMembres(cb) {
@@ -1529,6 +1554,18 @@
       renderSummary();
     });
 
+    var svPhotoInput = $('svPhoto');
+    if (svPhotoInput) {
+      svPhotoInput.addEventListener('change', function () {
+        if (!this.files || !this.files[0]) return;
+        fileToAvatar(this.files[0], function (dataUrl) {
+          pendingAvatar = dataUrl;
+          var prev = $('svPhotoPrev');
+          if (prev && dataUrl) { prev.src = dataUrl; prev.hidden = false; }
+        });
+      });
+    }
+
     $('servantForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var nom = $('svNom').value.trim().replace(/\s+/g, ' ').toUpperCase();
@@ -1544,6 +1581,7 @@
           return c && c.checked;
         })
       };
+      if (pendingAvatar) data.photo = pendingAvatar;
       var sv = editingServantId && servants.find(function (x) { return x.id === editingServantId; });
       if (sv) {
         if (sv.niveau !== data.niveau) sv.niveauDepuis = toISODate(new Date());
@@ -1554,6 +1592,7 @@
         servants.push(sv);
       }
       saveServant(sv);
+      pendingAvatar = null;
       closeModal($('servantModal'));
       renderGestion();
       showToast(sv ? 'Servant modifié.' : 'Servant ajouté.');
@@ -1585,6 +1624,7 @@
     // --- Appel ---
     $('appelSession').addEventListener('change', function () { appelDraft = {}; renderAppel(); });
     $('appelAllLevels').addEventListener('change', renderAppel);
+    if ($('appelMine')) $('appelMine').addEventListener('change', function () { buildAppelSessionOptions(); renderAppel(); });
     $('appelList').addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-st]');
       if (!btn) return;
@@ -1638,6 +1678,14 @@
     $('svTel').value = sv ? (sv.tel || '') : '';
     $('svNote').value = sv ? (sv.note || '') : '';
     $('svActif').checked = sv ? sv.actif !== false : true;
+    pendingAvatar = null;
+    var photoPrev = $('svPhotoPrev');
+    if (photoPrev) {
+      if (sv && sv.photo) { photoPrev.src = sv.photo; photoPrev.hidden = false; }
+      else { photoPrev.removeAttribute('src'); photoPrev.hidden = true; }
+    }
+    var photoIn = $('svPhoto');
+    if (photoIn) photoIn.value = '';
     var have = sv && Array.isArray(sv.competences) ? sv.competences : [];
     $('svComps').innerHTML = POSTES.map(function (p) {
       return '<label class="comp-check"><input type="checkbox" id="svComp_' + safeId(p) + '"' +
@@ -1654,6 +1702,8 @@
     $('trainerName').value = tr ? tr.name : '';
     $('trainerRole').value = tr ? (tr.role || '') : 'Responsable';
     $('trainerTel').value = tr ? (tr.tel || '') : '';
+    if ($('trainerNiveau')) $('trainerNiveau').value = tr ? (tr.niveau || '') : '';
+    if ($('trainerEmail')) $('trainerEmail').value = tr ? (tr.email || '') : '';
     openModal(trainerModal);
   }
 
@@ -1710,7 +1760,7 @@
       return '<tr class="' + (sv.actif === false ? 'is-inactive' : '') + '">' +
         '<td class="w-check"><input type="checkbox" class="sv-check" data-id="' + sv.id + '"' + (svSelection[sv.id] ? ' checked' : '') + ' aria-label="Sélectionner"></td>' +
         '<td class="w-num">' + (i + 1) + '</td>' +
-        '<td><div class="g-name">' + escapeHtml(sv.nom) + (sv.actif === false ? ' <span class="g-tag">inactif</span>' : '') + '</div>' +
+        '<td><div class="g-name">' + (sv.photo ? '<img class="sv-avatar" src="' + sv.photo + '" alt="">' : '') + escapeHtml(sv.nom) + (sv.actif === false ? ' <span class="g-tag">inactif</span>' : '') + '</div>' +
           (sv.tel || sv.note ? '<div class="g-sub">' + escapeHtml([sv.tel, sv.note].filter(Boolean).join(' · ')) + '</div>' : '') + '</td>' +
         '<td><select class="select select-sm sv-level" data-id="' + sv.id + '" aria-label="Niveau">' + opts + '</select></td>' +
         '<td class="hide-sm">' + (rate ? '<span class="g-rate' + (rate.pct < 60 ? ' low' : '') + '">' + rate.pct + ' %</span> <span class="g-sub">(' + rate.total + ' appels)</span>' : '<span class="g-sub">—</span>') + '</td>' +
@@ -1753,8 +1803,8 @@
       var count = sessions.filter(function (s) { return s.trainer === tr.name; }).length;
       return '<tr>' +
         '<td class="w-num">' + (i + 1) + '</td>' +
-        '<td><div class="g-name">' + escapeHtml(tr.name) + '</div></td>' +
-        '<td class="hide-sm">' + escapeHtml(tr.role || '') + '</td>' +
+        '<td><div class="g-name">' + escapeHtml(tr.name) + '</div>' + (tr.email ? '<div class="g-sub">' + escapeHtml(tr.email) + '</div>' : '') + '</td>' +
+        '<td class="hide-sm">' + escapeHtml(tr.role || '') + (tr.niveau ? ' <span class="g-tag">' + escapeHtml(tr.niveau) + '</span>' : '') + '</td>' +
         '<td class="hide-sm">' + escapeHtml(tr.tel || '—') + '</td>' +
         '<td>' + count + '</td>' +
         '<td class="t-right"><div class="g-acts">' +
@@ -1765,12 +1815,35 @@
     }).join('');
   }
 
+  function myTrainerEmail() {
+    var u = FB.currentUser();
+    return u && u.email ? String(u.email).toLowerCase() : '';
+  }
+
+  var appelMineInit = false;
   function buildAppelSessionOptions() {
     var sel = $('appelSession');
     var prev = sel.value;
     var sorted = sessions.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    var mineBox = $('appelMine');
+    if (mineBox && !appelMineInit) {
+      // Si le compte connecté correspond à un responsable, pré-cocher « Mes séances »
+      var me = myTrainerEmail();
+      appelMineInit = true;
+      if (me && trainers.some(function (t) { return t.email && String(t.email).toLowerCase() === me; })) {
+        mineBox.checked = true;
+      }
+    }
+    if (mineBox && mineBox.checked) {
+      var me = myTrainerEmail();
+      var myNames = trainers.filter(function (t) { return t.email && String(t.email).toLowerCase() === me; })
+        .map(function (t) { return t.name; });
+      if (myNames.length) {
+        sorted = sorted.filter(function (s) { return myNames.indexOf(s.trainer) !== -1; });
+      }
+    }
     if (!sorted.length) {
-      sel.innerHTML = '<option value="">Aucune séance planifiée — ajoutez d\'abord une séance</option>';
+      sel.innerHTML = '<option value="">Aucune séance' + (mineBox && mineBox.checked ? ' à votre nom' : ' planifiée') + ' — ajoutez d\'abord une séance</option>';
       return;
     }
     var today = toISODate(new Date());
@@ -2429,6 +2502,7 @@
     var comps = (sv.competences || []).length ? sv.competences.map(function (c) { return '<span class="g-tag">' + escapeHtml(c) + '</span>'; }).join(' ') : '<span class="g-sub">Aucune compétence enregistrée</span>';
 
     $('profilBody').innerHTML =
+      (sv.photo ? '<div class="profil-photo"><img class="sv-avatar-lg" src="' + sv.photo + '" alt=""></div>' : '') +
       '<div class="profil-grid">' +
       '<div><div class="g-sub">NIVEAU & PROGRESSION</div><p>' + duree + '</p>' +
       (sv.tel ? '<p class="g-sub">Tél : ' + escapeHtml(sv.tel) + '</p>' : '') +

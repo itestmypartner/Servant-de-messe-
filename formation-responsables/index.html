@@ -387,6 +387,7 @@
       <div class="gpanel" id="tabAppel" hidden>
         <div class="gtoolbar">
           <select id="appelSession" class="select grow"></select>
+          <label class="inline-check"><input type="checkbox" id="appelMine"> Mes séances uniquement</label>
           <label class="inline-check"><input type="checkbox" id="appelAllLevels"> Tous les niveaux</label>
         </div>
         <div id="appelNotice" class="gnotice" hidden></div>
@@ -593,6 +594,21 @@
             <label for="trainerTel" class="label">Numéro de téléphone</label>
             <input type="tel" id="trainerTel" class="input" placeholder="Ex: +225 07 XX XX XX XX">
           </div>
+          <div class="field">
+            <label for="trainerNiveau" class="label">Niveau enseigné</label>
+            <select id="trainerNiveau" class="select">
+              <option value="">Aucun / Variable</option>
+              <option value="Postulant">Postulant</option>
+              <option value="Samuel">Samuel</option>
+              <option value="Tarcisius">Tarcisius</option>
+              <option value="Augustin">Augustin</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="trainerEmail" class="label">Email de connexion (si ce responsable a un compte)</label>
+            <input type="email" id="trainerEmail" class="input" placeholder="exemple@mail.com">
+            <div class="hint">Permet à ce responsable de voir « ses » séances et de faire l'appel de son niveau.</div>
+          </div>
         </div>
         <div class="modal-foot">
           <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
@@ -632,6 +648,12 @@
           <div class="field">
             <label for="svNote" class="label">Remarque</label>
             <input type="text" id="svNote" class="input" maxlength="200">
+          </div>
+          <div class="field">
+            <label for="svPhoto" class="label">Photo (miniature gratuite)</label>
+            <input type="file" id="svPhoto" class="input" accept="image/*">
+            <img id="svPhotoPrev" class="sv-avatar-lg" alt="" hidden>
+            <div class="hint">Compressée automatiquement — aucun coût de stockage.</div>
           </div>
           <div class="field">
             <span class="label">Compétences (postes de messe maîtrisés)</span>
