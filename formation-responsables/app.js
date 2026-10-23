@@ -854,6 +854,37 @@
       showToast('Application installée.');
     });
 
+    // Accès responsable discret : double-clic (ou double-tap mobile) sur
+    // « Paroisse Saint-Bernard d'Adiopodoumé » en bas de page
+    var secretAccess = document.getElementById('secretAccess');
+    if (secretAccess) {
+      var openAdminGate = function () {
+        if (isAdmin) {
+          if (confirm('Voulez-vous quitter le mode Responsable ?')) {
+            logoutAdmin();
+            showToast('Mode Responsable désactivé.');
+          }
+        } else {
+          openModal(adminModal);
+          var emailField = document.getElementById('adminEmail');
+          if (emailField) { emailField.focus(); }
+        }
+      };
+      secretAccess.addEventListener('dblclick', function (e) {
+        e.preventDefault();
+        openAdminGate();
+      });
+      var lastTap = 0;
+      secretAccess.addEventListener('touchend', function (e) {
+        var now = Date.now();
+        if (now - lastTap < 400) {
+          e.preventDefault();
+          openAdminGate();
+        }
+        lastTap = now;
+      });
+    }
+
     // Connexion Admin
     var adminLoginBtn = document.getElementById('adminLoginBtn');
     if (adminLoginBtn) {
