@@ -2093,8 +2093,8 @@
       didParseCell: function (data) {
         if (data.section !== 'body') return;
         var raw = String(data.cell.raw == null ? '' : data.cell.raw).trim();
-        // Cellule « Niveau » : badge coloré comme sur la plateforme
-        var lv = LEVEL_COLORS[raw];
+        // Cellule « Niveau » : badge coloré comme sur la plateforme (désactivable par doc)
+        var lv = opt.noLevelColors ? null : LEVEL_COLORS[raw];
         if (lv) {
           data.cell.styles.fillColor = lv.bg;
           data.cell.styles.textColor = lv.text;
@@ -2102,8 +2102,13 @@
           data.cell.styles.halign = 'center';
           return;
         }
-        // Colonnes de statut P/R/A/E : chiffres colorés
+        // Colonne « Niveau » : gras marine sobre (quand le badge coloré est désactivé)
         var head = headTexts[data.column.index];
+        if (!lv && head === 'Niveau' && raw && raw !== '—') {
+          data.cell.styles.textColor = NAVY;
+          data.cell.styles.fontStyle = 'bold';
+        }
+        // Colonnes de statut P/R/A/E : chiffres colorés
         if (STATUT_COLORS[head] && raw) {
           data.cell.styles.textColor = STATUT_COLORS[head];
           data.cell.styles.fontStyle = 'bold';
@@ -2191,6 +2196,7 @@
     printDocument({
       subtitle: 'Planning des formations — ' + title,
       date: list.length + ' séance(s)',
+      noLevelColors: true,
       cols: [['Date', 16], ['Horaire', 14], ['Niveau', 14], ['Thème', 28], ['Formateur', 18], ['Lieu', 10]],
       rows: list.map(function (s) {
         var d = parseDateLocal(s.date);
