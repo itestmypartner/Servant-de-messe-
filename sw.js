@@ -3,7 +3,7 @@
  * Cache-first pour les ressources statiques ; réseau direct pour Firebase.
  */
 
-var CACHE_NAME = 'smsb-v2';
+var CACHE_NAME = 'smsb-v3';
 
 var STATIC_ASSETS = [
   './',
