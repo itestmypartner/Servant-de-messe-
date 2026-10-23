@@ -198,6 +198,7 @@
     setupBurger();
     setupGestion();
     setupServices();
+    setupStats();
     render();
     fetchRemoteData();
     registerServiceWorker();
@@ -1439,6 +1440,7 @@
         $('tabResponsables').hidden = activeTab !== 'responsables';
         $('tabAppel').hidden = activeTab !== 'appel';
         $('tabServices').hidden = activeTab !== 'services';
+        $('tabStats').hidden = activeTab !== 'stats';
         renderGestion();
       });
     });
@@ -1461,7 +1463,13 @@
       if (!ids.length) return;
       var lvl = $('svBulkLevel').value;
       var ops = [];
-      servants.forEach(function (sv) { if (svSelection[sv.id]) { sv.niveau = lvl; ops.push({ id: sv.id, data: sv }); } });
+      servants.forEach(function (sv) {
+        if (svSelection[sv.id]) {
+          if (sv.niveau !== lvl) sv.niveauDepuis = toISODate(new Date());
+          sv.niveau = lvl;
+          ops.push({ id: sv.id, data: sv });
+        }
+      });
       svSelection = {};
       batchServants(ops);
       renderGestion();
@@ -1485,7 +1493,12 @@
         updateBulkBar();
       } else if (e.target.classList.contains('sv-level')) {
         var sv = servants.find(function (x) { return x.id === id; });
-        if (sv) { sv.niveau = e.target.value; saveServant(sv); renderSummary(); }
+        if (sv) {
+          if (sv.niveau !== e.target.value) sv.niveauDepuis = toISODate(new Date());
+          sv.niveau = e.target.value;
+          saveServant(sv);
+          renderSummary();
+        }
       }
     });
 
@@ -1494,6 +1507,7 @@
       if (!btn) return;
       var id = btn.getAttribute('data-id');
       if (btn.getAttribute('data-act') === 'edit') openServantForm(id);
+      if (btn.getAttribute('data-act') === 'profil') openProfil(id);
       if (btn.getAttribute('data-act') === 'del') {
         var sv = servants.find(function (x) { return x.id === id; });
         if (sv && confirm('Supprimer ' + sv.nom + ' de la liste ?')) {
@@ -1532,6 +1546,7 @@
       };
       var sv = editingServantId && servants.find(function (x) { return x.id === editingServantId; });
       if (sv) {
+        if (sv.niveau !== data.niveau) sv.niveauDepuis = toISODate(new Date());
         Object.assign(sv, data);
       } else {
         if (servants.some(function (x) { return x.nom === nom; }) && !confirm(nom + ' existe déjà. L\'ajouter quand même ?')) return;
@@ -1651,6 +1666,7 @@
     if (activeTab === 'responsables') renderResponsables();
     if (activeTab === 'appel') { buildAppelSessionOptions(); renderAppel(); }
     if (activeTab === 'services') renderServices();
+    if (activeTab === 'stats') renderStats();
   }
 
   function renderSummary() {
@@ -1699,6 +1715,7 @@
         '<td><select class="select select-sm sv-level" data-id="' + sv.id + '" aria-label="Niveau">' + opts + '</select></td>' +
         '<td class="hide-sm">' + (rate ? '<span class="g-rate' + (rate.pct < 60 ? ' low' : '') + '">' + rate.pct + ' %</span> <span class="g-sub">(' + rate.total + ' appels)</span>' : '<span class="g-sub">—</span>') + '</td>' +
         '<td class="t-right"><div class="g-acts">' +
+          '<button type="button" class="btn btn-outline btn-icon" data-act="profil" data-id="' + sv.id + '">Profil</button>' +
           '<button type="button" class="btn btn-outline btn-icon" data-act="edit" data-id="' + sv.id + '">Modifier</button>' +
           '<button type="button" class="btn btn-outline btn-icon txt-danger" data-act="del" data-id="' + sv.id + '">Supprimer</button>' +
         '</div></td>' +
@@ -2059,6 +2076,7 @@
         if (act === 'edit') openServiceForm(id);
         if (act === 'assign') openAssignModal(id);
         if (act === 'print') printService(id);
+        if (act === 'wa') shareServiceWhatsApp(id);
         if (act === 'del') {
           var svc = services.find(function (x) { return x.id === id; });
           if (svc && confirm('Supprimer le service du ' + svc.date + ' ?')) {
@@ -2095,6 +2113,42 @@
           savePostes();
           renderPostes();
         }
+      });
+    }
+
+    // Attribution automatique : équilibre les tours entre les servants formés
+    var autoBtn = $('autoAssignBtn');
+    if (autoBtn) {
+      autoBtn.addEventListener('click', function () {
+        var svc = services.find(function (x) { return x.id === $('assignForm').getAttribute('data-svc'); });
+        if (!svc) return;
+        var actifs = servants.filter(function (s) { return s.actif !== false; });
+        var usage = {};
+        // Compte combien de fois chaque servant a tenu chaque poste
+        services.forEach(function (s2) {
+          POSTES.forEach(function (p) {
+            var sid = (s2.assignments || {})[p];
+            if (sid) (usage[p] = usage[p] || {})[sid] = ((usage[p] || {})[sid] || 0) + 1;
+          });
+        });
+        var usedThisService = {};
+        POSTES.forEach(function (p) {
+          var sel = $('assign_' + safeId(p));
+          if (!sel) return;
+          var pool = actifs.filter(function (s) {
+            return Array.isArray(s.competences) && s.competences.indexOf(p) >= 0 && !usedThisService[s.id];
+          });
+          if (!pool.length) pool = actifs.filter(function (s) { return !usedThisService[s.id]; });
+          if (!pool.length) return;
+          pool.sort(function (a, b) {
+            var ua = (usage[p] || {})[a.id] || 0, ub = (usage[p] || {})[b.id] || 0;
+            if (ua !== ub) return ua - ub;
+            return a.nom.localeCompare(b.nom, 'fr');
+          });
+          sel.value = pool[0].id;
+          usedThisService[pool[0].id] = true;
+        });
+        showToast('Proposition équilibrée affichée — vérifiez puis enregistrez.');
       });
     }
 
@@ -2199,6 +2253,7 @@
         '<div class="g-sub">' + dateTxt + ' · ' + escapeHtml(svc.heure) + '</div></div>' +
         '<div class="g-acts">' +
           '<button type="button" class="btn btn-sm btn-outline" data-act="assign" data-id="' + svc.id + '">Attribuer</button>' +
+          '<button type="button" class="btn btn-sm btn-success" data-act="wa" data-id="' + svc.id + '">WhatsApp</button>' +
           '<button type="button" class="btn btn-sm btn-outline" data-act="print" data-id="' + svc.id + '">Imprimer</button>' +
           '<button type="button" class="btn btn-sm btn-outline" data-act="edit" data-id="' + svc.id + '">Modifier</button>' +
           '<button type="button" class="btn btn-sm btn-danger" data-act="del" data-id="' + svc.id + '">Suppr.</button>' +
@@ -2226,6 +2281,165 @@
       rows: rows,
       foot: '<div><strong>Responsable du jour :</strong> ______________________</div>'
     });
+  }
+
+  // ==================== WHATSAPP + STATS + PROFIL ====================
+
+  function shareServiceWhatsApp(id) {
+    var svc = services.find(function (x) { return x.id === id; });
+    if (!svc) return;
+    var map = servantsById();
+    var d = parseDateLocal(svc.date);
+    var dateFull = d ? capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })) : svc.date;
+    var lines = POSTES.map(function (p) {
+      var sv = map[(svc.assignments || {})[p]];
+      return '• ' + p + ' : ' + (sv ? sv.nom : '—');
+    });
+    var msg =
+      'SERVANTS DE MESSE — ' + svc.type.toUpperCase() + '\n' +
+      dateFull + ' à ' + svc.heure + (svc.intitule ? ' — ' + svc.intitule : '') + '\n\n' +
+      'ATTRIBUTIONS :\n' + lines.join('\n') +
+      '\n\nMerci d\'être présents 30 min avant le début.\n' +
+      '— DJEBLE Haniel, Responsable Formation';
+    var prev = document.getElementById('whatsappPreview');
+    if (prev) prev.value = msg;
+    openModal(whatsappModal);
+  }
+
+  function setupStats() {
+    var per = $('statsPeriod');
+    if (per) per.addEventListener('change', renderStats);
+    var pr = $('statsPrintBtn');
+    if (pr) pr.addEventListener('click', printStats);
+  }
+
+  function statsPeriodSessions() {
+    var v = $('statsPeriod') ? $('statsPeriod').value : 'all';
+    var cutoff = null;
+    if (v === '30') { cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30); }
+    if (v === '90') { cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90); }
+    return sessions.filter(function (s) {
+      var d = parseDateLocal(s.date);
+      return d && (!cutoff || d >= cutoff) && presences[s.id];
+    });
+  }
+
+  function renderStats() {
+    var body = $('statsTableBody');
+    if (!body) return;
+    var scoped = statsPeriodSessions();
+    var totals = { P: 0, R: 0, A: 0, E: 0 };
+
+    var rows = servants.slice().sort(function (a, b) {
+      var ra = attendanceRate(a.id), rb = attendanceRate(b.id);
+      return (rb ? rb.pct : -1) - (ra ? ra.pct : -1);
+    }).map(function (sv) {
+      var c = { P: 0, R: 0, A: 0, E: 0 };
+      scoped.forEach(function (s) {
+        var st = (presences[s.id] || {})[sv.id];
+        if (st) { c[st]++; totals[st]++; }
+      });
+      var total = c.P + c.R + c.A + c.E;
+      var pct = total ? Math.round((c.P + c.R) * 100 / total) : null;
+      return { sv: sv, c: c, total: total, pct: pct };
+    });
+
+    var withCalls = rows.filter(function (r) { return r.total > 0; });
+    var avg = withCalls.length ? Math.round(withCalls.reduce(function (acc, r) { return acc + r.pct; }, 0) / withCalls.length) : null;
+    $('statsCards').innerHTML =
+      '<div class="stat-mini"><strong>' + scoped.length + '</strong><span>appel(s) sur la période</span></div>' +
+      '<div class="stat-mini"><strong>' + totals.P + '</strong><span>présences</span></div>' +
+      '<div class="stat-mini"><strong>' + totals.R + '</strong><span>retards</span></div>' +
+      '<div class="stat-mini"><strong>' + totals.A + '</strong><span>absences</span></div>' +
+      '<div class="stat-mini"><strong>' + (avg === null ? '—' : avg + ' %') + '</strong><span>taux moyen</span></div>';
+
+    body.innerHTML = rows.length ? rows.map(function (r) {
+      return '<tr' + (r.sv.actif === false ? ' class="is-inactive"' : '') + '>' +
+        '<td><div class="g-name">' + escapeHtml(r.sv.nom) + '</div></td>' +
+        '<td>' + escapeHtml(r.sv.niveau || '—') + '</td>' +
+        '<td>' + r.c.P + '</td><td>' + r.c.R + '</td><td>' + r.c.A + '</td><td>' + r.c.E + '</td>' +
+        '<td>' + (r.pct === null ? '—' : '<span class="g-rate' + (r.pct < 60 ? ' low' : '') + '">' + r.pct + ' %</span>') + '</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="gempty">Aucun appel enregistré sur cette période.</td></tr>';
+  }
+
+  function printStats() {
+    var scoped = statsPeriodSessions();
+    var rows = servants.slice().sort(sortByName).map(function (sv, i) {
+      var c = { P: 0, R: 0, A: 0, E: 0 };
+      scoped.forEach(function (s) { var st = (presences[s.id] || {})[sv.id]; if (st) c[st]++; });
+      var t = c.P + c.R + c.A + c.E;
+      var pct = t ? Math.round((c.P + c.R) * 100 / t) + ' %' : '';
+      return [i + 1, escapeHtml(sv.nom), escapeHtml(sv.niveau || '—'), c.P, c.R, c.A, c.E, pct];
+    });
+    printDocument({
+      subtitle: 'Bilan de présence aux formations',
+      date: scoped.length + ' appel(s) • ' + capitalizeFirst(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })),
+      cols: [['N°', 5], ['Nom & Prénoms', 41], ['Niveau', 14], ['P', 8], ['R', 8], ['A', 8], ['E', 8], ['Taux', 8]],
+      rows: rows,
+      foot: '<div>Responsable Formation : DJEBLE Haniel</div><div><strong>Visa :</strong> ______________________</div>'
+    });
+  }
+
+  function openProfil(id) {
+    var sv = servants.find(function (x) { return x.id === id; });
+    if (!sv) return;
+    $('profilTitle').textContent = sv.nom;
+
+    // Appels : historique par séance
+    var appels = sessions.filter(function (s) { return presences[s.id]; }).sort(function (a, b) { return b.date.localeCompare(a.date); });
+    var appelRows = appels.map(function (s) {
+      var st = (presences[s.id] || {})[sv.id];
+      if (!st) return '';
+      var d = parseDateLocal(s.date);
+      return '<div class="svc-line"><span class="svc-poste">' + (d ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : s.date) + ' — ' + escapeHtml(s.topic || '') + '</span>' +
+        '<span class="svc-name">' + STATUT_LABELS[st] + '</span></div>';
+    }).filter(Boolean).join('');
+
+    // Services tenus : par poste
+    var parPoste = {};
+    var derniers = [];
+    services.slice().sort(function (a, b) { return b.date.localeCompare(a.date); }).forEach(function (s) {
+      POSTES.forEach(function (p) {
+        if ((s.assignments || {})[p] === sv.id) {
+          parPoste[p] = (parPoste[p] || 0) + 1;
+          derniers.push({ date: s.date, poste: p, type: s.type });
+        }
+      });
+    });
+    var histo = derniers.slice(0, 6).map(function (h) {
+      var d = parseDateLocal(h.date);
+      return '<div class="svc-line"><span class="svc-poste">' + (d ? d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : h.date) + ' — ' + escapeHtml(h.type) + '</span>' +
+        '<span class="svc-name">' + escapeHtml(h.poste) + '</span></div>';
+    }).join('');
+
+    // Progression : ancienneté dans le niveau
+    var duree = '';
+    if (sv.niveauDepuis) {
+      var depuis = parseDateLocal(sv.niveauDepuis);
+      var mois = depuis ? Math.floor((Date.now() - depuis.getTime()) / (30.44 * 86400000)) : 0;
+      var SEUILS = { Postulant: 3, Samuel: 6, Tarcisius: 6 };
+      var seuil = SEUILS[sv.niveau];
+      duree = 'Niveau ' + (sv.niveau || 'non attribué') + ' depuis ~' + mois + ' mois' +
+        (seuil ? (mois >= seuil ? ' — <strong>éligible au niveau suivant</strong>' : ' (durée indicative ' + seuil + ' mois)') : '');
+    } else {
+      duree = 'Niveau ' + (sv.niveau || 'non attribué') + (sv.niveau ? '' : ' — à attribuer');
+    }
+
+    var rate = attendanceRate(sv.id);
+    var comps = (sv.competences || []).length ? sv.competences.map(function (c) { return '<span class="g-tag">' + escapeHtml(c) + '</span>'; }).join(' ') : '<span class="g-sub">Aucune compétence enregistrée</span>';
+
+    $('profilBody').innerHTML =
+      '<div class="profil-grid">' +
+      '<div><div class="g-sub">NIVEAU & PROGRESSION</div><p>' + duree + '</p>' +
+      (sv.tel ? '<p class="g-sub">Tél : ' + escapeHtml(sv.tel) + '</p>' : '') +
+      (sv.note ? '<p class="g-sub">' + escapeHtml(sv.note) + '</p>' : '') + '</div>' +
+      '<div><div class="g-sub">ASSIDUITÉ</div><p>' + (rate ? '<strong class="g-rate' + (rate.pct < 60 ? ' low' : '') + '">' + rate.pct + ' %</strong> sur ' + rate.total + ' appel(s)' : 'Aucun appel enregistré') + '</p></div>' +
+      '</div>' +
+      '<div class="g-sub">COMPÉTENCES</div><p class="comp-grid">' + comps + '</p>' +
+      '<div class="g-sub">SERVICES TENUS (' + derniers.length + ')</div>' + (histo || '<p class="g-sub">Aucun service encore.</p>') +
+      '<div class="g-sub" style="margin-top:10px">APPELS DU SAMEDI</div>' + (appelRows || '<p class="g-sub">Aucun statut enregistré.</p>');
+
+    openModal($('profilModal'));
   }
 
   function escapeHtml(str) {

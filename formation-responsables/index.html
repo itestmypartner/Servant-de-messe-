@@ -312,6 +312,7 @@
         <button type="button" class="gtab" data-tab="responsables" role="tab">Responsables <span id="trCountBadge" class="gtab-count">0</span></button>
         <button type="button" class="gtab" data-tab="appel" role="tab">Appel du samedi</button>
         <button type="button" class="gtab" data-tab="services" role="tab">Services de messe</button>
+        <button type="button" class="gtab" data-tab="stats" role="tab">Statistiques</button>
       </div>
 
       <!-- ONGLET SERVANTS -->
@@ -413,6 +414,27 @@
         </form>
         <div id="posteList" class="lvl-summary"></div>
         <div id="serviceList"></div>
+      </div>
+
+      <!-- ============ STATISTIQUES ============ -->
+      <div class="gpanel" id="tabStats" hidden>
+        <div class="gtoolbar">
+          <select id="statsPeriod" class="select">
+            <option value="all">Toutes les séances</option>
+            <option value="30">30 derniers jours</option>
+            <option value="90">3 derniers mois</option>
+          </select>
+          <button type="button" id="statsPrintBtn" class="btn btn-outline btn-sm">Imprimer le bilan</button>
+        </div>
+        <div id="statsCards" class="stats-mini"></div>
+        <div class="table-wrap-g">
+          <table class="gtable">
+            <thead><tr>
+              <th>Servant</th><th>Niveau</th><th>Présents</th><th>Retards</th><th>Absents</th><th>Excusés</th><th>Taux</th>
+            </tr></thead>
+            <tbody id="statsTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -728,10 +750,25 @@
           <div id="assignBody" class="assign-grid"><!-- Rempli dynamiquement --></div>
         </div>
         <div class="modal-foot">
+          <button type="button" id="autoAssignBtn" class="btn btn-outline-gold btn-sm">Attribution automatique</button>
           <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
           <button type="submit" class="btn btn-dark btn-sm">Enregistrer les attributions</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 10. PROFIL D'UN SERVANT -->
+  <div class="modal" id="profilModal" role="dialog" aria-modal="true" aria-labelledby="profilTitle">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h5 id="profilTitle">Fiche servant</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <div class="modal-body" id="profilBody"><!-- Rempli dynamiquement --></div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-outline btn-sm" data-close>Fermer</button>
+      </div>
     </div>
   </div>
 

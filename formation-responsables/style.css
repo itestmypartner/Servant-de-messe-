@@ -886,25 +886,5 @@ body { overflow-x: hidden; }
   .svc-head .g-acts .btn { flex: 1; }
 }
 
-/* ==================== SERVICES DE MESSE ==================== */
-.comp-grid { display: flex; flex-wrap: wrap; gap: 6px 14px; }
-.comp-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; }
-.comp-check input { accent-color: var(--navy2); width: 15px; height: 15px; }
-.svc-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; background: #fff; }
-.svc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-.svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 18px; }
-.svc-line { display: flex; justify-content: space-between; gap: 8px; font-size: 0.84rem; padding: 3px 0; border-bottom: 1px dashed #f0f0f0; }
-.svc-poste { color: var(--muted); }
-.svc-name { font-weight: 600; color: var(--ink); text-align: right; }
-.svc-empty { color: #c7cedb; font-weight: 400; }
-.poste-x { border: none; background: none; cursor: pointer; color: var(--muted); font-size: 0.72rem; padding: 0 0 0 4px; }
-.poste-x:hover { color: #b91c1c; }
-.assign-grid { display: grid; gap: 10px; }
-.assign-row { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; }
-.assign-label { font-weight: 600; font-size: 0.86rem; }
-@media (max-width: 640px) {
-  .assign-row { grid-template-columns: 1fr; gap: 4px; }
-  .svc-head { flex-direction: column; }
-  .svc-head .g-acts { width: 100%; }
-  .svc-head .g-acts .btn { flex: 1; }
-}
+
+/* ==================== STATS + PROFIL ==================== */
