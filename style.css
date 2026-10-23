@@ -1901,3 +1901,17 @@ body { overflow-x: hidden; }
   .md-back-top { bottom: max(16px, env(safe-area-inset-bottom)); }
   .toast, .toast-zone { bottom: max(12px, env(safe-area-inset-bottom)) !important; }
 }
+
+/* ==================== BOUTON INSTALLATION PWA ==================== */
+.install-fab {
+  position: fixed; bottom: 18px; right: 18px; z-index: 9000;
+  background: #1e3a6e; color: #fff; border: none; border-radius: 999px;
+  padding: 13px 22px; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  box-shadow: 0 12px 28px -8px rgba(30, 58, 110, 0.55);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.install-fab:hover { transform: translateY(-2px); box-shadow: 0 16px 34px -8px rgba(30, 58, 110, 0.6); }
+.install-fab[hidden] { display: none; }
+@media (max-width: 640px) {
+  .install-fab { bottom: 14px; right: 14px; left: 14px; padding: 14px 22px; }
+}
