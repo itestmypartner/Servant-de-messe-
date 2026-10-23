@@ -996,16 +996,33 @@
       });
     }
 
-    // Sécurité : lien de réinitialisation par email (Firebase gère les mots de passe)
+    // Mot de passe : changement direct dans l'app (les emails @smsb.ci sont fictifs,
+    // la réinitialisation par email ne fonctionnerait pas pour eux)
     var securityBtn = document.getElementById('securityBtn');
-    if (securityBtn) {
+    var pwdModal = document.getElementById('pwdModal');
+    if (securityBtn && pwdModal) {
       securityBtn.addEventListener('click', function () {
-        var u = FB.currentUser();
-        if (!u || !u.email) return;
-        if (!confirm('Envoyer un email de changement de mot de passe à ' + u.email + ' ?')) return;
-        FB.resetPassword(u.email)
-          .then(function () { showToast('Email de réinitialisation envoyé.'); })
-          .catch(function () { showToast('Envoi impossible. Réessayez.'); });
+        $('pwdForm').reset();
+        openModal(pwdModal);
+      });
+      $('pwdForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var oldPw = $('pwdOld').value;
+        var newPw = $('pwdNew').value;
+        var newPw2 = $('pwdNew2').value;
+        if (newPw.length < 6) { showToast('Le nouveau mot de passe doit faire au moins 6 caractères.'); return; }
+        if (newPw !== newPw2) { showToast('La confirmation ne correspond pas.'); return; }
+        var btn = pwdModal.querySelector('button[type="submit"]');
+        if (btn) btn.disabled = true;
+        FB.changePassword(oldPw, newPw)
+          .then(function () {
+            closeModal(pwdModal);
+            showToast('Mot de passe changé. Gardez-le précieusement.');
+          })
+          .catch(function (err) {
+            showToast(err && err.code === 'auth/wrong-password' ? 'Mot de passe actuel incorrect.' : 'Changement impossible. Réessayez.');
+          })
+          .finally(function () { if (btn) btn.disabled = false; });
       });
     }
 

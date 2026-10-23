@@ -37,6 +37,13 @@
     signIn: function (email, pw) { return auth.signInWithEmailAndPassword(email, pw); },
     signOut: function () { return auth.signOut(); },
     resetPassword: function (email) { return auth.sendPasswordResetEmail(email); },
+    // Changement de mot de passe en interne : re-vérifie l'ancien puis applique le nouveau
+    changePassword: function (oldPw, newPw) {
+      var u = auth.currentUser;
+      if (!u || !u.email) return Promise.reject(new Error('non connecté'));
+      var cred = firebase.auth.EmailAuthProvider.credential(u.email, oldPw);
+      return u.reauthenticateWithCredential(cred).then(function () { return u.updatePassword(newPw); });
+    },
     currentUser: function () { return auth.currentUser; },
 
     /* ---- Données ---- */

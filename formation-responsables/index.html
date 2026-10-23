@@ -387,7 +387,7 @@
         <div class="gestion-actions">
           <button id="addSessionBtn" class="btn btn-gold btn-sm" type="button" style="display:none;" title="Programmer une formation">Nouvelle séance</button>
           <button id="annonceBtn" class="btn btn-outline btn-sm" type="button" title="Publier ou retirer une annonce visible par tous">📢 Annoncer</button>
-          <button id="securityBtn" class="btn btn-outline btn-sm" type="button" style="display:none;" title="Changer le mot de passe responsable">Sécurité</button>
+          <button id="securityBtn" class="btn btn-outline btn-sm" type="button" style="display:none;" title="Changer mon mot de passe">Mot de passe</button>
           <button type="button" id="backupBtn" class="btn btn-outline btn-sm" title="Télécharger une sauvegarde de toutes les données">Sauvegarde</button>
         </div>
       </div>
@@ -585,6 +585,37 @@
         <div class="modal-foot">
           <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
           <button type="submit" class="btn btn-dark btn-sm">Se connecter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 1b. CHANGER MON MOT DE PASSE -->
+  <div class="modal" id="pwdModal" role="dialog" aria-modal="true" aria-labelledby="pwdModalLabel">
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h5 id="pwdModalLabel">Changer mon mot de passe</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <form id="pwdForm">
+        <div class="modal-body">
+          <p class="hint">Choisissez votre mot de passe personnel (6 caractères minimum).</p>
+          <div class="field">
+            <label for="pwdOld" class="label">Mot de passe actuel</label>
+            <input type="password" id="pwdOld" class="input" required autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label for="pwdNew" class="label">Nouveau mot de passe</label>
+            <input type="password" id="pwdNew" class="input" required minlength="6" autocomplete="new-password">
+          </div>
+          <div class="field">
+            <label for="pwdNew2" class="label">Confirmer le nouveau mot de passe</label>
+            <input type="password" id="pwdNew2" class="input" required minlength="6" autocomplete="new-password">
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
+          <button type="submit" class="btn btn-dark btn-sm">Changer</button>
         </div>
       </form>
     </div>
