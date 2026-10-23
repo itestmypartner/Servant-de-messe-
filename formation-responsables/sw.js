@@ -3,7 +3,7 @@
  * Cache-first pour les ressources statiques, réseau d'abord pour l'API.
  */
 
-var CACHE_NAME = 'formations-sm-v5';
+var CACHE_NAME = 'formations-sm-v6';
 
 var STATIC_ASSETS = [
   './',

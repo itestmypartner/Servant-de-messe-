@@ -9,6 +9,7 @@ const REPO = 'Servant-de-messe-';
 const NEWS_PATH = 'data/news.json';
 const INSCRIPTIONS_PATH = 'data/inscriptions.json';
 const FORMATIONS_PATH = 'data/formations.json';
+const MEMBRES_PATH = 'data/membres-formation.json';
 const CONFIG_PATH = 'data/config.json';
 const BRANCH = 'main';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '200700';
@@ -23,6 +24,8 @@ app.use((req, res, next) => {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  // Données de mineurs : jamais servies comme fichier statique
+  if (req.path.startsWith('/data/membres')) return res.status(404).end();
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-password, Authorization');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
@@ -316,6 +319,69 @@ app.put('/api/formations', requireAdminAuth, async (req, res) => {
   }catch(err){
     console.error('Erreur PUT /api/formations:', err);
     return res.status(500).json({ error: 'Erreur lors de la synchronisation du planning.' });
+  }
+});
+
+// ==================== MEMBRES : SERVANTS & PRÉSENCES (authentifié) ====================
+
+const NIVEAUX_VALIDES = ['', 'Postulant', 'Samuel', 'Tarcisius', 'Augustin'];
+const STATUTS_PRESENCE = ['P', 'A', 'R', 'E'];
+
+app.get('/api/formations/membres', requireAdminAuth, async (req, res) => {
+  try{
+    const token = getToken();
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
+    const existing = await readRepoJsonAny(MEMBRES_PATH, token);
+    const data = (existing.data && typeof existing.data === 'object' && !Array.isArray(existing.data)) ? existing.data : {};
+    return res.json({
+      ok: true,
+      servants: Array.isArray(data.servants) ? data.servants : [],
+      presences: (data.presences && typeof data.presences === 'object') ? data.presences : {}
+    });
+  }catch(err){
+    console.error('Erreur GET /api/formations/membres:', err);
+    return res.status(500).json({ error: 'Impossible de lire la liste des servants.' });
+  }
+});
+
+app.put('/api/formations/membres', requireAdminAuth, async (req, res) => {
+  try{
+    const token = getToken();
+    if(!token) return res.status(500).json({ error: 'Token GitHub non configuré sur le serveur (NEWS_PUBLISH_TOKEN).' });
+
+    const servants = req.body && req.body.servants;
+    const presences = req.body && req.body.presences;
+    if(!Array.isArray(servants) || servants.length > 1000 || !presences || typeof presences !== 'object' || Array.isArray(presences)){
+      return res.status(400).json({ error: 'Données membres invalides.' });
+    }
+
+    const cleanServants = servants.map(s => ({
+      id: String(s.id || ('sv_' + Date.now())).slice(0, 60),
+      nom: String(s.nom || '').trim().slice(0, 80),
+      niveau: NIVEAUX_VALIDES.includes(s.niveau) ? s.niveau : '',
+      tel: String(s.tel || '').trim().slice(0, 25),
+      note: String(s.note || '').trim().slice(0, 200),
+      actif: s.actif !== false
+    })).filter(s => s.nom);
+
+    const ids = new Set(cleanServants.map(s => s.id));
+    const cleanPresences = {};
+    Object.keys(presences).slice(0, 3000).forEach(sessionId => {
+      const row = presences[sessionId];
+      if(!row || typeof row !== 'object') return;
+      const cleanRow = {};
+      Object.keys(row).forEach(servantId => {
+        if(ids.has(servantId) && STATUTS_PRESENCE.includes(row[servantId])) cleanRow[servantId] = row[servantId];
+      });
+      if(Object.keys(cleanRow).length) cleanPresences[String(sessionId).slice(0, 60)] = cleanRow;
+    });
+
+    const existing = await readRepoJsonAny(MEMBRES_PATH, token);
+    await writeRepoJson(MEMBRES_PATH, { servants: cleanServants, presences: cleanPresences }, 'Sync servants & presences', token, existing.sha);
+    return res.json({ ok: true, count: cleanServants.length });
+  }catch(err){
+    console.error('Erreur PUT /api/formations/membres:', err);
+    return res.status(500).json({ error: 'Erreur lors de la synchronisation des servants.' });
   }
 });
 

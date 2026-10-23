@@ -297,6 +297,109 @@
       </div>
     </section>
 
+    <!-- ==================== ESPACE GESTION (RESPONSABLE UNIQUEMENT) ==================== -->
+    <section id="gestion-section" class="card-soft gestion-card" style="display:none;">
+      <div class="gestion-head">
+        <div>
+          <h5 class="font-cinzel section-heading">Espace Gestion</h5>
+          <p class="section-sub">Servants, responsables et appel du samedi. Visible uniquement en mode responsable.</p>
+        </div>
+        <span id="membresStatus" class="sync-status"></span>
+      </div>
+
+      <div class="gtabs" role="tablist">
+        <button type="button" class="gtab active" data-tab="servants" role="tab">Servants <span id="svCountBadge" class="gtab-count">0</span></button>
+        <button type="button" class="gtab" data-tab="responsables" role="tab">Responsables <span id="trCountBadge" class="gtab-count">0</span></button>
+        <button type="button" class="gtab" data-tab="appel" role="tab">Appel du samedi</button>
+      </div>
+
+      <!-- ONGLET SERVANTS -->
+      <div class="gpanel" id="tabServants">
+        <div class="lvl-summary" id="svSummary"></div>
+        <div class="gtoolbar">
+          <input type="search" id="svSearch" class="input" placeholder="Rechercher un servant…">
+          <select id="svLevelFilter" class="select">
+            <option value="all">Tous les niveaux (liste globale)</option>
+            <option value="">Niveau non attribué</option>
+            <option value="Postulant">Postulant</option>
+            <option value="Samuel">Samuel</option>
+            <option value="Tarcisius">Tarcisius</option>
+            <option value="Augustin">Augustin</option>
+          </select>
+          <button type="button" id="svAddBtn" class="btn btn-gold btn-sm">Ajouter un servant</button>
+          <button type="button" id="svPrintBtn" class="btn btn-outline btn-sm">Imprimer la liste</button>
+        </div>
+        <div class="gbulk" id="svBulkBar">
+          <span id="svSelCount">0 sélectionné</span>
+          <select id="svBulkLevel" class="select select-sm">
+            <option value="">Non attribué</option>
+            <option value="Postulant">Postulant</option>
+            <option value="Samuel">Samuel</option>
+            <option value="Tarcisius">Tarcisius</option>
+            <option value="Augustin">Augustin</option>
+          </select>
+          <button type="button" id="svBulkApply" class="btn btn-outline btn-sm">Attribuer ce niveau</button>
+          <button type="button" id="svBulkDelete" class="btn btn-outline btn-sm txt-danger">Supprimer la sélection</button>
+        </div>
+        <div class="table-wrap-g">
+          <table class="gtable">
+            <thead>
+              <tr>
+                <th class="w-check"><input type="checkbox" id="svCheckAll" aria-label="Tout sélectionner"></th>
+                <th class="w-num">N°</th>
+                <th>Nom &amp; Prénoms</th>
+                <th>Niveau</th>
+                <th class="hide-sm">Présence</th>
+                <th class="t-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="svTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ONGLET RESPONSABLES -->
+      <div class="gpanel" id="tabResponsables" hidden>
+        <div class="gtoolbar">
+          <p class="section-sub grow">Les responsables listés ici peuvent être choisis comme formateurs lors de la planification d'une séance.</p>
+          <button type="button" id="trAddBtn2" class="btn btn-gold btn-sm">Ajouter un responsable</button>
+        </div>
+        <div class="table-wrap-g">
+          <table class="gtable">
+            <thead>
+              <tr>
+                <th class="w-num">N°</th>
+                <th>Nom</th>
+                <th class="hide-sm">Rôle</th>
+                <th class="hide-sm">Téléphone</th>
+                <th>Séances</th>
+                <th class="t-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="trTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ONGLET APPEL -->
+      <div class="gpanel" id="tabAppel" hidden>
+        <div class="gtoolbar">
+          <select id="appelSession" class="select grow"></select>
+          <label class="inline-check"><input type="checkbox" id="appelAllLevels"> Tous les niveaux</label>
+        </div>
+        <div id="appelNotice" class="gnotice" hidden></div>
+        <div class="appel-stats" id="appelStats"></div>
+        <div class="gtoolbar">
+          <button type="button" id="appelAllP" class="btn btn-outline btn-sm">Tout le monde présent</button>
+          <button type="button" id="appelReset" class="btn btn-outline btn-sm">Réinitialiser</button>
+          <span class="grow"></span>
+          <button type="button" id="appelPrint" class="btn btn-outline btn-sm">Imprimer la liste d'appel</button>
+          <button type="button" id="appelSave" class="btn btn-gold btn-sm">Enregistrer l'appel</button>
+        </div>
+        <div id="appelList" class="appel-list"></div>
+      </div>
+    </section>
+
     <!-- ==================== CORPS DES FORMATEURS ==================== -->
     <section class="card-soft trainers-card">
       <div class="trainers-head">
@@ -452,6 +555,50 @@
         <div class="modal-foot">
           <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
           <button type="submit" class="btn btn-dark btn-sm">Ajouter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3b. SERVANT -->
+  <div class="modal" id="servantModal" role="dialog" aria-modal="true" aria-labelledby="servantModalLabel">
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h5 id="servantModalLabel">Servant</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <form id="servantForm">
+        <div class="modal-body">
+          <div class="field">
+            <label for="svNom" class="label">Nom et prénoms *</label>
+            <input type="text" id="svNom" class="input" required maxlength="80">
+          </div>
+          <div class="field">
+            <label for="svNiveau" class="label">Niveau</label>
+            <select id="svNiveau" class="select">
+              <option value="">Non attribué</option>
+              <option value="Postulant">Postulant</option>
+              <option value="Samuel">Samuel</option>
+              <option value="Tarcisius">Tarcisius</option>
+              <option value="Augustin">Augustin</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="svTel" class="label">Téléphone (parent)</label>
+            <input type="tel" id="svTel" class="input" maxlength="25">
+          </div>
+          <div class="field">
+            <label for="svNote" class="label">Remarque</label>
+            <input type="text" id="svNote" class="input" maxlength="200">
+          </div>
+          <div class="check-row">
+            <input type="checkbox" id="svActif" checked>
+            <label for="svActif">Servant actif (apparaît dans les listes d'appel)</label>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
+          <button type="submit" class="btn btn-dark btn-sm">Enregistrer</button>
         </div>
       </form>
     </div>

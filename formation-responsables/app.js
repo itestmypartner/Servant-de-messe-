@@ -134,6 +134,16 @@
   var adminPassword = '';
   var editingSessionId = null;
   var calendarSessionId = null;
+  var editingTrainerId = null;
+
+  // Servants & présences (réservé au responsable, jamais mis en cache local)
+  var servants = [];
+  var presences = {};
+  var membresLoaded = false;
+  var editingServantId = null;
+  var svSelection = {};
+  var appelDraft = {};
+  var activeTab = 'servants';
 
   // Éléments du DOM
   var scheduleBodyEl = document.getElementById('scheduleBody');
@@ -165,6 +175,7 @@
     setupEvents();
     setupViewToggle();
     setupBurger();
+    setupGestion();
     render();
     fetchRemoteData();
     registerServiceWorker();
@@ -283,6 +294,10 @@
     if (securityBtn) securityBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     if (addTrainerBtn) addTrainerBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     if (dupBtn) dupBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+    var gestion = document.getElementById('gestion-section');
+    if (gestion) gestion.style.display = isAdmin ? '' : 'none';
+    if (isAdmin && !membresLoaded) fetchMembres();
+    if (!isAdmin) { servants = []; presences = {}; membresLoaded = false; }
   }
 
   // ==================== NAVIGATION MOIS ====================
@@ -702,6 +717,7 @@
         '</div>';
     });
     trainersListContainer.innerHTML = html;
+    if (isAdmin) renderGestion();
   }
 
   // ==================== ÉVÉNEMENTS ====================
@@ -931,7 +947,7 @@
     var addTrainerBtn = document.getElementById('addTrainerBtn');
     if (addTrainerBtn) {
       addTrainerBtn.addEventListener('click', function () {
-        openModal(trainerModal);
+        openTrainerForm(null);
       });
     }
 
@@ -943,18 +959,22 @@
         var role = document.getElementById('trainerRole').value.trim();
         var tel = document.getElementById('trainerTel').value.trim();
         if (!name) return;
-        trainers.push({
-          id: 'tr_' + Date.now(),
-          name: name,
-          role: role || 'Formateur',
-          tel: tel || ''
-        });
+        var existing = editingTrainerId && trainers.find(function (t) { return t.id === editingTrainerId; });
+        if (existing) {
+          // Renommage : on met aussi à jour les séances qui citaient l'ancien nom
+          sessions.forEach(function (s) { if (s.trainer === existing.name) s.trainer = name; });
+          existing.name = name;
+          existing.role = role || 'Formateur';
+          existing.tel = tel || '';
+        } else {
+          trainers.push({ id: 'tr_' + Date.now(), name: name, role: role || 'Formateur', tel: tel || '' });
+        }
         saveAll();
         populateTrainerSelect();
-        renderTrainersList();
         closeModal(trainerModal);
         trainerForm.reset();
-        showToast('Formateur ajouté avec succès.');
+        render();
+        showToast(existing ? 'Responsable modifié.' : 'Responsable ajouté.');
       });
     }
 
@@ -1268,81 +1288,525 @@
   function printPresenceSheet(sessionId) {
     var s = sessions.find(function (item) { return item.id === sessionId; });
     if (!s) return;
+    var d = parseDateLocal(s.date);
+    var dateFull = capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+    var meta =
+      '<tr><td><strong>Niveau :</strong></td><td>' + escapeHtml(s.level) + '</td>' +
+          '<td><strong>Formateur :</strong></td><td>' + escapeHtml(s.trainer) + '</td></tr>' +
+      '<tr><td><strong>Thème :</strong></td><td colspan="3">' + escapeHtml(s.topic) + '</td></tr>' +
+      '<tr><td><strong>Lieu :</strong></td><td colspan="3">' + escapeHtml(s.location) + '</td></tr>';
 
+    function go() {
+      var allBox = document.getElementById('appelAllLevels');
+      var list = isAdmin ? getAppelServants(s, allBox && allBox.checked).list : [];
+      var record = presences[s.id] || {};
+      var rows = list.length ? list.map(function (sv, i) {
+        var st = record[sv.id];
+        return [i + 1, escapeHtml(sv.nom), escapeHtml(sv.niveau || '—'), st ? STATUT_LABELS[st] : '', ''];
+      }) : new Array(20).fill(0).map(function (_, i) { return [i + 1, '', '', '', '']; });
+      printDocument({
+        subtitle: 'Liste d\'appel — Fiche de présence',
+        date: dateFull + ' • ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime),
+        meta: meta,
+        cols: [['N°', 6], ['Nom & Prénoms', 44], ['Niveau', 14], ['Présence', 14], ['Observations', 22]],
+        rows: rows,
+        foot: '<div>Présents : ' + (list.length ? countStatus(record, list, 'P') + ' / ' + list.length : '________') + '</div>' +
+              '<div><strong>Visa du Formateur :</strong> ______________________</div>'
+      });
+    }
+    if (isAdmin && !membresLoaded) fetchMembres(go); else go();
+  }
+
+  function printDocument(opt) {
     var sheet = document.getElementById('printPresenceSheet');
     if (!sheet) return;
+    var head = opt.cols.map(function (c) { return '<th style="width:' + c[1] + '%;">' + escapeHtml(c[0]) + '</th>'; }).join('');
+    var body = opt.rows.map(function (r) {
+      return '<tr>' + r.map(function (cell, i) { return '<td' + (i === 0 ? ' class="pp-num"' : '') + '>' + cell + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    sheet.innerHTML =
+      '<div class="presence-doc">' +
+        '<div class="pp-head">' +
+          '<img src="logoservantdemesse.jpg" alt="Logo" class="print-header-logo">' +
+          '<div class="pp-head-text">' +
+            '<h2 class="pp-title font-cinzel">Paroisse Saint-Bernard d\'Adiopodoumé</h2>' +
+            '<p class="pp-sub">Groupe des Servants de Messe • ' + opt.subtitle + '</p>' +
+            '<p class="pp-date">' + opt.date + '</p>' +
+          '</div>' +
+          '<img src="logoeglise.jpeg" alt="Logo" class="print-header-logo">' +
+        '</div>' +
+        (opt.meta ? '<table class="presence-meta">' + opt.meta + '</table>' : '') +
+        '<table class="presence-table"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table>' +
+        '<div class="pp-foot">' + (opt.foot || '') + '</div>' +
+      '</div>';
+    document.body.classList.add('printing-presence');
+    window.print();
+    setTimeout(function () { document.body.classList.remove('printing-presence'); }, 2000);
+  }
 
-    var d = parseDateLocal(s.date);
-    var dateFull = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  // ==================== ESPACE GESTION : SERVANTS, RESPONSABLES, APPEL ====================
 
-    function buildSheet(children) {
-      var rows = '';
-      var list = children && children.length ? children : new Array(15).fill(null);
-      list.forEach(function (child, i) {
-        var name = child ? escapeHtml((child.nom || '') + ' ' + (child.prenom || '')) : '';
-        var age = child && child.age ? escapeHtml(String(child.age)) : '';
-        rows +=
-          '<tr>' +
-            '<td class="pp-num">' + (i + 1) + '</td>' +
-            '<td class="pp-name">' + name + '</td>' +
-            '<td class="pp-age">' + age + '</td>' +
-            '<td class="pp-check"></td>' +
-            '<td class="pp-obs"></td>' +
-          '</tr>';
+  var NIVEAUX = ['Postulant', 'Samuel', 'Tarcisius', 'Augustin'];
+  var STATUT_LABELS = { P: 'Présent', A: 'Absent', R: 'Retard', E: 'Excusé' };
+  var saveMembresTimer = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  function fetchMembres(cb) {
+    setMembresStatus('Chargement…');
+    fetch(API_BASE + '/api/formations/membres', { headers: apiHeaders() })
+      .then(function (res) {
+        if (res.status === 401) throw new Error('auth');
+        if (!res.ok) throw new Error('http');
+        return res.json();
+      })
+      .then(function (data) {
+        servants = Array.isArray(data.servants) ? data.servants : [];
+        presences = data.presences && typeof data.presences === 'object' ? data.presences : {};
+        membresLoaded = true;
+        setMembresStatus('Synchronisé');
+        renderGestion();
+        if (cb) cb();
+      })
+      .catch(function (err) {
+        setMembresStatus(err.message === 'auth' ? 'Session expirée' : 'Serveur injoignable', true);
+        if (cb) cb();
       });
+  }
 
-      sheet.innerHTML =
-        '<div class="presence-doc">' +
-          '<div class="pp-head">' +
-            '<img src="logoservantdemesse.jpg" alt="Logo" class="print-header-logo">' +
-            '<div class="pp-head-text">' +
-              '<h2 class="pp-title font-cinzel">Paroisse Saint-Bernard d\'Adiopodoumé</h2>' +
-              '<p class="pp-sub">Groupe des Servants de Messe • Fiche de Présence</p>' +
-              '<p class="pp-date">' + capitalizeFirst(dateFull) + ' • ' + escapeHtml(s.startTime) + ' - ' + escapeHtml(s.endTime) + '</p>' +
-            '</div>' +
-            '<img src="logoeglise.jpeg" alt="Logo" class="print-header-logo">' +
-          '</div>' +
-          '<table class="presence-meta">' +
-            '<tr><td><strong>Niveau :</strong></td><td>' + escapeHtml(s.level) + '</td>' +
-                '<td><strong>Formateur :</strong></td><td>' + escapeHtml(s.trainer) + '</td></tr>' +
-            '<tr><td><strong>Thème :</strong></td><td colspan="3">' + escapeHtml(s.topic) + '</td></tr>' +
-            '<tr><td><strong>Lieu :</strong></td><td colspan="3">' + escapeHtml(s.location) + '</td></tr>' +
-          '</table>' +
-          '<table class="presence-table">' +
-            '<thead><tr>' +
-              '<th style="width:6%;">N°</th>' +
-              '<th style="width:44%;">Nom &amp; Prénoms</th>' +
-              '<th style="width:10%;">Âge</th>' +
-              '<th style="width:14%;">Présent</th>' +
-              '<th style="width:26%;">Observations</th>' +
-            '</tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-          '</table>' +
-          '<div class="pp-foot">' +
-            '<div>Présents : ________ / ' + list.length + '</div>' +
-            '<div><strong>Visa du Formateur :</strong> ______________________</div>' +
-          '</div>' +
-        '</div>';
-
-      document.body.classList.add('printing-presence');
-      window.print();
-      setTimeout(function () { document.body.classList.remove('printing-presence'); }, 2000);
-    }
-
-    if (adminPassword) {
-      fetch(API_BASE + '/api/inscriptions', { headers: apiHeaders() })
-        .then(function (res) { return res.ok ? res.json() : null; })
-        .then(function (data) {
-          var children = (data && Array.isArray(data.inscriptions)) ? data.inscriptions.slice() : [];
-          children.sort(function (a, b) {
-            return String(a.nom || '').localeCompare(String(b.nom || ''), 'fr');
-          });
-          buildSheet(children);
+  function saveMembres() {
+    if (!adminPassword || !membresLoaded) return;
+    setMembresStatus('Enregistrement…');
+    clearTimeout(saveMembresTimer);
+    // Regroupe les modifications rapprochées en une seule écriture
+    saveMembresTimer = setTimeout(function () {
+      fetch(API_BASE + '/api/formations/membres', {
+        method: 'PUT',
+        headers: apiHeaders(),
+        body: JSON.stringify({ servants: servants, presences: presences })
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          setMembresStatus('Synchronisé');
         })
-        .catch(function () { buildSheet([]); });
-    } else {
-      buildSheet([]);
+        .catch(function () {
+          setMembresStatus('Échec de l\'enregistrement — réessayez', true);
+          showToast('Impossible d\'enregistrer sur le serveur.');
+        });
+    }, 700);
+  }
+
+  function setMembresStatus(txt, isError) {
+    var el = $('membresStatus');
+    if (!el) return;
+    el.textContent = txt;
+    el.classList.toggle('is-error', !!isError);
+  }
+
+  function attendanceRate(servantId) {
+    var total = 0, ok = 0;
+    Object.keys(presences).forEach(function (sid) {
+      var st = presences[sid][servantId];
+      if (!st) return;
+      total++;
+      if (st === 'P' || st === 'R') ok++;
+    });
+    return total ? { pct: Math.round(ok * 100 / total), total: total } : null;
+  }
+
+  function countStatus(record, list, st) {
+    return list.filter(function (sv) { return record[sv.id] === st; }).length;
+  }
+
+  function sortByName(a, b) { return a.nom.localeCompare(b.nom, 'fr'); }
+
+  function setupGestion() {
+    var section = $('gestion-section');
+    if (!section) return;
+
+    section.querySelectorAll('.gtab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        activeTab = tab.getAttribute('data-tab');
+        section.querySelectorAll('.gtab').forEach(function (t) { t.classList.toggle('active', t === tab); });
+        $('tabServants').hidden = activeTab !== 'servants';
+        $('tabResponsables').hidden = activeTab !== 'responsables';
+        $('tabAppel').hidden = activeTab !== 'appel';
+        renderGestion();
+      });
+    });
+
+    // --- Servants ---
+    $('svSearch').addEventListener('input', renderServants);
+    $('svLevelFilter').addEventListener('change', function () { svSelection = {}; renderServants(); renderSummary(); });
+    $('svAddBtn').addEventListener('click', function () { openServantForm(null); });
+    $('svPrintBtn').addEventListener('click', printServantList);
+
+    $('svCheckAll').addEventListener('change', function () {
+      var on = this.checked;
+      svSelection = {};
+      if (on) getVisibleServants().forEach(function (sv) { svSelection[sv.id] = true; });
+      renderServants();
+    });
+
+    $('svBulkApply').addEventListener('click', function () {
+      var ids = Object.keys(svSelection);
+      if (!ids.length) return;
+      var lvl = $('svBulkLevel').value;
+      servants.forEach(function (sv) { if (svSelection[sv.id]) sv.niveau = lvl; });
+      svSelection = {};
+      saveMembres();
+      renderGestion();
+      showToast(ids.length + ' servant(s) : niveau « ' + (lvl || 'Non attribué') + ' ».');
+    });
+
+    $('svBulkDelete').addEventListener('click', function () {
+      var ids = Object.keys(svSelection);
+      if (!ids.length || !confirm('Supprimer définitivement ' + ids.length + ' servant(s) de la liste ?')) return;
+      servants = servants.filter(function (sv) { return !svSelection[sv.id]; });
+      svSelection = {};
+      saveMembres();
+      renderGestion();
+      showToast(ids.length + ' servant(s) supprimé(s).');
+    });
+
+    $('svTableBody').addEventListener('change', function (e) {
+      var id = e.target.getAttribute('data-id');
+      if (e.target.classList.contains('sv-check')) {
+        if (e.target.checked) svSelection[id] = true; else delete svSelection[id];
+        updateBulkBar();
+      } else if (e.target.classList.contains('sv-level')) {
+        var sv = servants.find(function (x) { return x.id === id; });
+        if (sv) { sv.niveau = e.target.value; saveMembres(); renderSummary(); }
+      }
+    });
+
+    $('svTableBody').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      if (btn.getAttribute('data-act') === 'edit') openServantForm(id);
+      if (btn.getAttribute('data-act') === 'del') {
+        var sv = servants.find(function (x) { return x.id === id; });
+        if (sv && confirm('Supprimer ' + sv.nom + ' de la liste ?')) {
+          servants = servants.filter(function (x) { return x.id !== id; });
+          delete svSelection[id];
+          saveMembres();
+          renderGestion();
+          showToast('Servant supprimé.');
+        }
+      }
+    });
+
+    $('svSummary').addEventListener('click', function (e) {
+      var pill = e.target.closest('[data-lvl]');
+      if (!pill) return;
+      $('svLevelFilter').value = pill.getAttribute('data-lvl');
+      svSelection = {};
+      renderServants();
+      renderSummary();
+    });
+
+    $('servantForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var nom = $('svNom').value.trim().replace(/\s+/g, ' ').toUpperCase();
+      if (!nom) return;
+      var data = {
+        nom: nom,
+        niveau: $('svNiveau').value,
+        tel: $('svTel').value.trim(),
+        note: $('svNote').value.trim(),
+        actif: $('svActif').checked
+      };
+      var sv = editingServantId && servants.find(function (x) { return x.id === editingServantId; });
+      if (sv) {
+        Object.assign(sv, data);
+      } else {
+        if (servants.some(function (x) { return x.nom === nom; }) && !confirm(nom + ' existe déjà. L\'ajouter quand même ?')) return;
+        servants.push(Object.assign({ id: 'sv_' + Date.now() }, data));
+      }
+      saveMembres();
+      closeModal($('servantModal'));
+      renderGestion();
+      showToast(sv ? 'Servant modifié.' : 'Servant ajouté.');
+    });
+
+    // --- Responsables ---
+    $('trAddBtn2').addEventListener('click', function () { openTrainerForm(null); });
+    $('trTableBody').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      if (btn.getAttribute('data-act') === 'edit') openTrainerForm(id);
+      if (btn.getAttribute('data-act') === 'del') {
+        var tr = trainers.find(function (t) { return t.id === id; });
+        if (!tr) return;
+        if (trainers.length <= 1) { alert('Il doit rester au moins un responsable.'); return; }
+        var used = sessions.filter(function (s) { return s.trainer === tr.name; }).length;
+        var msg = 'Supprimer ' + tr.name + ' des responsables ?' + (used ? '\n(' + used + ' séance(s) le citent comme formateur : elles seront conservées.)' : '');
+        if (!confirm(msg)) return;
+        trainers = trainers.filter(function (t) { return t.id !== id; });
+        saveAll();
+        populateTrainerSelect();
+        render();
+        showToast('Responsable supprimé.');
+      }
+    });
+
+    // --- Appel ---
+    $('appelSession').addEventListener('change', function () { appelDraft = {}; renderAppel(); });
+    $('appelAllLevels').addEventListener('change', renderAppel);
+    $('appelList').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-st]');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      var st = btn.getAttribute('data-st');
+      var s = currentAppelSession();
+      var current = Object.prototype.hasOwnProperty.call(appelDraft, id) ? appelDraft[id] : ((s && presences[s.id] || {})[id] || '');
+      appelDraft[id] = current === st ? '' : st;
+      renderAppel();
+    });
+    $('appelAllP').addEventListener('click', function () {
+      var s = currentAppelSession();
+      if (!s) return;
+      getAppelServants(s, $('appelAllLevels').checked).list.forEach(function (sv) { appelDraft[sv.id] = 'P'; });
+      renderAppel();
+    });
+    $('appelReset').addEventListener('click', function () {
+      var s = currentAppelSession();
+      if (!s || !confirm('Effacer l\'appel de cette séance ?')) return;
+      appelDraft = {};
+      delete presences[s.id];
+      saveMembres();
+      renderGestion();
+    });
+    $('appelSave').addEventListener('click', function () {
+      var s = currentAppelSession();
+      if (!s) return;
+      var record = Object.assign({}, presences[s.id] || {});
+      Object.keys(appelDraft).forEach(function (id) {
+        if (appelDraft[id]) record[id] = appelDraft[id]; else delete record[id];
+      });
+      presences[s.id] = record;
+      appelDraft = {};
+      saveMembres();
+      renderGestion();
+      showToast('Appel enregistré.');
+    });
+    $('appelPrint').addEventListener('click', function () {
+      var s = currentAppelSession();
+      if (s) printPresenceSheet(s.id);
+    });
+  }
+
+  function openServantForm(id) {
+    editingServantId = id;
+    var sv = id && servants.find(function (x) { return x.id === id; });
+    var filter = $('svLevelFilter').value;
+    $('servantModalLabel').textContent = sv ? 'Modifier le servant' : 'Ajouter un servant';
+    $('svNom').value = sv ? sv.nom : '';
+    $('svNiveau').value = sv ? (sv.niveau || '') : (filter === 'all' ? '' : filter);
+    $('svTel').value = sv ? (sv.tel || '') : '';
+    $('svNote').value = sv ? (sv.note || '') : '';
+    $('svActif').checked = sv ? sv.actif !== false : true;
+    openModal($('servantModal'));
+    $('svNom').focus();
+  }
+
+  function openTrainerForm(id) {
+    editingTrainerId = id;
+    var tr = id && trainers.find(function (t) { return t.id === id; });
+    $('trainerModalLabel').textContent = tr ? 'Modifier le responsable' : 'Ajouter un responsable';
+    $('trainerName').value = tr ? tr.name : '';
+    $('trainerRole').value = tr ? (tr.role || '') : 'Responsable';
+    $('trainerTel').value = tr ? (tr.tel || '') : '';
+    openModal(trainerModal);
+  }
+
+  function renderGestion() {
+    if (!$('gestion-section') || !isAdmin) return;
+    $('svCountBadge').textContent = servants.length;
+    $('trCountBadge').textContent = trainers.length;
+    renderSummary();
+    if (activeTab === 'servants') renderServants();
+    if (activeTab === 'responsables') renderResponsables();
+    if (activeTab === 'appel') { buildAppelSessionOptions(); renderAppel(); }
+  }
+
+  function renderSummary() {
+    var current = $('svLevelFilter').value;
+    var counts = { all: servants.length, '': 0 };
+    NIVEAUX.forEach(function (n) { counts[n] = 0; });
+    servants.forEach(function (sv) { counts[sv.niveau || ''] = (counts[sv.niveau || ''] || 0) + 1; });
+    var items = [['all', 'Tous']].concat(NIVEAUX.map(function (n) { return [n, n]; }), [['', 'Non attribué']]);
+    $('svSummary').innerHTML = items.map(function (it) {
+      return '<button type="button" class="lvl-pill' + (current === it[0] ? ' active' : '') + '" data-lvl="' + it[0] + '">' +
+        escapeHtml(it[1]) + ' <strong>' + counts[it[0]] + '</strong></button>';
+    }).join('');
+  }
+
+  function getVisibleServants() {
+    var q = $('svSearch').value.trim().toLowerCase();
+    var lvl = $('svLevelFilter').value;
+    return servants.filter(function (sv) {
+      if (lvl !== 'all' && (sv.niveau || '') !== lvl) return false;
+      return !q || sv.nom.toLowerCase().indexOf(q) !== -1;
+    }).sort(sortByName);
+  }
+
+  function renderServants() {
+    var body = $('svTableBody');
+    if (!membresLoaded) {
+      body.innerHTML = '<tr><td colspan="6" class="gempty">Chargement de la liste…</td></tr>';
+      return;
     }
+    var list = getVisibleServants();
+    if (!list.length) {
+      body.innerHTML = '<tr><td colspan="6" class="gempty">Aucun servant dans cette liste.</td></tr>';
+      updateBulkBar();
+      return;
+    }
+    body.innerHTML = list.map(function (sv, i) {
+      var rate = attendanceRate(sv.id);
+      var opts = '<option value="">Non attribué</option>' + NIVEAUX.map(function (n) {
+        return '<option value="' + n + '"' + (sv.niveau === n ? ' selected' : '') + '>' + n + '</option>';
+      }).join('');
+      return '<tr class="' + (sv.actif === false ? 'is-inactive' : '') + '">' +
+        '<td class="w-check"><input type="checkbox" class="sv-check" data-id="' + sv.id + '"' + (svSelection[sv.id] ? ' checked' : '') + ' aria-label="Sélectionner"></td>' +
+        '<td class="w-num">' + (i + 1) + '</td>' +
+        '<td><div class="g-name">' + escapeHtml(sv.nom) + (sv.actif === false ? ' <span class="g-tag">inactif</span>' : '') + '</div>' +
+          (sv.tel || sv.note ? '<div class="g-sub">' + escapeHtml([sv.tel, sv.note].filter(Boolean).join(' · ')) + '</div>' : '') + '</td>' +
+        '<td><select class="select select-sm sv-level" data-id="' + sv.id + '" aria-label="Niveau">' + opts + '</select></td>' +
+        '<td class="hide-sm">' + (rate ? '<span class="g-rate' + (rate.pct < 60 ? ' low' : '') + '">' + rate.pct + ' %</span> <span class="g-sub">(' + rate.total + ' appels)</span>' : '<span class="g-sub">—</span>') + '</td>' +
+        '<td class="t-right"><div class="g-acts">' +
+          '<button type="button" class="btn btn-outline btn-icon" data-act="edit" data-id="' + sv.id + '">Modifier</button>' +
+          '<button type="button" class="btn btn-outline btn-icon txt-danger" data-act="del" data-id="' + sv.id + '">Supprimer</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+    updateBulkBar();
+  }
+
+  function updateBulkBar() {
+    var n = Object.keys(svSelection).length;
+    $('svBulkBar').classList.toggle('show', n > 0);
+    $('svSelCount').textContent = n + (n > 1 ? ' sélectionnés' : ' sélectionné');
+    var visible = getVisibleServants();
+    $('svCheckAll').checked = visible.length > 0 && visible.every(function (sv) { return svSelection[sv.id]; });
+  }
+
+  function printServantList() {
+    var lvl = $('svLevelFilter').value;
+    var list = getVisibleServants();
+    var title = lvl === 'all' ? 'Liste globale des servants (tous niveaux)' : 'Liste des servants — ' + (lvl || 'Niveau non attribué');
+    printDocument({
+      subtitle: title,
+      date: list.length + ' servant(s) • ' + capitalizeFirst(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })),
+      cols: [['N°', 6], ['Nom & Prénoms', 46], ['Niveau', 18], ['Téléphone', 16], ['Présence', 14]],
+      rows: list.map(function (sv, i) {
+        var r = attendanceRate(sv.id);
+        return [i + 1, escapeHtml(sv.nom), escapeHtml(sv.niveau || '—'), escapeHtml(sv.tel || ''), r ? r.pct + ' %' : ''];
+      }),
+      foot: '<div>Responsable Formation : DJEBLE Haniel</div><div><strong>Visa :</strong> ______________________</div>'
+    });
+  }
+
+  function renderResponsables() {
+    $('trTableBody').innerHTML = trainers.map(function (tr, i) {
+      var count = sessions.filter(function (s) { return s.trainer === tr.name; }).length;
+      return '<tr>' +
+        '<td class="w-num">' + (i + 1) + '</td>' +
+        '<td><div class="g-name">' + escapeHtml(tr.name) + '</div></td>' +
+        '<td class="hide-sm">' + escapeHtml(tr.role || '') + '</td>' +
+        '<td class="hide-sm">' + escapeHtml(tr.tel || '—') + '</td>' +
+        '<td>' + count + '</td>' +
+        '<td class="t-right"><div class="g-acts">' +
+          '<button type="button" class="btn btn-outline btn-icon" data-act="edit" data-id="' + tr.id + '">Modifier</button>' +
+          '<button type="button" class="btn btn-outline btn-icon txt-danger" data-act="del" data-id="' + tr.id + '">Supprimer</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function buildAppelSessionOptions() {
+    var sel = $('appelSession');
+    var prev = sel.value;
+    var sorted = sessions.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    if (!sorted.length) {
+      sel.innerHTML = '<option value="">Aucune séance planifiée — ajoutez d\'abord une séance</option>';
+      return;
+    }
+    var today = toISODate(new Date());
+    sel.innerHTML = sorted.map(function (s) {
+      var d = parseDateLocal(s.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      var done = presences[s.id] && Object.keys(presences[s.id]).length ? ' (appel fait)' : '';
+      return '<option value="' + s.id + '">' + escapeHtml(capitalizeFirst(d) + ' — ' + s.level + ' — ' + s.topic + done) + '</option>';
+    }).join('');
+    if (prev && sorted.some(function (s) { return s.id === prev; })) {
+      sel.value = prev;
+    } else {
+      // Par défaut : la séance passée la plus récente (sinon la prochaine)
+      var past = sorted.find(function (s) { return s.date <= today; });
+      sel.value = (past || sorted[sorted.length - 1]).id;
+    }
+  }
+
+  function currentAppelSession() {
+    var id = $('appelSession').value;
+    return sessions.find(function (s) { return s.id === id; }) || null;
+  }
+
+  function getAppelServants(s, allLevels) {
+    var actifs = servants.filter(function (sv) { return sv.actif !== false; }).sort(sortByName);
+    if (allLevels || !s || NIVEAUX.indexOf(s.level) === -1) return { list: actifs, fallback: false };
+    var lvlList = actifs.filter(function (sv) { return sv.niveau === s.level; });
+    // Niveaux pas encore attribués : on affiche tout le monde
+    return lvlList.length ? { list: lvlList, fallback: false } : { list: actifs, fallback: true };
+  }
+
+  function renderAppel() {
+    var listEl = $('appelList');
+    var statsEl = $('appelStats');
+    var notice = $('appelNotice');
+    var s = currentAppelSession();
+    if (!s) {
+      listEl.innerHTML = '<p class="gempty">Planifiez une séance pour pouvoir faire l\'appel.</p>';
+      statsEl.innerHTML = '';
+      notice.hidden = true;
+      return;
+    }
+    if (!membresLoaded) { listEl.innerHTML = '<p class="gempty">Chargement…</p>'; return; }
+
+    var res = getAppelServants(s, $('appelAllLevels').checked);
+    notice.hidden = !res.fallback;
+    notice.textContent = 'Aucun servant n\'est encore attribué au niveau ' + s.level + ' : tous les servants actifs sont affichés. Attribuez les niveaux dans l\'onglet Servants.';
+
+    var saved = presences[s.id] || {};
+    var merged = {};
+    res.list.forEach(function (sv) {
+      merged[sv.id] = Object.prototype.hasOwnProperty.call(appelDraft, sv.id) ? appelDraft[sv.id] : (saved[sv.id] || '');
+    });
+    var c = { P: 0, A: 0, R: 0, E: 0, none: 0 };
+    res.list.forEach(function (sv) { c[merged[sv.id] || 'none']++; });
+    var dirty = Object.keys(appelDraft).length > 0;
+    statsEl.innerHTML =
+      '<span><strong>' + res.list.length + '</strong> appelés</span>' +
+      '<span><strong>' + c.P + '</strong> présents</span>' +
+      '<span><strong>' + c.A + '</strong> absents</span>' +
+      '<span><strong>' + c.R + '</strong> retards</span>' +
+      '<span><strong>' + c.E + '</strong> excusés</span>' +
+      '<span><strong>' + c.none + '</strong> non renseignés</span>' +
+      (dirty ? '<span class="st-dirty">Modifications non enregistrées</span>' : '');
+
+    listEl.innerHTML = res.list.length ? res.list.map(function (sv, i) {
+      var cur = merged[sv.id];
+      return '<div class="appel-row">' +
+        '<span class="appel-num">' + (i + 1) + '</span>' +
+        '<span class="appel-name">' + escapeHtml(sv.nom) + (sv.niveau ? ' <span class="g-sub">' + escapeHtml(sv.niveau) + '</span>' : '') + '</span>' +
+        '<span class="appel-btns">' + ['P', 'A', 'R', 'E'].map(function (st) {
+          return '<button type="button" class="st-btn st-' + st + (cur === st ? ' on' : '') + '" data-st="' + st + '" data-id="' + sv.id + '">' + STATUT_LABELS[st] + '</button>';
+        }).join('') + '</span>' +
+      '</div>';
+    }).join('') : '<p class="gempty">Aucun servant actif. Ajoutez des servants dans l\'onglet Servants.</p>';
   }
 
   // ==================== PROGRAMME DES NIVEAUX ====================

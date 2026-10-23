@@ -6,6 +6,72 @@
       "name": "DJEBLE Haniel",
       "role": "Responsable Chargé de la Formation",
       "tel": "+225 01 50 25 24 67"
+    },
+    {
+      "id": "tr_r01",
+      "name": "ODI ANSELME",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r02",
+      "name": "IREMINKE KOPLE",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r03",
+      "name": "DAN DAVID AXEL",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r04",
+      "name": "SIEZA ALAIN",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r05",
+      "name": "GUEYE CHANCEL",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r06",
+      "name": "OWEL FRANCK",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r07",
+      "name": "DIÉBLÉ HENOC",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r08",
+      "name": "CHATIGRE EMMANUEL",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r09",
+      "name": "DAFFOU DAVID",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r10",
+      "name": "DION DONESSE",
+      "role": "Responsable",
+      "tel": ""
+    },
+    {
+      "id": "tr_r11",
+      "name": "KONIN ARISTIDE",
+      "role": "Responsable",
+      "tel": ""
     }
   ]
 }
