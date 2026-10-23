@@ -202,6 +202,7 @@
     render();
     fetchRemoteData();
     registerServiceWorker();
+    loadAnnonce();
   }
 
   // ==================== DONNÉES : LOCAL + SERVEUR ====================
@@ -251,6 +252,62 @@
 
   var pendingSessionDeletes = [];
 
+  // Annonce officielle affichée à tous les visiteurs
+  function loadAnnonce() {
+    var b = $('annonceBanner');
+    if (!b || !FB.getDoc) return;
+    FB.getDoc('config', 'annonce').then(function (d) {
+      if (d && d.active && d.text) {
+        $('annonceText').textContent = d.text;
+        b.hidden = false;
+      } else {
+        b.hidden = true;
+      }
+    }).catch(function () {});
+  }
+
+  // ==================== ÉCRITURES HORS-LIGNE ====================
+  // Les écritures échouées sont mises en file et rejouées au retour du réseau.
+  var WRITE_Q_KEY = 'smsb_write_queue';
+
+  function queueWrites(ops) {
+    try {
+      var q = JSON.parse(localStorage.getItem(WRITE_Q_KEY) || '[]');
+      ops.forEach(function (op) {
+        q = q.filter(function (x) { return !(x.col === op.col && x.id === op.id); });
+        q.push(op);
+      });
+      localStorage.setItem(WRITE_Q_KEY, JSON.stringify(q));
+    } catch (e) {}
+  }
+
+  function flushWriteQueue() {
+    var q;
+    try { q = JSON.parse(localStorage.getItem(WRITE_Q_KEY) || '[]'); } catch (e) { q = []; }
+    if (!q.length || !isAdmin || navigator.onLine === false) return;
+    localStorage.setItem(WRITE_Q_KEY, '[]');
+    var replayed = 0;
+    q.forEach(function (w) {
+      var p = w.del ? FB.del(w.col, w.id) : FB.put(w.col, w.id, w.data);
+      replayed++;
+      p.catch(function () { queueWrites([w]); });
+    });
+    showToast(replayed + ' modification(s) synchronisée(s).');
+  }
+  window.addEventListener('online', flushWriteQueue);
+
+  // Écriture tolérante au réseau : essaie Firestore, sinon met en file
+  function fbWrite(col, id, data) {
+    if (navigator.onLine === false) {
+      queueWrites([{ col: col, id: id, data: data }]);
+      return Promise.resolve();
+    }
+    return FB.put(col, id, data).catch(function () {
+      queueWrites([{ col: col, id: id, data: data }]);
+      showToast('Hors connexion — enregistré, synchronisé au retour du réseau.');
+    });
+  }
+
   function saveAll() {
     saveLocal();
     if (!isAdmin) return;
@@ -261,15 +318,15 @@
     FB.batch(ops)
       .then(function () { pendingSessionDeletes = []; })
       .catch(function () {
-        showToast('Enregistré en local — synchronisation Firebase impossible.');
+        queueWrites(ops);
+        pendingSessionDeletes = [];
+        showToast('Enregistré en local — synchronisé au retour du réseau.');
       });
   }
 
   function persistTrainer(t) {
     if (!isAdmin) return;
-    FB.put('trainers', t.id, t).catch(function () {
-      showToast('Responsable enregistré en local — synchronisation impossible.');
-    });
+    fbWrite('trainers', t.id, t).catch(function () {});
   }
 
   // ==================== AUTHENTIFICATION FIREBASE ====================
@@ -322,6 +379,7 @@
     var gestion = document.getElementById('gestion-section');
     if (gestion) gestion.style.display = isAdmin ? '' : 'none';
     if (isAdmin && !membresLoaded) { fetchMembres(); fetchServices(); }
+    if (isAdmin) flushWriteQueue();
     if (!isAdmin) { servants = []; presences = {}; membresLoaded = false; }
   }
 
@@ -1469,12 +1527,12 @@
     showToast('Enregistrement impossible (connexion).');
   }
 
-  function saveServant(sv) { markSaving(); FB.put('servants', sv.id, sv).then(markSaved).catch(markFail); }
+  function saveServant(sv) { markSaving(); fbWrite('servants', sv.id, sv).then(markSaved).catch(markFail); }
   function delServant(id) { markSaving(); FB.del('servants', id).then(markSaved).catch(markFail); }
   function delTrainer(id) { FB.del('trainers', id).catch(function () {}); }
   function savePresences(sessionId) {
     markSaving();
-    FB.put('presences', sessionId, { id: sessionId, records: presences[sessionId] || {} })
+    fbWrite('presences', sessionId, { id: sessionId, records: presences[sessionId] || {} })
       .then(markSaved).catch(markFail);
   }
   function delPresences(sessionId) { FB.del('presences', sessionId).catch(markFail); }
@@ -1530,6 +1588,24 @@
     $('svLevelFilter').addEventListener('change', function () { svSelection = {}; renderServants(); renderSummary(); });
     $('svAddBtn').addEventListener('click', function () { openServantForm(null); });
     $('svPrintBtn').addEventListener('click', printServantList);
+
+    // Annonce officielle : publier / retirer (visible par tous les visiteurs)
+    if ($('annonceBtn')) {
+      $('annonceBtn').addEventListener('click', function () {
+        FB.getDoc('config', 'annonce').then(function (d) {
+          if (d && d.active && d.text) {
+            if (confirm('Retirer l\'annonce en cours ?\n« ' + d.text + ' »')) {
+              fbWrite('config', 'annonce', { text: '', active: false }).then(loadAnnonce);
+            }
+          } else {
+            var t = prompt('Texte de l\'annonce affichée à tous les visiteurs (ex. « Formation annulée ce samedi ») :');
+            if (t && t.trim()) {
+              fbWrite('config', 'annonce', { text: t.trim().slice(0, 300), active: true, date: toISODate(new Date()) }).then(loadAnnonce);
+            }
+          }
+        }).catch(function () { showToast('Connexion requise.'); });
+      });
+    }
 
     // Sauvegarde complète : télécharge toutes les données en JSON
     if ($('backupBtn')) {
@@ -1808,6 +1884,7 @@
     if (!$('gestion-section') || !isAdmin) return;
     $('svCountBadge').textContent = servants.length;
     $('trCountBadge').textContent = trainers.length;
+    renderDashboard();
     renderAlertes();
     renderSummary();
     if (activeTab === 'servants') renderServants();
@@ -1815,6 +1892,37 @@
     if (activeTab === 'appel') { buildAppelSessionOptions(); renderAppel(); }
     if (activeTab === 'services') renderServices();
     if (activeTab === 'stats') renderStats();
+  }
+
+  // Tableau de bord : chiffres clés du mois en cours
+  function renderDashboard() {
+    var box = $('dashBoard');
+    if (!box) return;
+    var today = new Date();
+    var ym = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+    var nbSeances = sessions.filter(function (s) { return (s.date || '').indexOf(ym) === 0; }).length;
+    var nbAppels = sessions.filter(function (s) { return (s.date || '').indexOf(ym) === 0 && presences[s.id]; }).length;
+    var p = 0, total = 0;
+    Object.keys(presences).forEach(function (sid) {
+      var rec = presences[sid] || {};
+      Object.keys(rec).forEach(function (sv) {
+        if (rec[sv] === 'P' || rec[sv] === 'R') p++;
+        if (rec[sv] !== 'E') total++;
+      });
+    });
+    var taux = total ? Math.round(p * 100 / total) : null;
+    var nbServices = services.filter(function (s) { return s.date >= toISODate(today); }).length;
+    var sansNiv = servants.filter(function (sv) { return sv.actif !== false && !sv.niveau; }).length;
+    var items = [
+      [nbSeances, 'séances ce mois'],
+      [nbAppels, 'appels faits'],
+      [taux !== null ? taux + ' %' : '—', 'assiduité moyenne'],
+      [nbServices, 'services à venir'],
+      [sansNiv, 'sans niveau']
+    ];
+    box.innerHTML = items.map(function (it) {
+      return '<div class="stat-mini"><strong>' + it[0] + '</strong><span>' + it[1] + '</span></div>';
+    }).join('');
   }
 
   // Alertes intelligentes : absences répétées, niveaux manquants, services sans attribution
@@ -2274,7 +2382,7 @@
           svc = Object.assign({ id: 'svc_' + Date.now(), assignments: {} }, data);
           services.push(svc);
         }
-        FB.put('services', svc.id, svc).catch(function () { showToast('Enregistrement impossible (connexion).'); });
+        fbWrite('services', svc.id, svc);
         closeModal($('serviceModal'));
         renderServices();
         showToast(editingServiceId ? 'Service modifié.' : 'Service planifié.');
@@ -2302,7 +2410,7 @@
                 var svc = { id: 'svc_' + Date.now() + '_' + created, date: iso, heure: h, type: 'Messe dominicale', intitule: '', assignments: {} };
                 services.push(svc);
                 created++;
-                FB.put('services', svc.id, svc).catch(function () {});
+                fbWrite('services', svc.id, svc);
               }
             });
           }
@@ -2411,7 +2519,7 @@
           if (sel && sel.value) svc.assignments[p] = sel.value;
           else delete svc.assignments[p];
         });
-        FB.put('services', svc.id, svc).catch(function () { showToast('Enregistrement impossible (connexion).'); });
+        fbWrite('services', svc.id, svc);
         closeModal($('assignModal'));
         renderServices();
         showToast('Attributions enregistrées.');

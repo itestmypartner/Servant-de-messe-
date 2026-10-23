@@ -100,6 +100,12 @@
       </div>
     </section>
 
+    <!-- ==================== ANNONCE OFFICIELLE ==================== -->
+    <div id="annonceBanner" class="annonce-banner" hidden>
+      <span class="annonce-ico">📢</span>
+      <span id="annonceText" class="annonce-text"></span>
+    </div>
+
     <!-- ==================== PROCHAINE SÉANCE ==================== -->
     <div id="nextSessionCard" class="next-card-slot" style="display:none;"></div>
 
@@ -380,10 +386,12 @@
         <span id="membresStatus" class="sync-status"></span>
         <div class="gestion-actions">
           <button id="addSessionBtn" class="btn btn-gold btn-sm" type="button" style="display:none;" title="Programmer une formation">Nouvelle séance</button>
+          <button id="annonceBtn" class="btn btn-outline btn-sm" type="button" title="Publier ou retirer une annonce visible par tous">📢 Annoncer</button>
           <button id="securityBtn" class="btn btn-outline btn-sm" type="button" style="display:none;" title="Changer le mot de passe responsable">Sécurité</button>
           <button type="button" id="backupBtn" class="btn btn-outline btn-sm" title="Télécharger une sauvegarde de toutes les données">Sauvegarde</button>
         </div>
       </div>
+      <div id="dashBoard" class="stats-mini"></div>
       <div id="alertes" class="alertes"></div>
 
       <div class="gtabs" role="tablist">
