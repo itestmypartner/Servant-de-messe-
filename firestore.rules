@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Actualités : lecture publique, écriture responsables
+    match /news/{id} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    // Planning des formations : lecture publique (les visiteurs voient les samedis)
+    match /sessions/{id} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    // Responsables / formateurs : noms publics (figurant sur le planning et les impressions)
+    match /trainers/{id} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    // Services de messe : programme public, gestion réservée aux responsables
+    match /services/{id} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    // Liste des servants : DONNÉES DE MINEURS — responsables connectés uniquement
+    match /servants/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // Appel du samedi : responsables uniquement
+    match /presences/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // Inscriptions au groupe : tout le monde peut s'inscrire (création uniquement,
+    // champs validés), lecture/gestion réservées aux responsables
+    match /inscriptions/{id} {
+      allow create: if request.resource.data.keys()
+        .hasOnly(['id', 'nom', 'prenom', 'age', 'tel', 'description', 'date', 'createdAt'])
+        && request.resource.data.nom is string
+        && request.resource.data.nom.size() <= 80
+        && request.resource.data.prenom is string
+        && request.resource.data.prenom.size() <= 80
+        && request.resource.data.age is int
+        && request.resource.data.age >= 5
+        && request.resource.data.age <= 30
+        && request.resource.data.tel is string
+        && request.resource.data.tel.size() <= 20;
+      allow read, update, delete: if signedIn();
+    }
+
+    // Caisse (trésorier) : responsables uniquement
+    match /expenses/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // Configuration (postes de messe, drapeau de seed…) : responsables uniquement
+    match /config/{id} {
+      allow read, write: if signedIn();
+    }
+  }
+}

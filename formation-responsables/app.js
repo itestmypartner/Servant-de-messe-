@@ -14,17 +14,7 @@
 
   var STORAGE_KEY_SESSIONS = 'formation_bootstrap_sessions_v1';
   var STORAGE_KEY_TRAINERS = 'formation_bootstrap_trainers_v1';
-  var STORAGE_KEY_PWD = 'formation_admin_pwd';
   var STORAGE_KEY_VIEW = 'formation_view_mode';
-
-  // API : même origine quand la page est servie par le serveur Render,
-  // URL absolue sinon (GitHub Pages, ouverture locale du fichier, etc.)
-  var API_BASE = (function () {
-    if (window.FORMATIONS_API_BASE) return window.FORMATIONS_API_BASE;
-    var h = location.hostname || '';
-    if (h.endsWith('onrender.com') || h === 'localhost' || h === '127.0.0.1') return '';
-    return 'https://servant-de-messe-4651.onrender.com';
-  })();
 
   var MONTH_NAMES = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -163,7 +153,6 @@
   var activeLevelFilter = 'all';
   var viewMode = 'list';
   var isAdmin = false;
-  var adminPassword = '';
   var editingSessionId = null;
   var calendarSessionId = null;
   var editingTrainerId = null;
@@ -193,7 +182,7 @@
   var sessionModal = document.getElementById('sessionModal');
   var trainerModal = document.getElementById('trainerModal');
   var whatsappModal = document.getElementById('whatsappModal');
-  var pwdModal = document.getElementById('pwdModal');
+
   var calendarModal = document.getElementById('calendarModal');
   var levelModal = document.getElementById('levelModal');
   var whatsappPreview = document.getElementById('whatsappPreview');
@@ -208,6 +197,7 @@
     setupViewToggle();
     setupBurger();
     setupGestion();
+    setupServices();
     render();
     fetchRemoteData();
     registerServiceWorker();
@@ -232,33 +222,19 @@
   }
 
   function fetchRemoteData() {
-    fetch(API_BASE + '/api/formations')
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
+    FB.get('sessions')
       .then(function (data) {
-        if (!data || !Array.isArray(data.sessions)) return;
-        // Migration douce : si le serveur est vide mais que le navigateur
-        // contient des séances (ancienne version), on les garde.
-        if (data.sessions.length === 0 && sessions.length > 0) {
-          if (Array.isArray(data.trainers) && data.trainers.length) {
-            trainers = data.trainers;
-          }
-          populateTrainerSelect();
-          render();
-          return;
-        }
-        sessions = data.sessions;
-        if (Array.isArray(data.trainers) && data.trainers.length) {
-          trainers = data.trainers;
-        }
+        sessions = data.filter(function (s) { return s && s.date; });
+        return FB.get('trainers');
+      })
+      .then(function (tr) {
+        if (tr.length) trainers = tr;
         saveLocal();
         populateTrainerSelect();
         render();
       })
       .catch(function () {
-        // Hors-ligne ou serveur indisponible : cache local + responsables de secours
+        // Hors-ligne : cache local + responsables de secours
         if (trainers.length <= 1) {
           trainers = seedResponsables();
           populateTrainerSelect();
@@ -272,47 +248,58 @@
     localStorage.setItem(STORAGE_KEY_TRAINERS, JSON.stringify(trainers));
   }
 
+  var pendingSessionDeletes = [];
+
   function saveAll() {
     saveLocal();
-    if (!adminPassword) return;
-    fetch(API_BASE + '/api/formations', {
-      method: 'PUT',
-      headers: apiHeaders(),
-      body: JSON.stringify({ sessions: sessions, trainers: trainers })
-    })
-      .then(function (res) {
-        if (res.status === 401) {
-          logoutAdmin();
-          showToast('Session responsable expirée. Reconnectez-vous pour synchroniser.');
-          return;
-        }
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-      })
+    if (!isAdmin) return;
+    var ops = sessions.map(function (s) { return { col: 'sessions', id: s.id, data: s }; });
+    pendingSessionDeletes.forEach(function (id) {
+      ops.push({ col: 'sessions', id: id, del: true });
+    });
+    FB.batch(ops)
+      .then(function () { pendingSessionDeletes = []; })
       .catch(function () {
-        showToast('Sauvegardé en local uniquement — synchronisation serveur impossible.');
+        showToast('Enregistré en local — synchronisation Firebase impossible.');
       });
   }
 
-  function apiHeaders() {
-    var h = { 'Content-Type': 'application/json' };
-    if (adminPassword) h['x-admin-password'] = adminPassword;
-    return h;
+  function persistTrainer(t) {
+    if (!isAdmin) return;
+    FB.put('trainers', t.id, t).catch(function () {
+      showToast('Responsable enregistré en local — synchronisation impossible.');
+    });
   }
 
-  // ==================== AUTHENTIFICATION ====================
+  // ==================== AUTHENTIFICATION FIREBASE ====================
 
   function checkAuth() {
-    adminPassword = sessionStorage.getItem(STORAGE_KEY_PWD) || '';
-    isAdmin = !!adminPassword;
-    updateAdminUI();
+    FB.onAuth(function (user) {
+      isAdmin = !!user;
+      updateAdminUI();
+      render();
+      if (isAdmin) seedIfEmpty();
+    });
   }
 
   function logoutAdmin() {
-    sessionStorage.removeItem(STORAGE_KEY_PWD);
-    adminPassword = '';
-    isAdmin = false;
-    updateAdminUI();
-    render();
+    FB.signOut().catch(function () {});
+  }
+
+  // Premier démarrage : importe les listes officielles si Firestore est vide
+  function seedIfEmpty() {
+    FB.getDoc('config', 'seeded').then(function (doc) {
+      if (doc && doc.done) return;
+      var ops = seedServants().map(function (sv) { return { col: 'servants', id: sv.id, data: sv }; })
+        .concat(seedResponsables().map(function (t) { return { col: 'trainers', id: t.id, data: t }; }))
+        .concat([{ col: 'config', id: 'postes', data: { id: 'postes', list: DEFAULT_POSTES } },
+                 { col: 'config', id: 'seeded', data: { done: true, at: new Date().toISOString() } }]);
+      return FB.batch(ops).then(function () {
+        showToast('Listes officielles importées dans Firebase.');
+        fetchRemoteData();
+        fetchMembres();
+      });
+    }).catch(function () {});
   }
 
   function updateAdminUI() {
@@ -333,7 +320,7 @@
     if (dupBtn) dupBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     var gestion = document.getElementById('gestion-section');
     if (gestion) gestion.style.display = isAdmin ? '' : 'none';
-    if (isAdmin && !membresLoaded) fetchMembres();
+    if (isAdmin && !membresLoaded) { fetchMembres(); fetchServices(); }
     if (!isAdmin) { servants = []; presences = {}; membresLoaded = false; }
   }
 
@@ -854,8 +841,8 @@
           }
         } else {
           openModal(adminModal);
-          var pwd = document.getElementById('adminPassword');
-          if (pwd) { pwd.value = ''; pwd.focus(); }
+          var emailField = document.getElementById('adminEmail');
+          if (emailField) { emailField.focus(); }
         }
       });
     }
@@ -864,34 +851,19 @@
     if (adminLoginForm) {
       adminLoginForm.addEventListener('submit', function (e) {
         e.preventDefault();
+        var email = document.getElementById('adminEmail').value.trim();
         var pwd = document.getElementById('adminPassword').value;
+        if (!email || !pwd) return;
         var submitBtn = adminLoginForm.querySelector('button[type="submit"]');
         if (submitBtn) submitBtn.disabled = true;
 
-        fetch(API_BASE + '/api/admin/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pwd })
-        })
-          .then(function (res) {
-            if (!res.ok) throw new Error('bad_password');
-            return res.json();
-          })
+        FB.signIn(email, pwd)
           .then(function () {
-            sessionStorage.setItem(STORAGE_KEY_PWD, pwd);
-            adminPassword = pwd;
-            isAdmin = true;
             closeModal(adminModal);
-            updateAdminUI();
-            fetchRemoteData();
-            showToast('Bienvenue DJEBLE Haniel. Mode Responsable actif.');
+            showToast('Connexion réussie. Mode Responsable actif.');
           })
-          .catch(function (err) {
-            if (err.message === 'bad_password') {
-              alert('Mot de passe incorrect.');
-            } else {
-              alert('Impossible de vérifier le mot de passe (serveur injoignable). Réessayez.');
-            }
+          .catch(function () {
+            alert('Identifiants incorrects ou compte inexistant.');
           })
           .finally(function () {
             if (submitBtn) submitBtn.disabled = false;
@@ -899,49 +871,28 @@
       });
     }
 
-    // Changement de mot de passe
-    var securityBtn = document.getElementById('securityBtn');
-    if (securityBtn) {
-      securityBtn.addEventListener('click', function () {
-        var form = document.getElementById('pwdForm');
-        if (form) form.reset();
-        openModal(pwdModal);
+    var forgotPwdLink = document.getElementById('forgotPwdLink');
+    if (forgotPwdLink) {
+      forgotPwdLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        var email = document.getElementById('adminEmail').value.trim();
+        if (!email) { alert('Saisissez votre email puis cliquez sur « Mot de passe oublié ».'); return; }
+        FB.resetPassword(email)
+          .then(function () { alert('Email de réinitialisation envoyé à ' + email + '.'); })
+          .catch(function () { alert('Envoi impossible. Vérifiez l\'adresse email.'); });
       });
     }
 
-    var pwdForm = document.getElementById('pwdForm');
-    if (pwdForm) {
-      pwdForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var current = document.getElementById('pwdCurrent').value;
-        var next = document.getElementById('pwdNew').value;
-        var confirmPwd = document.getElementById('pwdConfirm').value;
-        if (next !== confirmPwd) {
-          alert('La confirmation ne correspond pas au nouveau mot de passe.');
-          return;
-        }
-        fetch(API_BASE + '/api/admin/change-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ currentPassword: current, newPassword: next })
-        })
-          .then(function (res) {
-            return res.json().then(function (data) { return { ok: res.ok, data: data }; });
-          })
-          .then(function (r) {
-            if (!r.ok) {
-              alert(r.data && r.data.error ? r.data.error : 'Échec du changement de mot de passe.');
-              return;
-            }
-            sessionStorage.setItem(STORAGE_KEY_PWD, next);
-            adminPassword = next;
-            closeModal(pwdModal);
-            pwdForm.reset();
-            showToast('Mot de passe modifié avec succès.');
-          })
-          .catch(function () {
-            alert('Serveur injoignable. Réessayez plus tard.');
-          });
+    // Sécurité : lien de réinitialisation par email (Firebase gère les mots de passe)
+    var securityBtn = document.getElementById('securityBtn');
+    if (securityBtn) {
+      securityBtn.addEventListener('click', function () {
+        var u = FB.currentUser();
+        if (!u || !u.email) return;
+        if (!confirm('Envoyer un email de changement de mot de passe à ' + u.email + ' ?')) return;
+        FB.resetPassword(u.email)
+          .then(function () { showToast('Email de réinitialisation envoyé.'); })
+          .catch(function () { showToast('Envoi impossible. Réessayez.'); });
       });
     }
 
@@ -958,8 +909,8 @@
       adminQuickBtn.addEventListener('click', function () {
         if (!isAdmin) {
           openModal(adminModal);
-          var pwd = document.getElementById('adminPassword');
-          if (pwd) { pwd.value = ''; pwd.focus(); }
+          var emailField = document.getElementById('adminEmail');
+          if (emailField) { emailField.focus(); }
         } else {
           openSessionForm(null);
         }
@@ -1006,7 +957,9 @@
         } else {
           trainers.push({ id: 'tr_' + Date.now(), name: name, role: role || 'Formateur', tel: tel || '' });
         }
-        saveAll();
+        var savedTrainer = trainers.find(function (t) { return t.id === (existing ? editingTrainerId : trainers[trainers.length - 1].id); });
+        if (savedTrainer) persistTrainer(savedTrainer);
+        if (sessions.some(function (s) { return s.trainer === name; })) saveAll(); else saveLocal();
         populateTrainerSelect();
         closeModal(trainerModal);
         trainerForm.reset();
@@ -1174,6 +1127,7 @@
 
   function deleteSession(id) {
     if (!confirm('Supprimer cette formation de l\'emploi du temps ?')) return;
+    pendingSessionDeletes.push(id);
     sessions = sessions.filter(function (s) { return s.id !== id; });
     saveAll();
     render();
@@ -1385,62 +1339,69 @@
 
   var NIVEAUX = ['Postulant', 'Samuel', 'Tarcisius', 'Augustin'];
   var STATUT_LABELS = { P: 'Présent', A: 'Absent', R: 'Retard', E: 'Excusé' };
-  var saveMembresTimer = null;
+
+  // Postes de messe = vocabulaire des compétences des servants
+  var DEFAULT_POSTES = [
+    'Porte-croix', 'Céroféraire', 'Encensoir', 'Clochette',
+    'Navette', 'Livre', 'Pain & Vin', 'Collecteur', 'Lecture'
+  ];
+  var POSTES = DEFAULT_POSTES.slice();
+  var services = [];
+  var editingServiceId = null;
+
+  function safeId(txt) { return String(txt).replace(/[^a-z0-9]/gi, '_'); }
 
   function $(id) { return document.getElementById(id); }
 
   function fetchMembres(cb) {
     setMembresStatus('Chargement…');
-    fetch(API_BASE + '/api/formations/membres', { headers: apiHeaders() })
-      .then(function (res) {
-        if (res.status === 401) throw new Error('auth');
-        if (!res.ok) throw new Error('http');
-        return res.json();
-      })
-      .then(function (data) {
-        servants = Array.isArray(data.servants) ? data.servants : [];
-        presences = data.presences && typeof data.presences === 'object' ? data.presences : {};
+    Promise.all([FB.get('servants'), FB.get('presences'), FB.getDoc('config', 'postes')])
+      .then(function (r) {
+        servants = r[0];
+        presences = {};
+        r[1].forEach(function (d) { if (d && d.id) presences[d.id] = d.records || {}; });
+        if (r[2] && Array.isArray(r[2].list) && r[2].list.length) POSTES = r[2].list;
         membresLoaded = true;
         setMembresStatus('Synchronisé');
         renderGestion();
         if (cb) cb();
       })
-      .catch(function (err) {
-        if (err.message !== 'auth' && !servants.length) {
-          // Secours local : liste officielle embarquée, en attente du serveur
+      .catch(function () {
+        if (!servants.length) {
+          // Secours local en attendant le retour réseau
           servants = seedServants();
           presences = {};
           membresLoaded = true;
-          setMembresStatus('Mode hors-ligne — enregistrement impossible tant que le serveur est injoignable', true);
+          setMembresStatus('Hors-ligne — modifications en attente de synchronisation', true);
           renderGestion();
         } else {
-          setMembresStatus(err.message === 'auth' ? 'Session expirée' : 'Serveur injoignable', true);
+          setMembresStatus('Connexion impossible', true);
         }
         if (cb) cb();
       });
   }
 
-  function saveMembres() {
-    if (!adminPassword || !membresLoaded) return;
-    setMembresStatus('Enregistrement…');
-    clearTimeout(saveMembresTimer);
-    // Regroupe les modifications rapprochées en une seule écriture
-    saveMembresTimer = setTimeout(function () {
-      fetch(API_BASE + '/api/formations/membres', {
-        method: 'PUT',
-        headers: apiHeaders(),
-        body: JSON.stringify({ servants: servants, presences: presences })
-      })
-        .then(function (res) {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          setMembresStatus('Synchronisé');
-        })
-        .catch(function () {
-          setMembresStatus('Échec de l\'enregistrement — réessayez', true);
-          showToast('Impossible d\'enregistrer sur le serveur.');
-        });
-    }, 700);
+  function markSaving() { setMembresStatus('Enregistrement…'); }
+  function markSaved() { setMembresStatus('Synchronisé'); }
+  function markFail() {
+    setMembresStatus('Échec de l\'enregistrement — réessayez', true);
+    showToast('Enregistrement impossible (connexion).');
   }
+
+  function saveServant(sv) { markSaving(); FB.put('servants', sv.id, sv).then(markSaved).catch(markFail); }
+  function delServant(id) { markSaving(); FB.del('servants', id).then(markSaved).catch(markFail); }
+  function delTrainer(id) { FB.del('trainers', id).catch(function () {}); }
+  function savePresences(sessionId) {
+    markSaving();
+    FB.put('presences', sessionId, { id: sessionId, records: presences[sessionId] || {} })
+      .then(markSaved).catch(markFail);
+  }
+  function delPresences(sessionId) { FB.del('presences', sessionId).catch(markFail); }
+  function batchServants(ops) {
+    markSaving();
+    FB.batch(ops.map(function (o) { o.col = 'servants'; return o; })).then(markSaved).catch(markFail);
+  }
+  function savePostes() { FB.merge('config', 'postes', { id: 'postes', list: POSTES }).catch(function () {}); }
 
   function setMembresStatus(txt, isError) {
     var el = $('membresStatus');
@@ -1477,6 +1438,7 @@
         $('tabServants').hidden = activeTab !== 'servants';
         $('tabResponsables').hidden = activeTab !== 'responsables';
         $('tabAppel').hidden = activeTab !== 'appel';
+        $('tabServices').hidden = activeTab !== 'services';
         renderGestion();
       });
     });
@@ -1498,9 +1460,10 @@
       var ids = Object.keys(svSelection);
       if (!ids.length) return;
       var lvl = $('svBulkLevel').value;
-      servants.forEach(function (sv) { if (svSelection[sv.id]) sv.niveau = lvl; });
+      var ops = [];
+      servants.forEach(function (sv) { if (svSelection[sv.id]) { sv.niveau = lvl; ops.push({ id: sv.id, data: sv }); } });
       svSelection = {};
-      saveMembres();
+      batchServants(ops);
       renderGestion();
       showToast(ids.length + ' servant(s) : niveau « ' + (lvl || 'Non attribué') + ' ».');
     });
@@ -1508,9 +1471,9 @@
     $('svBulkDelete').addEventListener('click', function () {
       var ids = Object.keys(svSelection);
       if (!ids.length || !confirm('Supprimer définitivement ' + ids.length + ' servant(s) de la liste ?')) return;
+      batchServants(ids.map(function (id) { return { id: id, del: true }; }));
       servants = servants.filter(function (sv) { return !svSelection[sv.id]; });
       svSelection = {};
-      saveMembres();
       renderGestion();
       showToast(ids.length + ' servant(s) supprimé(s).');
     });
@@ -1522,7 +1485,7 @@
         updateBulkBar();
       } else if (e.target.classList.contains('sv-level')) {
         var sv = servants.find(function (x) { return x.id === id; });
-        if (sv) { sv.niveau = e.target.value; saveMembres(); renderSummary(); }
+        if (sv) { sv.niveau = e.target.value; saveServant(sv); renderSummary(); }
       }
     });
 
@@ -1534,9 +1497,9 @@
       if (btn.getAttribute('data-act') === 'del') {
         var sv = servants.find(function (x) { return x.id === id; });
         if (sv && confirm('Supprimer ' + sv.nom + ' de la liste ?')) {
+          delServant(id);
           servants = servants.filter(function (x) { return x.id !== id; });
           delete svSelection[id];
-          saveMembres();
           renderGestion();
           showToast('Servant supprimé.');
         }
@@ -1561,16 +1524,21 @@
         niveau: $('svNiveau').value,
         tel: $('svTel').value.trim(),
         note: $('svNote').value.trim(),
-        actif: $('svActif').checked
+        actif: $('svActif').checked,
+        competences: POSTES.filter(function (p) {
+          var c = $('svComp_' + safeId(p));
+          return c && c.checked;
+        })
       };
       var sv = editingServantId && servants.find(function (x) { return x.id === editingServantId; });
       if (sv) {
         Object.assign(sv, data);
       } else {
         if (servants.some(function (x) { return x.nom === nom; }) && !confirm(nom + ' existe déjà. L\'ajouter quand même ?')) return;
-        servants.push(Object.assign({ id: 'sv_' + Date.now() }, data));
+        sv = Object.assign({ id: 'sv_' + Date.now() }, data);
+        servants.push(sv);
       }
-      saveMembres();
+      saveServant(sv);
       closeModal($('servantModal'));
       renderGestion();
       showToast(sv ? 'Servant modifié.' : 'Servant ajouté.');
@@ -1590,8 +1558,9 @@
         var used = sessions.filter(function (s) { return s.trainer === tr.name; }).length;
         var msg = 'Supprimer ' + tr.name + ' des responsables ?' + (used ? '\n(' + used + ' séance(s) le citent comme formateur : elles seront conservées.)' : '');
         if (!confirm(msg)) return;
+        delTrainer(id);
         trainers = trainers.filter(function (t) { return t.id !== id; });
-        saveAll();
+        saveLocal();
         populateTrainerSelect();
         render();
         showToast('Responsable supprimé.');
@@ -1622,7 +1591,7 @@
       if (!s || !confirm('Effacer l\'appel de cette séance ?')) return;
       appelDraft = {};
       delete presences[s.id];
-      saveMembres();
+      delPresences(s.id);
       renderGestion();
     });
     $('appelSave').addEventListener('click', function () {
@@ -1634,7 +1603,7 @@
       });
       presences[s.id] = record;
       appelDraft = {};
-      saveMembres();
+      savePresences(s.id);
       renderGestion();
       showToast('Appel enregistré.');
     });
@@ -1654,6 +1623,11 @@
     $('svTel').value = sv ? (sv.tel || '') : '';
     $('svNote').value = sv ? (sv.note || '') : '';
     $('svActif').checked = sv ? sv.actif !== false : true;
+    var have = sv && Array.isArray(sv.competences) ? sv.competences : [];
+    $('svComps').innerHTML = POSTES.map(function (p) {
+      return '<label class="comp-check"><input type="checkbox" id="svComp_' + safeId(p) + '"' +
+        (have.indexOf(p) >= 0 ? ' checked' : '') + '> ' + escapeHtml(p) + '</label>';
+    }).join('');
     openModal($('servantModal'));
     $('svNom').focus();
   }
@@ -1676,6 +1650,7 @@
     if (activeTab === 'servants') renderServants();
     if (activeTab === 'responsables') renderResponsables();
     if (activeTab === 'appel') { buildAppelSessionOptions(); renderAppel(); }
+    if (activeTab === 'services') renderServices();
   }
 
   function renderSummary() {
@@ -2034,6 +2009,223 @@
   function capitalizeFirst(str) {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  // ==================== SERVICES DE MESSE ====================
+
+  function fetchServices() {
+    if (!isAdmin) return;
+    FB.get('services').then(function (list) {
+      services = list.filter(function (s) { return s && s.date; });
+      renderServices();
+    }).catch(function () {});
+  }
+
+  function setupServices() {
+    var form = $('serviceForm');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var data = {
+          date: $('svDate').value,
+          heure: $('svHeure').value,
+          type: $('svType').value,
+          intitule: $('svIntitule').value.trim()
+        };
+        if (!data.date || !data.heure) return;
+        var svc = editingServiceId && services.find(function (x) { return x.id === editingServiceId; });
+        if (svc) {
+          Object.assign(svc, data);
+        } else {
+          svc = Object.assign({ id: 'svc_' + Date.now(), assignments: {} }, data);
+          services.push(svc);
+        }
+        FB.put('services', svc.id, svc).catch(function () { showToast('Enregistrement impossible (connexion).'); });
+        closeModal($('serviceModal'));
+        renderServices();
+        showToast(editingServiceId ? 'Service modifié.' : 'Service planifié.');
+      });
+    }
+    var addBtn = $('serviceAddBtn');
+    if (addBtn) addBtn.addEventListener('click', function () { openServiceForm(null); });
+
+    var listEl = $('serviceList');
+    if (listEl) {
+      listEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-act]');
+        if (!btn) return;
+        var id = btn.getAttribute('data-id');
+        var act = btn.getAttribute('data-act');
+        if (act === 'edit') openServiceForm(id);
+        if (act === 'assign') openAssignModal(id);
+        if (act === 'print') printService(id);
+        if (act === 'del') {
+          var svc = services.find(function (x) { return x.id === id; });
+          if (svc && confirm('Supprimer le service du ' + svc.date + ' ?')) {
+            FB.del('services', id).catch(function () {});
+            services = services.filter(function (x) { return x.id !== id; });
+            renderServices();
+            showToast('Service supprimé.');
+          }
+        }
+      });
+    }
+
+    // Postes : ajout / suppression
+    var posteForm = $('posteForm');
+    if (posteForm) {
+      posteForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = $('posteName').value.trim();
+        if (!name || POSTES.indexOf(name) >= 0) return;
+        POSTES.push(name);
+        $('posteName').value = '';
+        savePostes();
+        renderPostes();
+      });
+    }
+    var posteList = $('posteList');
+    if (posteList) {
+      posteList.addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-poste]');
+        if (!btn) return;
+        var p = btn.getAttribute('data-poste');
+        if (confirm('Retirer le poste « ' + p + ' » ?')) {
+          POSTES = POSTES.filter(function (x) { return x !== p; });
+          savePostes();
+          renderPostes();
+        }
+      });
+    }
+
+    // Assignation
+    var assignForm = $('assignForm');
+    if (assignForm) {
+      assignForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var svc = services.find(function (x) { return x.id === assignForm.getAttribute('data-svc'); });
+        if (!svc) return;
+        POSTES.forEach(function (p) {
+          var sel = $('assign_' + safeId(p));
+          if (sel && sel.value) svc.assignments[p] = sel.value;
+          else delete svc.assignments[p];
+        });
+        FB.put('services', svc.id, svc).catch(function () { showToast('Enregistrement impossible (connexion).'); });
+        closeModal($('assignModal'));
+        renderServices();
+        showToast('Attributions enregistrées.');
+      });
+    }
+  }
+
+  function openServiceForm(id) {
+    editingServiceId = id;
+    var svc = id && services.find(function (x) { return x.id === id; });
+    $('serviceModalLabel').textContent = svc ? 'Modifier le service' : 'Planifier un service de messe';
+    $('svDate').value = svc ? svc.date : '';
+    $('svHeure').value = svc ? svc.heure : '09:00';
+    $('svType').value = svc ? svc.type : 'Messe dominicale';
+    $('svIntitule').value = svc ? (svc.intitule || '') : '';
+    openModal($('serviceModal'));
+  }
+
+  function servantsById() {
+    var map = {};
+    servants.forEach(function (s) { map[s.id] = s; });
+    return map;
+  }
+
+  function openAssignModal(id) {
+    var svc = services.find(function (x) { return x.id === id; });
+    if (!svc) return;
+    var actifs = servants.filter(function (s) { return s.actif !== false; }).sort(sortByName);
+    $('assignForm').setAttribute('data-svc', id);
+    $('assignTitle').textContent = 'Attributions — ' + svc.type + ' du ' + svc.date;
+    $('assignBody').innerHTML = POSTES.map(function (p) {
+      var assigned = (svc.assignments || {})[p] || '';
+      var qualified = actifs.filter(function (s) {
+        return Array.isArray(s.competences) && s.competences.indexOf(p) >= 0;
+      });
+      var others = actifs.filter(function (s) { return qualified.indexOf(s) < 0; });
+      function opt(s, tag) {
+        return '<option value="' + s.id + '"' + (s.id === assigned ? ' selected' : '') + '>' +
+          escapeHtml(s.nom) + (tag || '') + (s.niveau ? ' · ' + escapeHtml(s.niveau) : '') + '</option>';
+      }
+      return '<div class="assign-row">' +
+        '<label for="assign_' + safeId(p) + '" class="assign-label">' + escapeHtml(p) +
+          (qualified.length ? '' : ' <span class="g-sub">(personne formée — choix libre)</span>') + '</label>' +
+        '<select id="assign_' + safeId(p) + '" class="select select-sm">' +
+          '<option value="">— Non attribué —</option>' +
+          (qualified.length ? '<optgroup label="Formé(e)s">' + qualified.map(function (s) { return opt(s, ''); }).join('') + '</optgroup>' : '') +
+          '<optgroup label="Autres servants">' + others.map(function (s) { return opt(s, ''); }).join('') + '</optgroup>' +
+        '</select></div>';
+    }).join('');
+    openModal($('assignModal'));
+  }
+
+  function renderPostes() {
+    var el = $('posteList');
+    if (el) {
+      el.innerHTML = POSTES.map(function (p) {
+        return '<span class="lvl-pill">' + escapeHtml(p) +
+          ' <button type="button" class="poste-x" data-poste="' + escapeHtml(p) + '" title="Retirer">✕</button></span>';
+      }).join('');
+    }
+  }
+
+  function renderServices() {
+    var listEl = $('serviceList');
+    if (!listEl) return;
+    renderPostes();
+    var today = toISODate(new Date());
+    var upcoming = services.slice().sort(function (a, b) { return a.date.localeCompare(b.date); });
+    if (!upcoming.length) {
+      listEl.innerHTML = '<div class="gempty">Aucun service planifié. Cliquez sur « Planifier un service ».</div>';
+      return;
+    }
+    var map = servantsById();
+    listEl.innerHTML = upcoming.map(function (svc) {
+      var d = parseDateLocal(svc.date);
+      var dateTxt = d ? capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })) : svc.date;
+      var past = svc.date < today ? ' is-inactive' : '';
+      var asg = POSTES.map(function (p) {
+        var sv = map[(svc.assignments || {})[p]];
+        return '<div class="svc-line"><span class="svc-poste">' + escapeHtml(p) + '</span>' +
+          '<span class="svc-name' + (sv ? '' : ' svc-empty') + '">' + (sv ? escapeHtml(sv.nom) : '—') + '</span></div>';
+      }).join('');
+      return '<div class="svc-card' + past + '">' +
+        '<div class="svc-head"><div><strong>' + escapeHtml(svc.type) + '</strong>' +
+        (svc.intitule ? ' — ' + escapeHtml(svc.intitule) : '') +
+        '<div class="g-sub">' + dateTxt + ' · ' + escapeHtml(svc.heure) + '</div></div>' +
+        '<div class="g-acts">' +
+          '<button type="button" class="btn btn-sm btn-outline" data-act="assign" data-id="' + svc.id + '">Attribuer</button>' +
+          '<button type="button" class="btn btn-sm btn-outline" data-act="print" data-id="' + svc.id + '">Imprimer</button>' +
+          '<button type="button" class="btn btn-sm btn-outline" data-act="edit" data-id="' + svc.id + '">Modifier</button>' +
+          '<button type="button" class="btn btn-sm btn-danger" data-act="del" data-id="' + svc.id + '">Suppr.</button>' +
+        '</div></div>' +
+        '<div class="svc-grid">' + asg + '</div></div>';
+    }).join('');
+  }
+
+  function printService(id) {
+    var svc = services.find(function (x) { return x.id === id; });
+    if (!svc) return;
+    var map = servantsById();
+    var d = parseDateLocal(svc.date);
+    var dateFull = d ? capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) : svc.date;
+    var rows = POSTES.map(function (p, i) {
+      var sv = map[(svc.assignments || {})[p]];
+      return [i + 1, escapeHtml(p), sv ? escapeHtml(sv.nom) : '', sv ? escapeHtml(sv.niveau || '—') : ''];
+    });
+    printDocument({
+      subtitle: 'Programme de service',
+      date: escapeHtml(svc.type) + ' — ' + dateFull + ' • ' + escapeHtml(svc.heure) +
+        (svc.intitule ? ' • ' + escapeHtml(svc.intitule) : ''),
+      meta: '',
+      cols: [['N°', 6], ['Poste', 34], ['Servant', 44], ['Niveau', 16]],
+      rows: rows,
+      foot: '<div><strong>Responsable du jour :</strong> ______________________</div>'
+    });
   }
 
   function escapeHtml(str) {

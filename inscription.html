@@ -9,6 +9,10 @@
   <title>Inscription - Groupe des Servants de Messe</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="animations.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 <body class="inscription-page">
   <div class="Contenaire">
@@ -123,15 +127,7 @@
       }
 
       async function publishInscription(inscription){
-        var response = await fetch(INSCRIPTIONS_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ inscription: inscription })
-        });
-        if(!response.ok){
-          var txt = await response.text().catch(function(){ return response.statusText; });
-          throw new Error(txt || response.statusText);
-        }
+        await FB.put('inscriptions', inscription.id, inscription);
       }
 
       // Form submission : sauvegarder en localStorage

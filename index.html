@@ -16,6 +16,10 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="news.css">
   <link rel="stylesheet" href="animations.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 <body>
 
@@ -281,11 +285,21 @@
           }
         }catch(e){console.error('localStorage error:', e);}
 
-        // fallback fetch (relative for GitHub Pages compatibility)
-        fetch('data/news.json')
-          .then(function(r){ if(!r.ok) throw new Error('not ok'); return r.json(); })
-          .then(function(data){ renderList(data); })
-          .catch(function(err){ console.error('fetch error:', err); renderList([]); });
+        // Firebase Firestore en priorité, puis data/news.json en secours
+        function fallbackNews(){
+          fetch('data/news.json')
+            .then(function(r){ if(!r.ok) throw new Error('not ok'); return r.json(); })
+            .then(function(data){ renderList(data); })
+            .catch(function(err){ console.error('fetch error:', err); renderList([]); });
+        }
+        if(window.FB){
+          FB.get('news').then(function(items){
+            if(items.length){ localStorage.setItem(NEWS_KEY, JSON.stringify(items)); renderList(items); }
+            else fallbackNews();
+          }).catch(fallbackNews);
+        } else {
+          fallbackNews();
+        }
       }
 
       // Load news after DOM is ready

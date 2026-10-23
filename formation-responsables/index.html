@@ -311,6 +311,7 @@
         <button type="button" class="gtab active" data-tab="servants" role="tab">Servants <span id="svCountBadge" class="gtab-count">0</span></button>
         <button type="button" class="gtab" data-tab="responsables" role="tab">Responsables <span id="trCountBadge" class="gtab-count">0</span></button>
         <button type="button" class="gtab" data-tab="appel" role="tab">Appel du samedi</button>
+        <button type="button" class="gtab" data-tab="services" role="tab">Services de messe</button>
       </div>
 
       <!-- ONGLET SERVANTS -->
@@ -398,6 +399,21 @@
         </div>
         <div id="appelList" class="appel-list"></div>
       </div>
+
+      <!-- ============ SERVICES DE MESSE ============ -->
+      <div class="gpanel" id="tabServices" hidden>
+        <div class="gtoolbar">
+          <button type="button" id="serviceAddBtn" class="btn btn-gold btn-sm">Planifier un service</button>
+          <span class="grow"></span>
+        </div>
+        <div class="gnotice">Les <strong>postes</strong> servent aussi de liste de compétences : indiquez-les sur la fiche de chaque servant (onglet Servants → Modifier) pour que l'attribution propose les personnes formées.</div>
+        <form id="posteForm" class="gtoolbar">
+          <input type="text" id="posteName" class="input grow" placeholder="Nouveau poste (ex. Maître de cérémonie)" maxlength="40">
+          <button type="submit" class="btn btn-outline btn-sm">Ajouter le poste</button>
+        </form>
+        <div id="posteList" class="lvl-summary"></div>
+        <div id="serviceList"></div>
+      </div>
     </section>
 
     <!-- ==================== CORPS DES FORMATEURS ==================== -->
@@ -450,11 +466,15 @@
       </div>
       <form id="adminLoginForm">
         <div class="modal-body">
-          <p class="hint">Entrez le code d'accès de responsable pour planifier, modifier ou supprimer des séances de formation.</p>
+          <p class="hint">Connectez-vous avec votre compte responsable pour gérer les formations, les servants et les services.</p>
           <div class="field">
-            <label for="adminPassword" class="label">Mot de passe responsable</label>
-            <input type="password" id="adminPassword" class="input" placeholder="••••••" required autofocus>
-            <div class="hint">Code réservé au responsable chargé de la formation.</div>
+            <label for="adminEmail" class="label">Email du responsable</label>
+            <input type="email" id="adminEmail" class="input" placeholder="exemple@mail.com" required autocomplete="username">
+          </div>
+          <div class="field">
+            <label for="adminPassword" class="label">Mot de passe</label>
+            <input type="password" id="adminPassword" class="input" placeholder="••••••" required autocomplete="current-password">
+            <div class="hint"><a href="#" id="forgotPwdLink">Mot de passe oublié ?</a></div>
           </div>
         </div>
         <div class="modal-foot">
@@ -591,6 +611,10 @@
             <label for="svNote" class="label">Remarque</label>
             <input type="text" id="svNote" class="input" maxlength="200">
           </div>
+          <div class="field">
+            <span class="label">Compétences (postes de messe maîtrisés)</span>
+            <div id="svComps" class="comp-grid"><!-- Rempli dynamiquement --></div>
+          </div>
           <div class="check-row">
             <input type="checkbox" id="svActif" checked>
             <label for="svActif">Servant actif (apparaît dans les listes d'appel)</label>
@@ -623,36 +647,6 @@
     </div>
   </div>
 
-  <!-- 5. CHANGEMENT DE MOT DE PASSE -->
-  <div class="modal" id="pwdModal" role="dialog" aria-modal="true" aria-labelledby="pwdModalLabel">
-    <div class="modal-card modal-sm">
-      <div class="modal-head">
-        <h5 id="pwdModalLabel">Changer le mot de passe responsable</h5>
-        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
-      </div>
-      <form id="pwdForm">
-        <div class="modal-body">
-          <div class="field">
-            <label for="pwdCurrent" class="label">Mot de passe actuel *</label>
-            <input type="password" id="pwdCurrent" class="input" required autocomplete="current-password">
-          </div>
-          <div class="field">
-            <label for="pwdNew" class="label">Nouveau mot de passe *</label>
-            <input type="password" id="pwdNew" class="input" required minlength="4" maxlength="64" autocomplete="new-password">
-          </div>
-          <div class="field">
-            <label for="pwdConfirm" class="label">Confirmer le nouveau mot de passe *</label>
-            <input type="password" id="pwdConfirm" class="input" required autocomplete="new-password">
-          </div>
-        </div>
-        <div class="modal-foot">
-          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
-          <button type="submit" class="btn btn-dark btn-sm">Enregistrer</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- 6. AJOUT AU CALENDRIER -->
   <div class="modal" id="calendarModal" role="dialog" aria-modal="true" aria-labelledby="calendarModalLabel">
     <div class="modal-card modal-sm">
@@ -681,11 +675,77 @@
     </div>
   </div>
 
+  <!-- 8. SERVICE DE MESSE -->
+  <div class="modal" id="serviceModal" role="dialog" aria-modal="true" aria-labelledby="serviceModalLabel">
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h5 id="serviceModalLabel">Service de messe</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <form id="serviceForm">
+        <div class="modal-body">
+          <div class="field">
+            <label for="svDate" class="label">Date *</label>
+            <input type="date" id="svDate" class="input" required>
+          </div>
+          <div class="field">
+            <label for="svHeure" class="label">Heure *</label>
+            <input type="time" id="svHeure" class="input" required value="09:00">
+          </div>
+          <div class="field">
+            <label for="svType" class="label">Type de service *</label>
+            <select id="svType" class="select" required>
+              <option value="Messe dominicale">Messe dominicale</option>
+              <option value="Messe de semaine">Messe de semaine</option>
+              <option value="Messe des enfants">Messe des enfants</option>
+              <option value="Célébration spéciale">Célébration spéciale</option>
+              <option value="Autre service">Autre service</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="svIntitule" class="label">Intitulé (facultatif)</label>
+            <input type="text" id="svIntitule" class="input" placeholder="Ex: Messe de rentrée, confirmation…" maxlength="80">
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
+          <button type="submit" class="btn btn-dark btn-sm">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 9. ATTRIBUTION DES POSTES -->
+  <div class="modal" id="assignModal" role="dialog" aria-modal="true" aria-labelledby="assignTitle">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h5 id="assignTitle">Attributions</h5>
+        <button type="button" class="x-btn" data-close aria-label="Fermer">✕</button>
+      </div>
+      <form id="assignForm">
+        <div class="modal-body">
+          <p class="hint">Les servants marqués « formés » (compétence cochée sur leur fiche) apparaissent en premier.</p>
+          <div id="assignBody" class="assign-grid"><!-- Rempli dynamiquement --></div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-outline btn-sm" data-close>Annuler</button>
+          <button type="submit" class="btn btn-dark btn-sm">Enregistrer les attributions</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- FICHE DE PRÉSENCE IMPRIMABLE -->
   <div id="printPresenceSheet"></div>
 
   <!-- TOASTS -->
   <div class="toast-zone" id="toastZone"></div>
+
+  <!-- FIREBASE -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
 
   <!-- MOTION DESIGN GLOBAL -->
   <script src="animations.js"></script>

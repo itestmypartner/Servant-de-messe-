@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="news.css">
   <link rel="stylesheet" href="animations.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 <body class="admin-page">
   <div class="admin-login" id="loginContainer">
@@ -16,8 +20,12 @@
       <p class="admin-subtitle">Entrez le mot de passe pour accéder au tableau de bord.</p>
       <form id="loginForm" novalidate>
         <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="exemple@mail.com" required autocomplete="username" autofocus>
+        </div>
+        <div class="form-group">
           <label for="password">Mot de passe</label>
-          <input type="password" id="password" name="password" placeholder="••••••" required autofocus>
+          <input type="password" id="password" name="password" placeholder="••••••" required autocomplete="current-password">
         </div>
         <button type="submit" class="admin-btn">Accéder</button>
       </form>
@@ -116,20 +124,9 @@
       <div class="modal-body">
         <div class="settings-section">
           <h3>Changer le mot de passe</h3>
+          <p style="color:#666; margin-bottom:12px;">Firebase envoie un lien de réinitialisation à votre adresse email.</p>
           <form id="passwordForm" novalidate>
-            <div class="form-group">
-              <label for="currentPassword">Mot de passe actuel</label>
-              <input type="password" id="currentPassword" placeholder="••••••" required>
-            </div>
-            <div class="form-group">
-              <label for="newPassword">Nouveau mot de passe</label>
-              <input type="password" id="newPassword" placeholder="••••••" required>
-            </div>
-            <div class="form-group">
-              <label for="confirmPassword">Confirmer mot de passe</label>
-              <input type="password" id="confirmPassword" placeholder="••••••" required>
-            </div>
-            <button type="submit" class="admin-btn">Mettre à jour</button>
+            <button type="submit" class="admin-btn">Recevoir l'email de réinitialisation</button>
           </form>
           <div id="passwordMessage" class="message"></div>
         </div>
@@ -187,30 +184,29 @@
       var inscriptionsVisibleCount = document.getElementById('inscriptionsVisibleCount');
       var inscriptionsCache = [];
 
-      // Vérifier session existante
-      if(hasActiveSession()){
-        showDashboard();
-      }
+      // Session Firebase persistante
+      FB.onAuth(function(user){
+        if(user){ showDashboard(); loadFromFirestore(); }
+      });
 
       // Login
       loginForm.addEventListener('submit', function(e){
         e.preventDefault();
+        var email = document.getElementById('email').value.trim();
+        var pwd = passwordInput.value;
+        if(!email || !pwd) return;
         var lockUntil = Number(localStorage.getItem(LOGIN_LOCK_UNTIL_KEY) || 0);
         if(lockUntil > Date.now()){
           loginError.textContent = "⏳ Trop d'essais. Réessayez dans quelques minutes.";
           return;
         }
 
-        var pwd = passwordInput.value;
-        var storedPassword = getStoredPassword();
-
-        if(pwd === storedPassword){
-          startSession();
+        FB.signIn(email, pwd).then(function(){
           localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
           localStorage.removeItem(LOGIN_LOCK_UNTIL_KEY);
           loginError.textContent = '';
-          showDashboard();
-        } else {
+          loginForm.reset();
+        }).catch(function(){
           var attempts = Number(localStorage.getItem(LOGIN_ATTEMPTS_KEY) || 0) + 1;
           localStorage.setItem(LOGIN_ATTEMPTS_KEY, String(attempts));
           if(attempts >= MAX_LOGIN_ATTEMPTS){
@@ -218,20 +214,35 @@
             localStorage.setItem(LOGIN_ATTEMPTS_KEY, '0');
             loginError.textContent = "⏳ Trop d'essais. Réessayez dans 15 minutes.";
           } else {
-            loginError.textContent = '❌ Mot de passe incorrect';
+            loginError.textContent = '❌ Email ou mot de passe incorrect.';
           }
-          passwordInput.value = '';
-        }
+        });
       });
 
       // Logout
       logoutBtn.addEventListener('click', function(){
-        clearSession();
+        FB.signOut();
         loginContainer.style.display = 'block';
         dashboardContainer.style.display = 'none';
         loginForm.reset();
         loginError.textContent = '';
       });
+
+      // Charge inscriptions + actualités depuis Firestore
+      function loadFromFirestore(){
+        syncInscriptionsFromServer();
+        FB.get('news').then(function(items){
+          if(!items.length) return;
+          var merged = {};
+          items.concat(getNews()).forEach(function(n){ if(n && n.id) merged[n.id] = n; });
+          var arr = Object.keys(merged).map(function(k){ return merged[k]; });
+          localStorage.setItem(NEWS_KEY, JSON.stringify(arr));
+          remoteNewsIds = {};
+          items.forEach(function(n){ remoteNewsIds[n.id] = true; });
+          renderNewsList();
+        }).catch(function(){});
+      }
+      var remoteNewsIds = {};
 
       // Afficher dashboard
       function showDashboard(){
@@ -293,6 +304,7 @@
       // Supprimer une inscription
       function deleteInscription(id){
         if(confirm('Êtes-vous sûr de vouloir supprimer cette inscription ?')){
+          FB.del('inscriptions', String(id)).catch(function(){});
           var inscriptions = getInscriptions().filter(function(i){
             return String(i.id) !== String(id);
           });
@@ -365,47 +377,28 @@
         if(e.target === settingsModal) settingsModal.style.display = 'none';
       });
 
-      // Changer mot de passe
+      // Changer mot de passe : email de réinitialisation Firebase
       passwordForm.addEventListener('submit', function(e){
         e.preventDefault();
-        var current = document.getElementById('currentPassword').value;
-        var newPwd = document.getElementById('newPassword').value;
-        var confirm = document.getElementById('confirmPassword').value;
-
-        var storedPassword = getStoredPassword();
-
-        if(current !== storedPassword){
-          showMessage(passwordMessage, '❌ Mot de passe actuel incorrect', 'error');
+        var u = FB.currentUser();
+        if(!u || !u.email){
+          showMessage(passwordMessage, '❌ Aucun compte connecté', 'error');
           return;
         }
-
-        if(newPwd.length < 6){
-          showMessage(passwordMessage, '❌ Le mot de passe doit faire au moins 6 caractères', 'error');
-          return;
-        }
-
-        if(/\s/.test(newPwd)){
-          showMessage(passwordMessage, "❌ Le mot de passe ne doit pas contenir d'espaces", 'error');
-          return;
-        }
-
-        if(newPwd !== confirm){
-          showMessage(passwordMessage, '❌ Les mots de passe ne correspondent pas', 'error');
-          return;
-        }
-
-        localStorage.setItem(PASSWORD_KEY, newPwd);
-        showMessage(passwordMessage, '✓ Mot de passe mis à jour avec succès !', 'success');
-        passwordForm.reset();
-
-        setTimeout(function(){
-          settingsModal.style.display = 'none';
-        }, 2000);
+        FB.resetPassword(u.email).then(function(){
+          showMessage(passwordMessage, '✓ Email de réinitialisation envoyé à ' + u.email, 'success');
+          passwordForm.reset();
+          setTimeout(function(){ settingsModal.style.display = 'none'; }, 2500);
+        }).catch(function(){
+          showMessage(passwordMessage, '❌ Envoi impossible. Réessayez.', 'error');
+        });
       });
 
       // Supprimer données
       clearDataBtn.addEventListener('click', function(){
-        if(confirm('ATTENTION : Cette action supprimera TOUTES les inscriptions. Confirmez-vous ?')){
+        if(confirm('ATTENTION : Cette action supprimera TOUTES les inscriptions (local + Firebase). Confirmez-vous ?')){
+          var ops = getInscriptions().map(function(i){ return { col: 'inscriptions', id: String(i.id), del: true }; });
+          if(ops.length) FB.batch(ops).catch(function(){});
           saveInscriptions([]);
           displayInscriptions();
           showMessage(clearMessage, '✓ Toutes les inscriptions ont été supprimées', 'success');
@@ -557,23 +550,13 @@
         if(!syncInscriptionsBtn) return;
         setButtonLoading(syncInscriptionsBtn, true, 'Synchronisation...', null);
         try{
-          var res = await fetch(INSCRIPTIONS_API_URL, {
-            headers: {
-              'x-admin-password': getStoredPassword()
-            }
-          });
-          if(!res.ok){
-            var txt = await res.text().catch(function(){ return res.statusText; });
-            throw new Error(txt || res.statusText);
-          }
-          var payload = await res.json();
-          var remoteItems = Array.isArray(payload.inscriptions) ? payload.inscriptions : [];
+          var remoteItems = await FB.get('inscriptions');
           var localItems = getInscriptions();
 
           if(remoteItems.length === 0){
             if(localItems.length > 0){
               pushInscriptionsToServer(localItems);
-              showMessage(clearMessage, '✓ Serveur vide — données locales synchronisées vers le serveur', 'success');
+              showMessage(clearMessage, '✓ Données locales envoyées vers Firebase', 'success');
             } else {
               showMessage(clearMessage, '✓ Aucune inscription enregistrée', 'success');
             }
@@ -585,26 +568,16 @@
           displayInscriptions();
           showMessage(clearMessage, '✓ Inscriptions synchronisées (' + merged.length + ' au total)', 'success');
         }catch(error){
-          showMessage(clearMessage, '⚠️ Synchronisation impossible (' + (error.message || 'serveur injoignable') + ')', 'error');
+          showMessage(clearMessage, '⚠️ Synchronisation impossible (' + (error.message || 'connexion') + ')', 'error');
         }finally{
           setButtonLoading(syncInscriptionsBtn, false, null, 'Synchroniser inscriptions');
         }
       }
 
       function pushInscriptionsToServer(items){
-        fetch(INSCRIPTIONS_API_URL, {
-          method: 'PUT',
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-admin-password': getStoredPassword()
-          },
-          body: JSON.stringify({ inscriptions: items })
-        }).then(function(res){
-          if(!res.ok){
-            throw new Error('sync failed');
-          }
-        }).catch(function(){
-          showMessage(clearMessage, '⚠️ Modifications locales faites, sync serveur en attente.', 'error');
+        var ops = items.map(function(i){ return { col: 'inscriptions', id: String(i.id), data: i }; });
+        FB.batch(ops).catch(function(){
+          showMessage(clearMessage, '⚠️ Modifications locales faites, sync Firebase en attente.', 'error');
         });
       }
 
@@ -630,6 +603,17 @@
 
       function saveNews(items){
         localStorage.setItem(NEWS_KEY, JSON.stringify(items));
+        // Écrit les ajouts/modifs et supprime les articles retirés dans Firestore
+        var current = {};
+        var ops = items.map(function(n){
+          if(n && n.id){ current[n.id] = true; return { col: 'news', id: String(n.id), data: n }; }
+          return null;
+        }).filter(Boolean);
+        Object.keys(remoteNewsIds).forEach(function(id){
+          if(!current[id]) ops.push({ col: 'news', id: id, del: true });
+        });
+        remoteNewsIds = current;
+        if(ops.length) FB.batch(ops).catch(function(){});
       }
 
       function updateNewsCount(){
@@ -833,28 +817,13 @@
       if(exportJsonBtn) exportJsonBtn.addEventListener('click', function(e){ e.preventDefault(); exportNewsJson(); });
 
       async function publishToServer(){
-        if(isPublishingRemote) return;
-        isPublishingRemote = true;
-        setButtonLoading(publishPublicBtn, true, 'Publication...', null);
+        // Chaque enregistrement écrit déjà dans Firestore : bouton = re-synchronisation complète
         try{
-          var data = getNews();
-          var publishPassword = prompt('Entrez le mot de passe de publication');
-          if(!publishPassword) return;
-         const res = await fetch('https://servant-de-messe-4651.onrender.com/api/publish-news', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'x-admin-password': publishPassword
-            },
-            body: JSON.stringify({ news: data, publishPassword: publishPassword })
-          });
-          if(!res.ok){ const txt = await res.text().catch(()=>res.statusText); throw new Error(txt || res.statusText); }
-          showMessage(newsMessage, '✓ Actualités publiées publiquement', 'success');
-        }catch(err){ showMessage(newsMessage, 'Erreur pendant la publication: '+err.message, 'error'); }
-        finally{
-          isPublishingRemote = false;
-          setButtonLoading(publishPublicBtn, false, null, 'Publier publiquement');
-        }
+          var items = getNews();
+          var ops = items.map(function(n){ return { col: 'news', id: String(n.id), data: n }; });
+          await FB.batch(ops);
+          showMessage(newsMessage, '✓ Actualités synchronisées publiquement', 'success');
+        }catch(err){ showMessage(newsMessage, 'Erreur : '+err.message, 'error'); }
       }
 
       if(publishPublicBtn){ publishPublicBtn.addEventListener('click', function(e){ e.preventDefault(); if(!confirm('Publier les actualités publiquement ?')) return; publishToServer(); }); }

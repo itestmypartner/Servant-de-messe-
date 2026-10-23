@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="news.css">
   <link rel="stylesheet" href="animations.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
 </head>
 <body class="admin-page">
   <div class="admin-login" id="loginContainer">
@@ -16,8 +20,12 @@
       <p class="admin-subtitle">Entrez le mot de passe pour gérer les dépenses (FCFA).</p>
       <form id="loginForm" novalidate>
         <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="exemple@mail.com" required autocomplete="username" autofocus>
+        </div>
+        <div class="form-group">
           <label for="password">Mot de passe</label>
-          <input type="password" id="password" name="password" placeholder="••••••" required autofocus>
+          <input type="password" id="password" name="password" placeholder="••••••" required autocomplete="current-password">
         </div>
         <button type="submit" class="admin-btn">Accéder</button>
       </form>
@@ -185,24 +193,44 @@
       expenseDate.value = new Date().toISOString().slice(0, 10);
       updateAmountHint();
 
-      if(hasActiveSession()){
-        showDashboard();
-      }
+      FB.onAuth(function(user){
+        if(user){ showDashboard(); loadExpensesFromFirestore(); }
+      });
 
       loginForm.addEventListener('submit', function(e){
         e.preventDefault();
-        if(passwordInput.value === getStoredPassword()){
-          startSession();
+        var email = document.getElementById('email').value.trim();
+        if(!email || !passwordInput.value) return;
+        FB.signIn(email, passwordInput.value).then(function(){
           loginError.textContent = '';
-          showDashboard();
-          return;
-        }
-        loginError.textContent = '❌ Mot de passe incorrect';
-        passwordInput.value = '';
+          loginForm.reset();
+        }).catch(function(){
+          loginError.textContent = '❌ Email ou mot de passe incorrect';
+          passwordInput.value = '';
+        });
       });
 
+      var remoteExpenseIds = {};
+      function loadExpensesFromFirestore(){
+        FB.get('expenses').then(function(items){
+          if(!items.length) {
+            // Envoi des dépenses locales vers Firebase si la base est vide
+            var local = getExpenses();
+            if(local.length) syncExpenses(local);
+            return;
+          }
+          var merged = {};
+          items.concat(getExpenses()).forEach(function(it){ var n = normalizeExpense(it); if(n) merged[n.id] = n; });
+          var arr = Object.keys(merged).map(function(k){ return merged[k]; });
+          remoteExpenseIds = {};
+          items.forEach(function(i){ remoteExpenseIds[String(i.id)] = true; });
+          localStorage.setItem(DATA_KEY, JSON.stringify(arr));
+          refreshView();
+        }).catch(function(){});
+      }
+
       logoutBtn.addEventListener('click', function(){
-        clearSession();
+        FB.signOut();
         loginContainer.style.display = 'block';
         dashboardContainer.style.display = 'none';
         loginForm.reset();
@@ -290,7 +318,10 @@
       });
 
       clearBtn.addEventListener('click', function(){
-        if(!confirm('Supprimer toutes les dépenses ?')) return;
+        if(!confirm('Supprimer toutes les dépenses (local + Firebase) ?')) return;
+        var ops = getExpenses().map(function(it){ return { col: 'expenses', id: String(it.id), del: true }; });
+        if(ops.length) FB.batch(ops).catch(function(){});
+        remoteExpenseIds = {};
         localStorage.removeItem(DATA_KEY);
         refreshView();
         showMessage(formMessage, '✓ Toutes les dépenses ont été supprimées', 'success');
@@ -477,6 +508,20 @@
 
       function saveExpenses(items){
         localStorage.setItem(DATA_KEY, JSON.stringify(items));
+        syncExpenses(items);
+      }
+
+      function syncExpenses(items){
+        var current = {};
+        var ops = items.map(function(it){
+          if(it && it.id){ current[String(it.id)] = true; return { col: 'expenses', id: String(it.id), data: it }; }
+          return null;
+        }).filter(Boolean);
+        Object.keys(remoteExpenseIds).forEach(function(id){
+          if(!current[id]) ops.push({ col: 'expenses', id: id, del: true });
+        });
+        remoteExpenseIds = current;
+        if(ops.length) FB.batch(ops).catch(function(){});
       }
 
       function hasActiveSession(){

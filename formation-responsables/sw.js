@@ -3,7 +3,7 @@
  * Cache-first pour les ressources statiques, réseau d'abord pour l'API.
  */
 
-var CACHE_NAME = 'formations-sm-v8';
+var CACHE_NAME = 'formations-sm-v9';
 
 var STATIC_ASSETS = [
   './',
@@ -12,6 +12,7 @@ var STATIC_ASSETS = [
   './animations.css',
   './app.js',
   './animations.js',
+  './firebase-config.js',
   './manifest.json',
   './logoservantdemesse.jpg',
   './logoeglise.jpeg'
@@ -19,7 +20,8 @@ var STATIC_ASSETS = [
 
 var CDN_ORIGINS = [
   'fonts.googleapis.com',
-  'fonts.gstatic.com'
+  'fonts.gstatic.com',
+  'www.gstatic.com'
 ];
 
 self.addEventListener('install', function (event) {
