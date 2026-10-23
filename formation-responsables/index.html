@@ -152,7 +152,7 @@
           <span id="levelBreakdown" class="level-breakdown"></span>
           <span class="badge badge-soft" id="scheduleCount">0 séance programmée</span>
           <button id="whatsappShareBtn" class="btn btn-success btn-sm" type="button" title="Partager le planning sur WhatsApp">WhatsApp</button>
-          <button id="printBtn" class="btn btn-light btn-sm" type="button" title="Imprimer ou enregistrer en PDF">Imprimer A4</button>
+          <button id="printBtn" class="btn btn-light btn-sm" type="button" title="Télécharger le planning en PDF">📄 PDF</button>
         </div>
       </div>
 
@@ -416,7 +416,7 @@
             <option value="Augustin">Augustin</option>
           </select>
           <button type="button" id="svAddBtn" class="btn btn-gold btn-sm">Ajouter un servant</button>
-          <button type="button" id="svPrintBtn" class="btn btn-outline btn-sm">Imprimer la liste</button>
+          <button type="button" id="svPrintBtn" class="btn btn-outline btn-sm">📄 PDF</button>
         </div>
         <div class="gbulk" id="svBulkBar">
           <span id="svSelCount">0 sélectionné</span>
@@ -483,7 +483,7 @@
           <button type="button" id="appelAllP" class="btn btn-outline btn-sm">Tout le monde présent</button>
           <button type="button" id="appelReset" class="btn btn-outline btn-sm">Réinitialiser</button>
           <span class="grow"></span>
-          <button type="button" id="appelPrint" class="btn btn-outline btn-sm">Imprimer la liste d'appel</button>
+          <button type="button" id="appelPrint" class="btn btn-outline btn-sm">📄 Fiche d'appel PDF</button>
           <button type="button" id="appelSave" class="btn btn-gold btn-sm">Enregistrer l'appel</button>
         </div>
         <div id="appelList" class="appel-list"></div>
@@ -519,7 +519,7 @@
             <option value="30">30 derniers jours</option>
             <option value="90">3 derniers mois</option>
           </select>
-          <button type="button" id="statsPrintBtn" class="btn btn-outline btn-sm">Imprimer le bilan</button>
+          <button type="button" id="statsPrintBtn" class="btn btn-outline btn-sm">📄 Bilan PDF</button>
         </div>
         <div id="statsCards" class="stats-mini"></div>
         <div class="table-wrap-g">
@@ -931,6 +931,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
+
+  <!-- GÉNÉRATION PDF (téléchargement direct) -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <!-- MOTION DESIGN GLOBAL -->
   <script src="animations.js"></script>

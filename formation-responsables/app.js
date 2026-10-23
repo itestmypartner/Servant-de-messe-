@@ -436,7 +436,7 @@
         '<div class="g-sub">' + escapeHtml(r.objet || '') + '</div>' +
         (r.compteRendu ? '<div class="re-cr">' + escapeHtml(r.compteRendu).replace(/\n/g, '<br>') + '</div>' : '') +
         '<div class="g-acts" style="margin-top:6px;">' +
-        '<button type="button" class="btn btn-outline btn-icon" data-ract="print" data-id="' + r.id + '">Imprimer CR</button>' +
+        '<button type="button" class="btn btn-outline btn-icon" data-ract="print" data-id="' + r.id + '">PDF</button>' +
         '<button type="button" class="btn btn-outline btn-icon txt-danger" data-ract="del" data-id="' + r.id + '">Supprimer</button>' +
         '</div></div>';
     }).join('');
@@ -497,7 +497,7 @@
     // Journal
     h += '<div class="role-card"><div class="role-row" style="justify-content:space-between;"><h4 style="margin:0;">Journal de caisse</h4>' +
       '<div class="role-row" style="gap:6px;"><input type="month" id="caMois" class="input" value="' + caisseMois + '" style="max-width:150px;">' +
-      '<button type="button" id="caPrint" class="btn btn-outline btn-sm">Imprimer le mois</button></div></div>';
+      '<button type="button" id="caPrint" class="btn btn-outline btn-sm">📄 PDF du mois</button></div></div>';
     if (!moisEntries.length) h += '<p class="gempty">Aucune écriture ce mois-ci.</p>';
     else {
       var run = all.filter(function (e) { return (e.date || '') < caisseMois; })
@@ -895,7 +895,7 @@
             '<div class="acts">' +
               '<button class="btn btn-icon ai-wa share-single-btn" data-id="' + s.id + '" title="Partager sur WhatsApp">WhatsApp</button>' +
               '<button class="btn btn-icon ai-cal cal-session-btn" data-id="' + s.id + '" title="Ajouter au calendrier">Agenda</button>' +
-              '<button class="btn btn-icon ai-pres presence-session-btn" data-id="' + s.id + '" title="Imprimer la fiche de présence">Présence</button>' +
+              '<button class="btn btn-icon ai-pres presence-session-btn" data-id="' + s.id + '" title="Télécharger la fiche de présence en PDF">Présence</button>' +
               (isAdmin ?
                 '<button class="btn btn-icon ai-edit edit-session-btn" data-id="' + s.id + '" title="Modifier">Modifier</button>' +
                 '<button class="btn btn-icon ai-del delete-session-btn" data-id="' + s.id + '" title="Supprimer">Supprimer</button>' : '') +
@@ -1425,12 +1425,10 @@
       });
     }
 
-    // Impression
+    // Téléchargement PDF du planning affiché
     var printBtn = document.getElementById('printBtn');
     if (printBtn) {
-      printBtn.addEventListener('click', function () {
-        window.print();
-      });
+      printBtn.addEventListener('click', downloadPlanningPdf);
     }
 
     // Après impression : retirer le mode "fiche de présence"
@@ -1751,13 +1749,80 @@
         cols: [['N°', 6], ['Nom & Prénoms', 44], ['Niveau', 14], ['Présence', 14], ['Observations', 22]],
         rows: rows,
         foot: '<div>Présents : ' + (list.length ? countStatus(record, list, 'P') + ' / ' + list.length : '________') + '</div>' +
-              '<div><strong>Visa du Formateur :</strong> ______________________</div>'
+              '<div><strong>Formateur :</strong> ' + escapeHtml(s.trainer || signerName()) + ' — Visa : ______________</div>'
       });
     }
     if (isAdmin && !membresLoaded) fetchMembres(go); else go();
   }
 
+  // Nom du responsable connecté (pour signer les documents)
+  function signerName() {
+    var me = myTrainerEmail();
+    var tr = me && trainers.find(function (t) { return t.email && String(t.email).toLowerCase() === me; });
+    return tr ? tr.name : 'DJEBLE Haniel';
+  }
+
+  function stripTags(html) {
+    var d = document.createElement('div');
+    d.innerHTML = String(html || '').replace(/<br\s*\/?>/gi, '\n');
+    return d.textContent || '';
+  }
+
+  function slugify(txt) {
+    return stripTags(txt).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'document';
+  }
+
+  // Génère un vrai PDF téléchargeable (jsPDF + autotable) — sinon repli sur l'impression navigateur
   function printDocument(opt) {
+    var JsPDF = window.jspdf && window.jspdf.jsPDF;
+    var probe = JsPDF && new JsPDF();
+    if (!probe || typeof probe.autoTable !== 'function') { legacyPrintDocument(opt); return; }
+    var doc = probe;
+    var M = 14;
+    var pageW = doc.internal.pageSize.getWidth();
+    doc.setFont('times', 'bold'); doc.setFontSize(14); doc.setTextColor(31, 52, 88);
+    doc.text('Paroisse Saint-Bernard d\'Adiopodoumé', pageW / 2, 17, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(90, 100, 120);
+    doc.text('Groupe des Servants de Messe — ' + stripTags(opt.subtitle), pageW / 2, 23, { align: 'center' });
+    if (opt.date) doc.text(stripTags(opt.date), pageW / 2, 28, { align: 'center' });
+    doc.setDrawColor(196, 171, 99); doc.setLineWidth(0.7); doc.line(M, 31, pageW - M, 31);
+    var y = 36;
+    if (opt.meta) {
+      var cells = [];
+      String(opt.meta).replace(/<td[^>]*>([\s\S]*?)<\/td>/gi, function (m, c) { cells.push(stripTags(c)); return m; });
+      if (cells.length) {
+        doc.autoTable({ startY: y, body: [cells], theme: 'plain', styles: { fontSize: 8.5, cellPadding: 0.8, textColor: [70, 80, 100] } });
+        y = doc.lastAutoTable.finalY + 3;
+      }
+    }
+    var colStyles = {};
+    var usable = pageW - 2 * M;
+    opt.cols.forEach(function (c, i) { colStyles[i] = { cellWidth: Math.max(9, usable * (c[1] || 10) / 100) }; });
+    doc.autoTable({
+      startY: y,
+      head: [opt.cols.map(function (c) { return stripTags(c[0]); })],
+      body: opt.rows.map(function (r) { return r.map(function (c) { return stripTags(String(c == null ? '' : c)); }); }),
+      columnStyles: colStyles,
+      styles: { fontSize: 9, cellPadding: 1.6, valign: 'middle' },
+      headStyles: { fillColor: [31, 52, 88], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
+      alternateRowStyles: { fillColor: [246, 248, 252] },
+      margin: { left: M, right: M }
+    });
+    var footLines = [];
+    String(opt.foot || '').replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, function (m, c) { footLines.push(stripTags(c)); return m; });
+    var fy = doc.lastAutoTable.finalY + 16;
+    if (fy > 268) { doc.addPage(); fy = 24; }
+    doc.setFontSize(9); doc.setTextColor(70, 80, 100);
+    footLines.forEach(function (l, i) {
+      doc.text(doc.splitTextToSize(l, 82), i % 2 === 0 ? M : pageW - M, fy, { align: i % 2 === 0 ? 'left' : 'right' });
+    });
+    doc.save('smsb-' + slugify(opt.subtitle) + '-' + toISODate(new Date()) + '.pdf');
+    showToast('PDF téléchargé.');
+  }
+
+  // Repli : ancienne impression navigateur si jsPDF n'est pas chargé (hors-ligne sans cache)
+  function legacyPrintDocument(opt) {
     var sheet = document.getElementById('printPresenceSheet');
     if (!sheet) return;
     var head = opt.cols.map(function (c) { return '<th style="width:' + c[1] + '%;">' + escapeHtml(c[0]) + '</th>'; }).join('');
@@ -1782,6 +1847,27 @@
     document.body.classList.add('printing-presence');
     window.print();
     setTimeout(function () { document.body.classList.remove('printing-presence'); }, 2000);
+  }
+
+  // Planning du mois affiché → vrai PDF
+  function downloadPlanningPdf() {
+    var list = getMonthSessions();
+    var title = (currentMonthTitleEl ? currentMonthTitleEl.textContent : '') || 'Planning';
+    printDocument({
+      subtitle: 'Planning des formations — ' + title,
+      date: list.length + ' séance(s)',
+      cols: [['Date', 16], ['Horaire', 14], ['Niveau', 14], ['Thème', 28], ['Formateur', 18], ['Lieu', 10]],
+      rows: list.map(function (s) {
+        var d = parseDateLocal(s.date);
+        return [
+          escapeHtml(d ? d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' }) : s.date),
+          escapeHtml((s.startTime || '') + (s.endTime ? ' - ' + s.endTime : '')),
+          escapeHtml(s.level || ''), escapeHtml(s.topic || ''),
+          escapeHtml(s.trainer || ''), escapeHtml(s.location || '')
+        ];
+      }),
+      foot: '<div>Responsable : ' + escapeHtml(signerName()) + '</div><div><strong>Visa :</strong> ______________________</div>'
+    });
   }
 
   // ==================== ESPACE GESTION : SERVANTS, RESPONSABLES, APPEL ====================
@@ -2468,7 +2554,7 @@
         var r = attendanceRate(sv.id);
         return [i + 1, escapeHtml(sv.nom), escapeHtml(sv.niveau || '—'), escapeHtml(sv.tel || ''), r ? r.pct + ' %' : ''];
       }),
-      foot: '<div>Responsable Formation : DJEBLE Haniel</div><div><strong>Visa :</strong> ______________________</div>'
+      foot: '<div>Responsable : ' + escapeHtml(signerName()) + '</div><div><strong>Visa :</strong> ______________________</div>'
     });
   }
 
@@ -2804,6 +2890,7 @@
           svc = Object.assign({ id: 'svc_' + Date.now(), assignments: {} }, data);
           services.push(svc);
         }
+        svc.auteur = signerName();
         fbWrite('services', svc.id, svc);
         closeModal($('serviceModal'));
         renderServices();
@@ -2829,7 +2916,7 @@
             times.forEach(function (h) {
               var exists = services.some(function (s) { return s.date === iso && s.heure === h; });
               if (!exists) {
-                var svc = { id: 'svc_' + Date.now() + '_' + created, date: iso, heure: h, type: 'Messe dominicale', intitule: '', assignments: {} };
+                var svc = { id: 'svc_' + Date.now() + '_' + created, date: iso, heure: h, type: 'Messe dominicale', intitule: '', assignments: {}, auteur: signerName() };
                 services.push(svc);
                 created++;
                 fbWrite('services', svc.id, svc);
@@ -2941,6 +3028,7 @@
           if (sel && sel.value) svc.assignments[p] = sel.value;
           else delete svc.assignments[p];
         });
+        svc.auteur = signerName();
         fbWrite('services', svc.id, svc);
         closeModal($('assignModal'));
         renderServices();
@@ -3031,7 +3119,7 @@
         '<div class="g-acts">' +
           '<button type="button" class="btn btn-sm btn-outline" data-act="assign" data-id="' + svc.id + '">Attribuer</button>' +
           '<button type="button" class="btn btn-sm btn-success" data-act="wa" data-id="' + svc.id + '">WhatsApp</button>' +
-          '<button type="button" class="btn btn-sm btn-outline" data-act="print" data-id="' + svc.id + '">Imprimer</button>' +
+          '<button type="button" class="btn btn-sm btn-outline" data-act="print" data-id="' + svc.id + '">PDF</button>' +
           '<button type="button" class="btn btn-sm btn-outline" data-act="edit" data-id="' + svc.id + '">Modifier</button>' +
           '<button type="button" class="btn btn-sm btn-danger" data-act="del" data-id="' + svc.id + '">Suppr.</button>' +
         '</div></div>' +
@@ -3056,7 +3144,7 @@
       meta: '',
       cols: [['N°', 6], ['Poste', 34], ['Servant', 44], ['Niveau', 16]],
       rows: rows,
-      foot: '<div><strong>Responsable du jour :</strong> ______________________</div>'
+      foot: '<div><strong>Responsable du programme :</strong> ' + escapeHtml(svc.auteur || signerName()) + '</div>'
     });
   }
 
@@ -3153,7 +3241,7 @@
       date: scoped.length + ' appel(s) • ' + capitalizeFirst(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })),
       cols: [['N°', 5], ['Nom & Prénoms', 41], ['Niveau', 14], ['P', 8], ['R', 8], ['A', 8], ['E', 8], ['Taux', 8]],
       rows: rows,
-      foot: '<div>Responsable Formation : DJEBLE Haniel</div><div><strong>Visa :</strong> ______________________</div>'
+      foot: '<div>Responsable : ' + escapeHtml(signerName()) + '</div><div><strong>Visa :</strong> ______________________</div>'
     });
   }
 
