@@ -46,6 +46,38 @@
   // AUCUN PROGRAMME FABRIQUÉ PAR DÉFAUT : LISTE VIERGE
   var INITIAL_SESSIONS = [];
 
+  // Listes officielles (PDF) — utilisées en secours si le serveur est injoignable
+  var SEED_RESPONSABLES = [
+    'ODI ANSELME', 'IREMINKE KOPLE', 'DAN DAVID AXEL', 'SIEZA ALAIN',
+    'GUEYE CHANCEL', 'OWEL FRANCK', 'DIÉBLÉ HENOC', 'CHATIGRE EMMANUEL',
+    'DAFFOU DAVID', 'DION DONESSE', 'KONIN ARISTIDE'
+  ];
+  var SEED_SERVANTS = [
+    'SEPOU YOAN', 'OHOUEU ALLE', 'BOA ADONI YOAN', 'YVO JACQUES',
+    'KOUAMÉ ANGE DÉSIRÉ', 'DEH OULOTE', 'KONAN MARC', 'MENEAS ANGE',
+    'KOUGNON EDEN', 'DJAHA ETHAN', 'BROU KASSI', 'BROU YAO',
+    'OULAÏ PIERRE', 'DJA DAVID', 'RAYÉS HYPOLITE', 'SEPOU KARL',
+    'N\'GEUSSAN CHRIST', 'KOUAKOU MOAYÉ', 'NANGUY RYAN', 'GONDO SAMUEL',
+    'KOUASSI KOFFI CHRIST', 'AFFI BEDA', 'KOUASSI ARIEL', 'HANSI KOKOU',
+    'GONDO DAVID', 'KASSI CHRIST', 'KONAN HENRI', 'KOUAME MOAYÉ',
+    'SANOGO NOAH', 'KRA KOUAKOU', 'OUANKO KOUADIO', 'AMOUZOUKAN HAROLD',
+    'IBO CLAUDE RAYAN', 'KOFFI ASSENA', 'KOUASSI ABONOUA', 'SOUANGA N\'GEUSSAN',
+    'KAMBOU KYLIAN', 'NIBA ISRAËL', 'DIE ASSOUMOU JEAN', 'SANOGO DERECK',
+    'ALLIALI AMANY', 'SORO KADER'
+  ];
+
+  function seedResponsables() {
+    return INITIAL_TRAINERS.concat(SEED_RESPONSABLES.map(function (n, i) {
+      return { id: 'tr_r' + String(i + 1).padStart(2, '0'), name: n, role: 'Responsable', tel: '' };
+    }));
+  }
+
+  function seedServants() {
+    return SEED_SERVANTS.map(function (n, i) {
+      return { id: 'sv_' + String(i + 1).padStart(3, '0'), nom: n, niveau: '', tel: '', note: '', actif: true };
+    });
+  }
+
   // PROGRAMMES PÉDAGOGIQUES DÉTAILLÉS DES 4 NIVEAUX
   var LEVEL_GUIDE = {
     postulant: {
@@ -226,7 +258,12 @@
         render();
       })
       .catch(function () {
-        // Hors-ligne ou serveur indisponible : on garde le cache local
+        // Hors-ligne ou serveur indisponible : cache local + responsables de secours
+        if (trainers.length <= 1) {
+          trainers = seedResponsables();
+          populateTrainerSelect();
+          render();
+        }
       });
   }
 
@@ -1369,7 +1406,16 @@
         if (cb) cb();
       })
       .catch(function (err) {
-        setMembresStatus(err.message === 'auth' ? 'Session expirée' : 'Serveur injoignable', true);
+        if (err.message !== 'auth' && !servants.length) {
+          // Secours local : liste officielle embarquée, en attente du serveur
+          servants = seedServants();
+          presences = {};
+          membresLoaded = true;
+          setMembresStatus('Mode hors-ligne — enregistrement impossible tant que le serveur est injoignable', true);
+          renderGestion();
+        } else {
+          setMembresStatus(err.message === 'auth' ? 'Session expirée' : 'Serveur injoignable', true);
+        }
         if (cb) cb();
       });
   }
