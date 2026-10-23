@@ -950,3 +950,26 @@ details.gnotice-details > summary { cursor: pointer; font-size: 0.85rem; font-we
 @media (max-width: 640px) { .bureau-grid { grid-template-columns: 1fr 1fr; } .bureau-name { font-size: 0.86rem; } }
 @media (max-width: 420px) { .bureau-grid { grid-template-columns: 1fr; } }
 @media print { #bureau-section { display: none !important; } }
+
+/* ==================== ZÉRO DÉBORDEMENT ==================== */
+html, body { overflow-x: hidden; }
+img, video, canvas { max-width: 100%; height: auto; }
+.modal-card, .modal-body, .modal-head { min-width: 0; }
+.textarea { max-width: 100%; }
+.gtable select, .gtable input { max-width: 160px; }
+.guide-hero > div { min-width: 0; }
+.guide-list li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.bureau-tel { overflow-wrap: anywhere; }
+.svc-head > * { min-width: 0; }
+
+/* Filtres : empilés et entièrement visibles sur mobile, aucun scroll caché */
+@media (max-width: 640px) {
+  .level-filter-scroll { overflow-x: visible; flex-wrap: wrap; padding-bottom: 0; }
+  .filter-label { flex: 1 1 100%; }
+  .chip { flex: 1 1 auto; text-align: center; }
+  .filter-actions { width: 100%; }
+  .view-toggle { width: 100%; }
+  .gbulk { flex-wrap: wrap; }
+  .gbulk > * { flex: 1 1 100%; }
+  .stag-chip { flex: 1 1 100%; }
+}
