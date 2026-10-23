@@ -59,6 +59,7 @@
           <button id="printBtn" class="btn btn-light btn-sm" type="button" title="Imprimer ou enregistrer en PDF">Imprimer A4</button>
           <button id="addSessionBtn" class="btn btn-gold btn-sm" type="button" style="display:none;" title="Programmer une formation">Nouvelle séance</button>
           <button id="securityBtn" class="btn btn-outline-gold btn-sm" type="button" style="display:none;" title="Changer le mot de passe responsable">Sécurité</button>
+          <button id="installBtn" class="btn btn-outline-light btn-sm" type="button" hidden>Installer l'app</button>
           <button id="adminLoginBtn" class="btn btn-outline-light btn-sm" type="button" title="Connexion responsable">Espace Responsable</button>
         </div>
       </nav>
@@ -305,7 +306,9 @@
           <p class="section-sub">Servants, responsables et appel du samedi. Visible uniquement en mode responsable.</p>
         </div>
         <span id="membresStatus" class="sync-status"></span>
+        <button type="button" id="backupBtn" class="btn btn-outline btn-sm" title="Télécharger une sauvegarde de toutes les données">Sauvegarde</button>
       </div>
+      <div id="alertes" class="alertes"></div>
 
       <div class="gtabs" role="tablist">
         <button type="button" class="gtab active" data-tab="servants" role="tab">Servants <span id="svCountBadge" class="gtab-count">0</span></button>
@@ -407,6 +410,9 @@
         <div class="gtoolbar">
           <button type="button" id="serviceAddBtn" class="btn btn-gold btn-sm">Planifier un service</button>
           <span class="grow"></span>
+          <input type="month" id="svcMonth" class="select select-sm" title="Mois à générer">
+          <input type="text" id="svcTimes" class="input input-sm" placeholder="Horaires : 08:00, 10:30" style="max-width:190px">
+          <button type="button" id="svcMonthBtn" class="btn btn-outline btn-sm">Générer les dimanches</button>
         </div>
         <div class="gnotice">Les <strong>postes</strong> servent aussi de liste de compétences : indiquez-les sur la fiche de chaque servant (onglet Servants → Modifier) pour que l'attribution propose les personnes formées.</div>
         <form id="posteForm" class="gtoolbar">
@@ -648,6 +654,10 @@
           <div class="field">
             <label for="svNote" class="label">Remarque</label>
             <input type="text" id="svNote" class="input" maxlength="200">
+          </div>
+          <div class="field">
+            <label for="svNotePrivee" class="label">Note privée (visible par vous seul)</label>
+            <input type="text" id="svNotePrivee" class="input" maxlength="300" placeholder="Suivi, motivation, discipline…">
           </div>
           <div class="field">
             <label for="svPhoto" class="label">Photo (miniature gratuite)</label>

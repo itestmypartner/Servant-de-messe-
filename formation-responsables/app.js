@@ -831,6 +831,29 @@
       }
     });
 
+    // Invite « Ajouter à l'écran d'accueil » (PWA)
+    var deferredInstall = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredInstall = e;
+      var b = document.getElementById('installBtn');
+      if (b) b.hidden = false;
+    });
+    var installBtn = document.getElementById('installBtn');
+    if (installBtn) {
+      installBtn.addEventListener('click', function () {
+        if (!deferredInstall) return;
+        deferredInstall.prompt();
+        deferredInstall = null;
+        this.hidden = true;
+      });
+    }
+    window.addEventListener('appinstalled', function () {
+      var b = document.getElementById('installBtn');
+      if (b) b.hidden = true;
+      showToast('Application installée.');
+    });
+
     // Connexion Admin
     var adminLoginBtn = document.getElementById('adminLoginBtn');
     if (adminLoginBtn) {
@@ -1476,6 +1499,23 @@
     $('svAddBtn').addEventListener('click', function () { openServantForm(null); });
     $('svPrintBtn').addEventListener('click', printServantList);
 
+    // Sauvegarde complète : télécharge toutes les données en JSON
+    if ($('backupBtn')) {
+      $('backupBtn').addEventListener('click', function () {
+        var data = {
+          date: new Date().toISOString(),
+          sessions: sessions, trainers: trainers, servants: servants,
+          presences: presences, services: services, postes: POSTES
+        };
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'sauvegarde-smsb-' + toISODate(new Date()) + '.json';
+        a.click();
+        showToast('Sauvegarde téléchargée.');
+      });
+    }
+
     $('svCheckAll').addEventListener('change', function () {
       var on = this.checked;
       svSelection = {};
@@ -1575,6 +1615,7 @@
         niveau: $('svNiveau').value,
         tel: $('svTel').value.trim(),
         note: $('svNote').value.trim(),
+        notePrivee: $('svNotePrivee') ? $('svNotePrivee').value.trim() : '',
         actif: $('svActif').checked,
         competences: POSTES.filter(function (p) {
           var c = $('svComp_' + safeId(p));
@@ -1677,6 +1718,7 @@
     $('svNiveau').value = sv ? (sv.niveau || '') : (filter === 'all' ? '' : filter);
     $('svTel').value = sv ? (sv.tel || '') : '';
     $('svNote').value = sv ? (sv.note || '') : '';
+    if ($('svNotePrivee')) $('svNotePrivee').value = sv ? (sv.notePrivee || '') : '';
     $('svActif').checked = sv ? sv.actif !== false : true;
     pendingAvatar = null;
     var photoPrev = $('svPhotoPrev');
@@ -1711,12 +1753,59 @@
     if (!$('gestion-section') || !isAdmin) return;
     $('svCountBadge').textContent = servants.length;
     $('trCountBadge').textContent = trainers.length;
+    renderAlertes();
     renderSummary();
     if (activeTab === 'servants') renderServants();
     if (activeTab === 'responsables') renderResponsables();
     if (activeTab === 'appel') { buildAppelSessionOptions(); renderAppel(); }
     if (activeTab === 'services') renderServices();
     if (activeTab === 'stats') renderStats();
+  }
+
+  // Alertes intelligentes : absences répétées, niveaux manquants, services sans attribution
+  function renderAlertes() {
+    var box = $('alertes');
+    if (!box) return;
+    var alertes = [];
+    var today = toISODate(new Date());
+    var appels = sessions.filter(function (s) { return presences[s.id]; })
+      .sort(function (a, b) { return b.date.localeCompare(a.date); });
+
+    var serieA = servants.filter(function (sv) { return sv.actif !== false; }).filter(function (sv) {
+      var n = 0;
+      for (var i = 0; i < appels.length; i++) {
+        if ((presences[appels[i].id] || {})[sv.id] === 'A') n++; else break;
+      }
+      return n >= 3;
+    });
+    if (serieA.length) {
+      alertes.push({ t: 'warn', txt: serieA.length + ' servant(s) absent(s) 3 appels d\'affilée : ' +
+        serieA.slice(0, 5).map(function (s) { return s.nom; }).join(', ') + (serieA.length > 5 ? '…' : '') });
+    }
+
+    var sansNiv = servants.filter(function (sv) { return sv.actif !== false && !sv.niveau; });
+    if (sansNiv.length) {
+      alertes.push({ t: 'info', txt: sansNiv.length + ' servant(s) sans niveau attribué — répartition dans l\'onglet Servants.' });
+    }
+
+    var sansAttr = services.filter(function (s) { return s.date >= today; }).filter(function (s) {
+      var a = s.assignments || {};
+      return !Object.keys(a).some(function (k) { return a[k]; });
+    });
+    if (sansAttr.length) {
+      alertes.push({ t: 'warn', txt: sansAttr.length + ' service(s) à venir sans attribution (prochain : ' + sansAttr[0].date + ' ' + (sansAttr[0].heure || '') + ').' });
+    }
+
+    var postesVides = POSTES.filter(function (p) {
+      return !servants.some(function (sv) { return sv.actif !== false && (sv.competences || []).indexOf(p) >= 0; });
+    });
+    if (postesVides.length) {
+      alertes.push({ t: 'info', txt: 'Poste(s) sans personne formée : ' + postesVides.join(', ') + ' — cochez les compétences sur les fiches servants.' });
+    }
+
+    box.innerHTML = alertes.map(function (a) {
+      return '<div class="alerte alerte-' + a.t + '">' + escapeHtml(a.txt) + '</div>';
+    }).join('');
   }
 
   function renderSummary() {
@@ -2139,6 +2228,36 @@
     var addBtn = $('serviceAddBtn');
     if (addBtn) addBtn.addEventListener('click', function () { openServiceForm(null); });
 
+    // Générer tous les dimanches d'un mois
+    var monthBtn = $('svcMonthBtn');
+    if (monthBtn) {
+      monthBtn.addEventListener('click', function () {
+        var m = $('svcMonth').value; // 'YYYY-MM'
+        if (!m) { showToast('Choisissez d\'abord un mois.'); return; }
+        var times = ($('svcTimes').value || '08:00').split(/[,\s;]+/).filter(Boolean);
+        var y = +m.slice(0, 4), mo = +m.slice(5, 7);
+        var d = new Date(y, mo - 1, 1);
+        var created = 0;
+        while (d.getMonth() === mo - 1) {
+          if (d.getDay() === 0) {
+            var iso = toISODate(d);
+            times.forEach(function (h) {
+              var exists = services.some(function (s) { return s.date === iso && s.heure === h; });
+              if (!exists) {
+                var svc = { id: 'svc_' + Date.now() + '_' + created, date: iso, heure: h, type: 'Messe dominicale', intitule: '', assignments: {} };
+                services.push(svc);
+                created++;
+                FB.put('services', svc.id, svc).catch(function () {});
+              }
+            });
+          }
+          d.setDate(d.getDate() + 1);
+        }
+        renderServices();
+        showToast(created ? created + ' service(s) créé(s).' : 'Aucun nouveau service — les dimanches existent déjà.');
+      });
+    }
+
     var listEl = $('serviceList');
     if (listEl) {
       listEl.addEventListener('click', function (e) {
@@ -2485,13 +2604,18 @@
         '<span class="svc-name">' + escapeHtml(h.poste) + '</span></div>';
     }).join('');
 
-    // Progression : ancienneté dans le niveau
+    // Progression : ancienneté dans le niveau + promotion
     var duree = '';
+    var promouvable = false;
+    var nextLevel = '';
     if (sv.niveauDepuis) {
       var depuis = parseDateLocal(sv.niveauDepuis);
       var mois = depuis ? Math.floor((Date.now() - depuis.getTime()) / (30.44 * 86400000)) : 0;
       var SEUILS = { Postulant: 3, Samuel: 6, Tarcisius: 6 };
       var seuil = SEUILS[sv.niveau];
+      var nIdx = NIVEAUX.indexOf(sv.niveau);
+      nextLevel = (nIdx >= 0 && nIdx < NIVEAUX.length - 1) ? NIVEAUX[nIdx + 1] : '';
+      promouvable = !!(seuil && mois >= seuil && nextLevel);
       duree = 'Niveau ' + (sv.niveau || 'non attribué') + ' depuis ~' + mois + ' mois' +
         (seuil ? (mois >= seuil ? ' — <strong>éligible au niveau suivant</strong>' : ' (durée indicative ' + seuil + ' mois)') : '');
     } else {
@@ -2505,13 +2629,28 @@
       (sv.photo ? '<div class="profil-photo"><img class="sv-avatar-lg" src="' + sv.photo + '" alt=""></div>' : '') +
       '<div class="profil-grid">' +
       '<div><div class="g-sub">NIVEAU & PROGRESSION</div><p>' + duree + '</p>' +
+      (promouvable ? '<p><button type="button" id="promBtn" class="btn btn-gold btn-sm">Promouvoir → ' + escapeHtml(nextLevel) + '</button></p>' : '') +
       (sv.tel ? '<p class="g-sub">Tél : ' + escapeHtml(sv.tel) + '</p>' : '') +
-      (sv.note ? '<p class="g-sub">' + escapeHtml(sv.note) + '</p>' : '') + '</div>' +
+      (sv.note ? '<p class="g-sub">' + escapeHtml(sv.note) + '</p>' : '') +
+      (sv.notePrivee ? '<p class="g-sub"><em>Note privée : ' + escapeHtml(sv.notePrivee) + '</em></p>' : '') + '</div>' +
       '<div><div class="g-sub">ASSIDUITÉ</div><p>' + (rate ? '<strong class="g-rate' + (rate.pct < 60 ? ' low' : '') + '">' + rate.pct + ' %</strong> sur ' + rate.total + ' appel(s)' : 'Aucun appel enregistré') + '</p></div>' +
       '</div>' +
       '<div class="g-sub">COMPÉTENCES</div><p class="comp-grid">' + comps + '</p>' +
       '<div class="g-sub">SERVICES TENUS (' + derniers.length + ')</div>' + (histo || '<p class="g-sub">Aucun service encore.</p>') +
       '<div class="g-sub" style="margin-top:10px">APPELS DU SAMEDI</div>' + (appelRows || '<p class="g-sub">Aucun statut enregistré.</p>');
+
+    var promBtn = $('promBtn');
+    if (promBtn) {
+      promBtn.addEventListener('click', function () {
+        if (!confirm('Promouvoir ' + sv.nom + ' au niveau ' + nextLevel + ' ?')) return;
+        sv.niveau = nextLevel;
+        sv.niveauDepuis = toISODate(new Date());
+        saveServant(sv);
+        renderGestion();
+        openProfil(sv.id);
+        showToast(sv.nom + ' promu au niveau ' + nextLevel + '.');
+      });
+    }
 
     openModal($('profilModal'));
   }
