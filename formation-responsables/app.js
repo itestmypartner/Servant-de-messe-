@@ -673,7 +673,9 @@
       cols: [['Membre', 50], ['Poste / Statut', 25], ['Présence', 25]],
       rows: BUREAU_MEMBRES.map(function (m) { return [escapeHtml(m), '', STATUTS[r.presents[m]] || '—']; }),
       meta: '<tr><td><strong>Compte-rendu :</strong><br>' + escapeHtml(r.compteRendu || '—').replace(/\n/g, '<br>') + '</td></tr>',
-      foot: '<div>Le Secrétaire Général : SIEZA Tovo Alain</div><div><strong>Visa :</strong> ______________________</div>'
+      foot: '<div>Présents : ' + BUREAU_MEMBRES.filter(function (m) { return r.presents[m] === 'P'; }).length + ' / ' + BUREAU_MEMBRES.length + ' membres du bureau</div>',
+      signer: 'SIEZA Tovo Alain',
+      signerRole: 'Le Secrétaire Général'
     });
   }
 
@@ -693,7 +695,9 @@
         return [escapeHtml(parseDateLocal(e.date).toLocaleDateString('fr-FR')), escapeHtml(e.libelle || ''),
           e.sens === 'recette' ? fmt(e.montant) : '', e.sens === 'depense' ? fmt(e.montant) : '', fmt(run)];
       }),
-      foot: '<div>Le Trésorier : CHATIGRE Emmanuel</div><div><strong>Visa :</strong> ______________________</div>'
+      foot: '<div><strong>Solde final du mois : ' + fmt(run) + '</strong></div>',
+      signer: 'CHATIGRE Emmanuel',
+      signerRole: 'Le Trésorier Général'
     });
   }
 
@@ -717,7 +721,8 @@
       date: samedis.length + ' samedi(s) • Total collecté : ' + fmt(totalMois),
       cols: [['N°', 6], ['Servant', 54], ['Samedis payés', 20], ['Montant', 20]],
       rows: rows,
-      foot: '<div>Le Trésorier : ' + escapeHtml(signerName()) + '</div><div><strong>Visa :</strong> ______________________</div>'
+      signer: signerName(),
+      signerRole: 'Le Trésorier Général'
     });
   }
 
@@ -1961,8 +1966,9 @@
         meta: meta,
         cols: [['N°', 6], ['Nom & Prénoms', 44], ['Niveau', 14], ['Présence', 14], ['Observations', 22]],
         rows: rows,
-        foot: '<div>Présents : ' + (list.length ? countStatus(record, list, 'P') + ' / ' + list.length : '________') + '</div>' +
-              '<div><strong>Formateur :</strong> ' + escapeHtml(s.trainer || signerName()) + ' — Visa : ______________</div>'
+        foot: '<div>Présents : ' + (list.length ? countStatus(record, list, 'P') + ' / ' + list.length : '________') + '</div>',
+        signer: s.trainer || signerName(),
+        signerRole: 'Le Formateur de la séance'
       });
     }
     if (isAdmin && !membresLoaded) fetchMembres(go); else go();
@@ -1986,21 +1992,74 @@
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'document';
   }
 
+  // Charge une fois les images + la police manuscrite (signature élégante) pour les PDF
+  var _pdfAssets = null;
+  function loadPdfAssets() {
+    if (_pdfAssets) return _pdfAssets;
+    function toDataUrl(url) {
+      return fetch(url).then(function (r) { return r.blob(); }).then(function (b) {
+        return new Promise(function (res) {
+          var fr = new FileReader();
+          fr.onload = function () { res(fr.result); };
+          fr.onerror = function () { res(null); };
+          fr.readAsDataURL(b);
+        });
+      }).catch(function () { return null; });
+    }
+    function loadScriptFont() {
+      return fetch('https://raw.githubusercontent.com/google/fonts/main/ofl/alexbrush/AlexBrush-Regular.ttf')
+        .then(function (r) { return r.arrayBuffer(); })
+        .then(function (buf) {
+          var bytes = new Uint8Array(buf), bin = '';
+          for (var i = 0; i < bytes.length; i += 4096) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 4096));
+          return btoa(bin);
+        }).catch(function () { return null; });
+    }
+    _pdfAssets = Promise.all([
+      toDataUrl('logoservantdemesse.jpg'),
+      toDataUrl('logoeglise.jpeg'),
+      loadScriptFont()
+    ]).then(function (a) { return { logoGroupe: a[0], logoParoisse: a[1], fontScript: a[2] }; });
+    return _pdfAssets;
+  }
+
   // Génère un vrai PDF téléchargeable (jsPDF + autotable) — sinon repli sur l'impression navigateur
   function printDocument(opt) {
     var JsPDF = window.jspdf && window.jspdf.jsPDF;
     var probe = JsPDF && new JsPDF();
     if (!probe || typeof probe.autoTable !== 'function') { legacyPrintDocument(opt); return; }
-    var doc = probe;
+    loadPdfAssets().then(function (assets) { renderPdf(opt, probe, assets); });
+  }
+
+  function renderPdf(opt, doc, assets) {
+    if (assets.fontScript) {
+      doc.addFileToVFS('AlexBrush.ttf', assets.fontScript);
+      doc.addFont('AlexBrush.ttf', 'AlexBrush', 'normal');
+    }
     var M = 14;
     var pageW = doc.internal.pageSize.getWidth();
-    doc.setFont('times', 'bold'); doc.setFontSize(14); doc.setTextColor(31, 52, 88);
-    doc.text('Paroisse Saint-Bernard d\'Adiopodoumé', pageW / 2, 17, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(90, 100, 120);
-    doc.text('Groupe des Servants de Messe — ' + stripTags(opt.subtitle), pageW / 2, 23, { align: 'center' });
-    if (opt.date) doc.text(stripTags(opt.date), pageW / 2, 28, { align: 'center' });
-    doc.setDrawColor(196, 171, 99); doc.setLineWidth(0.7); doc.line(M, 31, pageW - M, 31);
-    var y = 36;
+    var pageH = doc.internal.pageSize.getHeight();
+    var NAVY = [31, 52, 88], GOLD = [196, 171, 99], GREY = [90, 100, 120];
+
+    // ---- En-tête officiel : logos + titres + double filet ----
+    var headerH = 30;
+    doc.setFillColor(255, 255, 255); doc.rect(0, 0, pageW, headerH + 8, 'F');
+    if (assets.logoGroupe) doc.addImage(assets.logoGroupe, 'JPEG', M, 6, 20, 20);
+    if (assets.logoParoisse) doc.addImage(assets.logoParoisse, 'JPEG', pageW - M - 20, 6, 20, 20);
+    doc.setFont('times', 'bold'); doc.setFontSize(15); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text('Paroisse Saint-Bernard d\'Adiopodoumé', pageW / 2, 13, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(GREY[0], GREY[1], GREY[2]);
+    doc.text('Groupe des Servants de Messe — Commission Formation', pageW / 2, 18.5, { align: 'center' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text(stripTags(opt.subtitle), pageW / 2, 24.5, { align: 'center' });
+    if (opt.date) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(GREY[0], GREY[1], GREY[2]);
+      doc.text(stripTags(opt.date), pageW / 2, 29.5, { align: 'center' });
+    }
+    // Double filet doré + marine (décor)
+    doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.9); doc.line(M, 33.5, pageW - M, 33.5);
+    doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.3); doc.line(M, 35, pageW - M, 35);
+    var y = 40;
     if (opt.meta) {
       var cells = [];
       String(opt.meta).replace(/<td[^>]*>([\s\S]*?)<\/td>/gi, function (m, c) { cells.push(stripTags(c)); return m; });
@@ -2022,14 +2081,36 @@
       alternateRowStyles: { fillColor: [246, 248, 252] },
       margin: { left: M, right: M }
     });
+    // ---- Pied de page : mentions + signature manuscrite ----
     var footLines = [];
     String(opt.foot || '').replace(/<div[^>]*>([\s\S]*?)<\/div>/gi, function (m, c) { footLines.push(stripTags(c)); return m; });
-    var fy = doc.lastAutoTable.finalY + 16;
-    if (fy > 268) { doc.addPage(); fy = 24; }
-    doc.setFontSize(9); doc.setTextColor(70, 80, 100);
+    var signer = opt.signer === undefined ? signerName() : opt.signer;
+    var fy = doc.lastAutoTable.finalY + 14;
+    var needH = signer ? 34 : 14;
+    if (fy + needH > pageH - 12) { doc.addPage(); fy = 24; }
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(GREY[0], GREY[1], GREY[2]);
     footLines.forEach(function (l, i) {
-      doc.text(doc.splitTextToSize(l, 82), i % 2 === 0 ? M : pageW - M, fy, { align: i % 2 === 0 ? 'left' : 'right' });
+      doc.text(doc.splitTextToSize(l, 90), M, fy + i * 5);
     });
+    if (signer) {
+      var sx = pageW - M;
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(GREY[0], GREY[1], GREY[2]);
+      doc.text('Fait à Adiopodoumé, le ' + new Date().toLocaleDateString('fr-FR'), sx, fy, { align: 'right' });
+      // Nom en écriture manuscrite (signature) — repli italique si police absente
+      if (assets.fontScript) { doc.setFont('AlexBrush', 'normal'); doc.setFontSize(24); }
+      else { doc.setFont('times', 'bolditalic'); doc.setFontSize(15); }
+      doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+      doc.text(String(signer), sx, fy + 15, { align: 'right' });
+      doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.3);
+      doc.line(sx - 58, fy + 18, sx, fy + 18);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(GREY[0], GREY[1], GREY[2]);
+      doc.text(stripTags(opt.signerRole || 'Le Responsable'), sx, fy + 22, { align: 'right' });
+    }
+    // Filet de fin + mention de génération
+    doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.5);
+    doc.line(M, pageH - 14, pageW - M, pageH - 14);
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(150, 155, 170);
+    doc.text('Document officiel — Servants de Messe, Paroisse Saint-Bernard d\'Adiopodoumé', pageW / 2, pageH - 10.5, { align: 'center' });
     doc.save('smsb-' + slugify(opt.subtitle) + '-' + toISODate(new Date()) + '.pdf');
     showToast('PDF téléchargé.');
   }
@@ -2079,7 +2160,8 @@
           escapeHtml(s.trainer || ''), escapeHtml(s.location || '')
         ];
       }),
-      foot: '<div>Responsable : ' + escapeHtml(signerName()) + '</div><div><strong>Visa :</strong> ______________________</div>'
+      signer: signerName(),
+      signerRole: 'Le Responsable de la Formation'
     });
   }
 
@@ -2826,7 +2908,8 @@
         var r = attendanceRate(sv.id);
         return [i + 1, escapeHtml(sv.nom), escapeHtml(sv.niveau || '—'), escapeHtml(sv.tel || ''), r ? r.pct + ' %' : ''];
       }),
-      foot: '<div>Responsable : ' + escapeHtml(signerName()) + '</div><div><strong>Visa :</strong> ______________________</div>'
+      signer: signerName(),
+      signerRole: 'Le Responsable de la Formation'
     });
   }
 
@@ -3416,7 +3499,8 @@
       meta: '',
       cols: [['N°', 6], ['Poste', 34], ['Servant', 44], ['Niveau', 16]],
       rows: rows,
-      foot: '<div><strong>Responsable du programme :</strong> ' + escapeHtml(svc.auteur || signerName()) + '</div>'
+      signer: svc.auteur || signerName(),
+      signerRole: 'Le Responsable du programme'
     });
   }
 
@@ -3513,7 +3597,8 @@
       date: scoped.length + ' appel(s) • ' + capitalizeFirst(new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })),
       cols: [['N°', 5], ['Nom & Prénoms', 41], ['Niveau', 14], ['P', 8], ['R', 8], ['A', 8], ['E', 8], ['Taux', 8]],
       rows: rows,
-      foot: '<div>Responsable : ' + escapeHtml(signerName()) + '</div><div><strong>Visa :</strong> ______________________</div>'
+      signer: signerName(),
+      signerRole: 'Le Responsable de la Formation'
     });
   }
 
