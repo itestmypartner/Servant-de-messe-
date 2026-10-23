@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /tresorier.html
+
+Sitemap: https://servantstbernard.web.app/sitemap.xml
