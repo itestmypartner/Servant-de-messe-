@@ -49,7 +49,7 @@
   // Listes officielles (PDF) — utilisées en secours si le serveur est injoignable
   var SEED_RESPONSABLES = [
     'ODI ANSELME', 'IREMINKE KOPLE', 'DAN DAVID AXEL', 'SIEZA ALAIN',
-    'GUEYE CHANCEL', 'OWEL FRANCK', 'DIÉBLÉ HENOC', 'CHATIGRE EMMANUEL',
+    'GUEYE CHANCEL', 'OWEL FRANCK', 'CHATIGRE EMMANUEL',
     'DAFFOU DAVID', 'DION DONESSE', 'KONIN ARISTIDE'
   ];
   var SEED_SERVANTS = [
