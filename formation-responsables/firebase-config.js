@@ -8,12 +8,12 @@
   'use strict';
 
   var firebaseConfig = {
-    apiKey: 'AIzaSyCEfBqaPOhx-lQ7YFxM2NSYpPv8G-C2erg',
-    authDomain: 'smsb-9a9ec.firebaseapp.com',
-    projectId: 'smsb-9a9ec',
-    storageBucket: 'smsb-9a9ec.firebasestorage.app',
-    messagingSenderId: '472704423187',
-    appId: '1:472704423187:web:ee905531c0d0321d73f6e6'
+    apiKey: 'AIzaSyBFBeEoJYNbVr8A1rwpjiIs2Ek6NqK0dQ8',
+    authDomain: 'servantstbernard.firebaseapp.com',
+    projectId: 'servantstbernard',
+    storageBucket: 'servantstbernard.firebasestorage.app',
+    messagingSenderId: '803183681680',
+    appId: '1:803183681680:web:8452921662fd2a3b497815'
   };
 
   firebase.initializeApp(firebaseConfig);

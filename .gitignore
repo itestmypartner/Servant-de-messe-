@@ -2,3 +2,6 @@ node_modules/
 *.log
 .DS_Store
 .firebase/
+_users.json
+_migrate-data.js
+_auth-*.js
