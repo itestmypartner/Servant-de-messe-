@@ -341,12 +341,28 @@
 
   function myRole() {
     var me = myTrainerEmail();
+    if (me === 'djeble.haniel@gmail.com') return 'super';
     if (me === 'sieza.alain@smsb.ci') return 'secretaire';
     if (me === 'chatigre.emmanuel@smsb.ci') return 'tresorier';
-    return null;
+    return 'formateur';
   }
 
-  function isSuper() { return myTrainerEmail() === 'djeble.haniel@gmail.com'; }
+  function isSuper() { return roleView === 'super'; }
+
+  var ROLE_LABELS = {
+    super: 'Responsable Titulaire à la Formation',
+    formateur: 'Responsable — Formateur',
+    secretaire: 'Secrétaire Général',
+    tresorier: 'Trésorier Général'
+  };
+
+  // Onglets visibles par rôle : chacun ne voit que ce qui le concerne
+  var ROLE_TABS = {
+    super: ['accueil', 'appel', 'servants', 'responsables', 'services', 'stats', 'reunions', 'caisse'],
+    formateur: ['accueil', 'appel', 'services'],
+    secretaire: ['accueil', 'secretaire'],
+    tresorier: ['accueil', 'tresorier']
+  };
 
   function saveLocalRole() {
     try {
@@ -575,49 +591,85 @@
   }
 
   function applyRoleView() {
-    var rp = $('rolePanel');
-    var tabs = document.querySelector('#gestion-section .gtabs');
-    if (!rp || !tabs) return;
-    var isRole = roleView === 'secretaire' || roleView === 'tresorier';
-    tabs.style.display = isRole ? 'none' : '';
-    if (isRole) {
-      ['tabServants', 'tabResponsables', 'tabAppel', 'tabServices', 'tabStats'].forEach(function (id) { if ($(id)) $(id).hidden = true; });
-      rp.hidden = false;
-      if (!roleLoaded) fetchRoleData(); else renderRolePanel();
-    } else {
-      rp.hidden = true;
-      // Supervision : onglets Réunions + Caisse pour l'admin principal uniquement
-      if (!isSuper()) {
-        document.querySelectorAll('.gtab[data-tab="reunions"], .gtab[data-tab="caisse"]').forEach(function (t) { t.remove(); });
-      } else if (!document.querySelector('.gtab[data-tab="reunions"]')) {
-        var b1 = document.createElement('button');
-        b1.type = 'button'; b1.className = 'gtab'; b1.setAttribute('data-tab', 'reunions'); b1.textContent = 'Réunions';
-        var b2 = document.createElement('button');
-        b2.type = 'button'; b2.className = 'gtab'; b2.setAttribute('data-tab', 'caisse'); b2.textContent = 'Caisse';
-        tabs.appendChild(b1); tabs.appendChild(b2);
-        b1.addEventListener('click', function () { switchGtab(b1); });
-        b2.addEventListener('click', function () { switchGtab(b2); });
-      }
-    }
+    var section = $('gestion-section');
+    if (!section || !roleView) return;
+    var allowed = ROLE_TABS[roleView] || ROLE_TABS.formateur;
+    // Affiche uniquement les onglets du rôle, active l'Accueil
+    section.querySelectorAll('.gtab').forEach(function (t) {
+      var key = t.getAttribute('data-tab');
+      var ok = allowed.indexOf(key) !== -1;
+      t.style.display = ok ? '' : 'none';
+    });
+    // Boutons d'action selon le rôle
+    var show = {
+      addSessionBtn: roleView === 'super' || roleView === 'formateur',
+      annonceBtn: roleView === 'super' || roleView === 'secretaire',
+      backupBtn: roleView === 'super'
+    };
+    Object.keys(show).forEach(function (id) { if ($(id)) $(id).style.display = show[id] ? 'inline-flex' : 'none'; });
+    // Le formateur n'a accès qu'à ses séances et son niveau à l'appel
+    var mine = $('appelMine'), allLv = $('appelAllLevels');
+    if (mine) { mine.checked = roleView === 'formateur'; mine.closest('label').style.display = roleView === 'formateur' ? 'none' : ''; }
+    if (allLv) { allLv.checked = false; allLv.closest('label').style.display = roleView === 'formateur' ? 'none' : ''; }
+    // Tableau de bord + alertes : réservés au responsable titulaire
+    if ($('dashBoard')) $('dashBoard').style.display = roleView === 'super' ? '' : 'none';
+    if ($('alertes')) $('alertes').style.display = roleView === 'super' ? '' : 'none';
+    // Données des modules à charger pour les rôles concernés (ou supervision)
+    if ((roleView === 'secretaire' || roleView === 'tresorier') && !roleLoaded) fetchRoleData();
+    // Onglet de départ : Accueil
+    var first = section.querySelector('.gtab[data-tab="accueil"]');
+    if (first) switchGtab(first);
   }
 
   function switchGtab(tab) {
     var section = $('gestion-section');
     activeTab = tab.getAttribute('data-tab');
     section.querySelectorAll('.gtab').forEach(function (t) { t.classList.toggle('active', t === tab); });
-    var isRoleTab = activeTab === 'reunions' || activeTab === 'caisse';
+    $('tabAccueil').hidden = activeTab !== 'accueil';
     $('tabServants').hidden = activeTab !== 'servants';
     $('tabResponsables').hidden = activeTab !== 'responsables';
     $('tabAppel').hidden = activeTab !== 'appel';
     $('tabServices').hidden = activeTab !== 'services';
     $('tabStats').hidden = activeTab !== 'stats';
+    var isRoleTab = ['secretaire', 'tresorier', 'reunions', 'caisse'].indexOf(activeTab) !== -1;
     $('rolePanel').hidden = !isRoleTab;
+    if (activeTab === 'accueil') { renderAccueil(); return; }
     if (isRoleTab) {
       if (!roleLoaded) fetchRoleData(function () { renderRolePanel(activeTab); });
       else renderRolePanel(activeTab);
       return;
     }
     renderGestion();
+  }
+
+  // Accueil épuré : salutation + rôle + prochaine séance à son nom + raccourcis
+  function renderAccueil() {
+    var g = $('accueilGreeting');
+    if (!g) return;
+    var me = myTrainerEmail();
+    var tr = trainers.find(function (t) { return t.email && String(t.email).toLowerCase() === me; });
+    var name = tr ? tr.name : (FB.currentUser() && FB.currentUser().email) || 'Responsable';
+    var today = toISODate(new Date());
+    var h = '<div class="acc-card"><div class="acc-hi">Bonjour, <strong>' + escapeHtml(name) + '</strong></div>' +
+      '<div class="acc-role">' + (ROLE_LABELS[roleView] || 'Responsable') + '</div></div>';
+    if (tr) {
+      var next = sessions.filter(function (s) { return s.trainer === tr.name && s.date >= today; })
+        .sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0];
+      if (next) {
+        var d = parseDateLocal(next.date);
+        h += '<div class="acc-card"><strong>Votre prochaine séance :</strong><br>' +
+          escapeHtml(capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))) +
+          ' — ' + escapeHtml(next.level) + ' — ' + escapeHtml(next.topic) + '</div>';
+      }
+    }
+    var goBtns = (ROLE_TABS[roleView] || []).filter(function (k) { return k !== 'accueil'; })
+      .map(function (k) {
+        var label = { appel: 'Appel du samedi', servants: 'Servants', responsables: 'Responsables', services: 'Services de messe', stats: 'Statistiques', secretaire: 'Secrétariat', tresorier: 'Trésorerie', reunions: 'Réunions', caisse: 'Caisse' }[k];
+        return '<button type="button" class="btn btn-outline btn-sm" data-go="' + k + '">' + label + '</button>';
+      }).join('');
+    h += '<div class="acc-card acc-links">' + goBtns + '</div>';
+    g.innerHTML = h;
+    if (roleView === 'super') renderDashboard();
   }
 
   function saveAll() {
@@ -1991,6 +2043,17 @@
     section.querySelectorAll('.gtab').forEach(function (tab) {
       tab.addEventListener('click', function () { switchGtab(tab); });
     });
+
+    // Raccourcis de l'Accueil → bascule vers l'onglet correspondant
+    var accueilPanel = $('tabAccueil');
+    if (accueilPanel) {
+      accueilPanel.addEventListener('click', function (e) {
+        var go = e.target.closest('[data-go]');
+        if (!go) return;
+        var target = section.querySelector('.gtab[data-tab="' + go.getAttribute('data-go') + '"]');
+        if (target) switchGtab(target);
+      });
+    }
 
     // --- Modules par rôle : délégation d'événements dans #rolePanel ---
     var rolePanel = $('rolePanel');

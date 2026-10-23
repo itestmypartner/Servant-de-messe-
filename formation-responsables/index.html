@@ -391,15 +391,24 @@
           <button type="button" id="backupBtn" class="btn btn-outline btn-sm" title="Télécharger une sauvegarde de toutes les données">Sauvegarde</button>
         </div>
       </div>
-      <div id="dashBoard" class="stats-mini"></div>
-      <div id="alertes" class="alertes"></div>
-
       <div class="gtabs" role="tablist">
-        <button type="button" class="gtab active" data-tab="servants" role="tab">Servants <span id="svCountBadge" class="gtab-count">0</span></button>
-        <button type="button" class="gtab" data-tab="responsables" role="tab">Responsables <span id="trCountBadge" class="gtab-count">0</span></button>
+        <button type="button" class="gtab active" data-tab="accueil" role="tab">Accueil</button>
         <button type="button" class="gtab" data-tab="appel" role="tab">Appel du samedi</button>
+        <button type="button" class="gtab" data-tab="servants" role="tab">Servants <span id="svCountBadge" class="gtab-count">0</span></button>
+        <button type="button" class="gtab" data-tab="responsables" role="tab">Responsables <span id="trCountBadge" class="gtab-count">0</span></button>
         <button type="button" class="gtab" data-tab="services" role="tab">Services de messe</button>
         <button type="button" class="gtab" data-tab="stats" role="tab">Statistiques</button>
+        <button type="button" class="gtab" data-tab="secretaire" role="tab">Secrétariat</button>
+        <button type="button" class="gtab" data-tab="tresorier" role="tab">Trésorerie</button>
+        <button type="button" class="gtab" data-tab="reunions" role="tab">Réunions</button>
+        <button type="button" class="gtab" data-tab="caisse" role="tab">Caisse</button>
+      </div>
+
+      <!-- ONGLET ACCUEIL : l'essentiel selon le rôle -->
+      <div class="gpanel" id="tabAccueil">
+        <div id="accueilGreeting"></div>
+        <div id="dashBoard" class="stats-mini"></div>
+        <div id="alertes" class="alertes"></div>
       </div>
 
       <!-- ONGLET SERVANTS -->
