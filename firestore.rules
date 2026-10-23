@@ -12,10 +12,12 @@ service cloud.firestore {
       allow write: if signedIn();
     }
 
-    // Planning des formations : lecture publique (les visiteurs voient les samedis)
+    // Planning des formations : lecture publique ; création/modification réservée
+    // au responsable titulaire de la formation uniquement
     match /sessions/{id} {
       allow read: if true;
-      allow write: if signedIn();
+      allow write: if request.auth != null
+        && request.auth.token.email == 'djeble.haniel@gmail.com';
     }
 
     // Responsables / formateurs : noms publics (figurant sur le planning et les impressions)
@@ -74,6 +76,16 @@ service cloud.firestore {
 
     // Cotisations des servants (trésorier) : responsables uniquement
     match /cotisations/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // Activités de financement (trésorier) : responsables uniquement
+    match /activites/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // Correspondance (secrétaire) : responsables uniquement
+    match /correspondances/{id} {
       allow read, write: if signedIn();
     }
 
