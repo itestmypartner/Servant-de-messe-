@@ -794,3 +794,71 @@ body { color: var(--ink); background: var(--bg); }
   .g-acts { flex-direction: column; }
 }
 @media print { #gestion-section { display: none !important; } }
+
+/* ==================== MOBILE UNIVERSEL (< 640px) ==================== */
+body { overflow-x: hidden; }
+
+@media (max-width: 640px) {
+  .container { padding: 0 12px; }
+  .main-stack { gap: 16px; padding-top: 14px; padding-bottom: 30px; }
+  .brand-logo-img { width: 38px; height: 38px; }
+  .brand-name { font-size: 0.85rem; }
+  .brand-sub { font-size: 0.66rem; }
+
+  .hero-banner { padding: 20px 16px; }
+  .hero-meta { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .quote-box { padding: 14px; }
+
+  /* Anti-zoom iOS + zones tactiles */
+  .input, .select, .textarea { font-size: 16px; }
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 40px; }
+  .btn-icon { min-height: 40px; }
+  .chip { padding: 8px 14px; }
+
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .filter-actions { margin-left: 0; }
+  .view-toggle { flex: 1; }
+  .vt-btn { flex: 1; justify-content: center; }
+  .filter-actions .btn { flex: 1; }
+
+  .next-session-card, .next-left { flex-direction: column; align-items: stretch; }
+  .next-actions .btn { flex: 1; }
+
+  .modal { padding: 8px; }
+  .modal-card { max-height: calc(100dvh - 20px); border-radius: 16px; }
+  .modal-body { padding: 14px; }
+  .modal-foot { padding: 10px 14px; }
+  .modal-foot .btn { flex: 1; }
+
+  .toast-zone { left: 12px; right: 12px; bottom: 12px; }
+  .toast { max-width: none; }
+  .md-back-top { right: 12px; }
+
+  .planning-head { padding: 12px 14px; }
+  .mobile-cards { padding: 10px; }
+  .ms-actions, .ms-admin { flex-direction: column; }
+  .acts { flex-direction: column; }
+
+  .gestion-card { padding: 14px; }
+  .gtoolbar .input, .gtoolbar .select { flex: 1 1 100%; }
+  .gtoolbar .btn { flex: 1 1 100%; }
+  .gtab { padding: 10px 10px; font-size: 0.84rem; }
+  .appel-stats { gap: 4px 12px; font-size: 0.8rem; }
+  .gtable { font-size: 0.84rem; }
+  .gtable .select-sm { min-width: 110px; font-size: 0.9rem; }
+  .gbulk .select { flex: 1; }
+
+  .empty-state { padding: 32px 12px; }
+  .month-title { font-size: 0.95rem; }
+}
+
+@media (max-width: 380px) {
+  .nav-actions { grid-template-columns: 1fr; }
+  .st-btn { font-size: 0.72rem; }
+}
+
+@supports (padding: max(0px)) {
+  .md-back-top { bottom: max(12px, env(safe-area-inset-bottom)); }
+  .toast-zone { bottom: max(12px, env(safe-area-inset-bottom)); }
+}

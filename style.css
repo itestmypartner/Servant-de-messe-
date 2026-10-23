@@ -1851,3 +1851,53 @@ input:focus, select:focus, textarea:focus {
 .card-icon:empty { display: none; }
 .footer { background: #111827; }
 .footer-block h3 { color: #fff; }
+
+/* ============================================================
+   MOBILE UNIVERSEL — petits écrans (< 640px), tactile, anti-débordement
+   ============================================================ */
+body { overflow-x: hidden; }
+
+@media (max-width: 640px) {
+  html { -webkit-text-size-adjust: 100%; }
+
+  /* Anti-zoom iOS : champs à 16px minimum */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Zones tactiles confortables */
+  .btn, .admin-btn, .admin-btn-secondary, .admin-btn-danger,
+  .link-btn, .auth-box button, .form-card button {
+    min-height: 44px;
+  }
+  .delete-btn { min-height: 36px; }
+
+  .container { width: auto; padding: 0 16px; }
+  .header-inner { gap: 8px; }
+  .logo-text { font-size: 0.95rem; }
+  .header-tagline { font-size: 0.6rem; letter-spacing: 1.5px; }
+
+  .hero { min-height: 68vh; }
+  .hero-content { padding: 3rem 0; }
+  .hero-logo { width: 110px; }
+  .actions { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+  .actions .btn { text-align: center; }
+
+  .card { padding: 1.4rem 1.1rem; }
+  .section { padding: 3rem 0; }
+
+  .news-grid { grid-template-columns: 1fr !important; }
+
+  .admin-table-container { margin: 0 -4px; }
+  .admin-toolbar { padding: 10px; }
+  .admin-stats { grid-template-columns: 1fr !important; }
+  .admin-dashboard { padding: 12px 6px 24px; }
+  .admin-page { padding-left: 8px; padding-right: 8px; }
+
+  .toast { left: 12px !important; right: 12px !important; max-width: none; }
+  .md-back-top { right: 12px; }
+}
+
+/* Safe-area iPhone (encoche, barre d'accueil) */
+@supports (padding: max(0px)) {
+  .md-back-top { bottom: max(16px, env(safe-area-inset-bottom)); }
+  .toast, .toast-zone { bottom: max(12px, env(safe-area-inset-bottom)) !important; }
+}
