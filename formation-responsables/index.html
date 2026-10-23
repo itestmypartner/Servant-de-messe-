@@ -42,7 +42,8 @@
       </a>
 
       <button class="burger" id="burgerBtn" type="button" aria-label="Menu" aria-expanded="false">
-        <span></span><span></span><span></span>
+        <span class="menu-pill"><i></i><i></i><i></i></span>
+        <span class="menu-word">Menu</span>
       </button>
 
       <nav class="topnav" id="topnav">
@@ -55,10 +56,6 @@
         </ul>
 
         <div class="nav-actions">
-          <button id="whatsappShareBtn" class="btn btn-success btn-sm" type="button" title="Partager le planning sur WhatsApp">WhatsApp</button>
-          <button id="printBtn" class="btn btn-light btn-sm" type="button" title="Imprimer ou enregistrer en PDF">Imprimer A4</button>
-          <button id="addSessionBtn" class="btn btn-gold btn-sm" type="button" style="display:none;" title="Programmer une formation">Nouvelle séance</button>
-          <button id="securityBtn" class="btn btn-outline-gold btn-sm" type="button" style="display:none;" title="Changer le mot de passe responsable">Sécurité</button>
           <button id="installBtn" class="btn btn-outline-light btn-sm" type="button" hidden>Installer l'app</button>
           <button id="adminLoginBtn" class="btn btn-outline-light btn-sm" type="button" title="Connexion responsable">Espace Responsable</button>
         </div>
@@ -108,34 +105,6 @@
     <!-- ==================== PROCHAINE SÉANCE ==================== -->
     <div id="nextSessionCard" class="next-card-slot" style="display:none;"></div>
 
-    <!-- ==================== STATISTIQUES ==================== -->
-    <div class="stats-grid">
-      <div class="stat-widget">
-        <div class="stat-icon-wrapper si-gold"></div>
-        <div>
-          <div class="stat-label">Responsable Formation</div>
-          <div class="stat-value">DJEBLE Haniel</div>
-          <a href="tel:+2250150252467" class="stat-link">01 50 25 24 67</a>
-        </div>
-      </div>
-      <div class="stat-widget">
-        <div class="stat-icon-wrapper si-blue"></div>
-        <div>
-          <div class="stat-label">Séances ce mois-ci</div>
-          <div class="stat-value" id="statMonthCount">0 séance planifiée</div>
-          <span class="stat-sub" id="statMonthLabel">Mois sélectionné</span>
-        </div>
-      </div>
-      <div class="stat-widget">
-        <div class="stat-icon-wrapper si-green"></div>
-        <div>
-          <div class="stat-label">Parcours de Formation</div>
-          <div class="stat-value">4 Niveaux Distincts</div>
-          <span class="stat-sub">Postulant • Samuel • Tarcisius • Augustin</span>
-        </div>
-      </div>
-    </div>
-
     <!-- ==================== FICHE RESPONSABLE ==================== -->
     <section id="responsables-section" class="card-soft trainer-highlight">
       <div class="trainer-row-inner">
@@ -153,7 +122,7 @@
             </div>
           </div>
         </div>
-        <div class="signature-box">
+        <div class="signature-box" hidden>
           <div class="signature-label">Visa & Signature Officielle :</div>
           <div class="handwritten-signature">DJEBLE Haniel</div>
           <div class="signature-sub">Responsable Formation</div>
@@ -204,6 +173,8 @@
         <div class="planning-head-stats">
           <span id="levelBreakdown" class="level-breakdown"></span>
           <span class="badge badge-soft" id="scheduleCount">0 séance programmée</span>
+          <button id="whatsappShareBtn" class="btn btn-success btn-sm" type="button" title="Partager le planning sur WhatsApp">WhatsApp</button>
+          <button id="printBtn" class="btn btn-light btn-sm" type="button" title="Imprimer ou enregistrer en PDF">Imprimer A4</button>
         </div>
       </div>
 
@@ -306,7 +277,11 @@
           <p class="section-sub">Servants, responsables et appel du samedi. Visible uniquement en mode responsable.</p>
         </div>
         <span id="membresStatus" class="sync-status"></span>
-        <button type="button" id="backupBtn" class="btn btn-outline btn-sm" title="Télécharger une sauvegarde de toutes les données">Sauvegarde</button>
+        <div class="gestion-actions">
+          <button id="addSessionBtn" class="btn btn-gold btn-sm" type="button" style="display:none;" title="Programmer une formation">Nouvelle séance</button>
+          <button id="securityBtn" class="btn btn-outline btn-sm" type="button" style="display:none;" title="Changer le mot de passe responsable">Sécurité</button>
+          <button type="button" id="backupBtn" class="btn btn-outline btn-sm" title="Télécharger une sauvegarde de toutes les données">Sauvegarde</button>
+        </div>
       </div>
       <div id="alertes" class="alertes"></div>
 
@@ -409,12 +384,16 @@
       <div class="gpanel" id="tabServices" hidden>
         <div class="gtoolbar">
           <button type="button" id="serviceAddBtn" class="btn btn-gold btn-sm">Planifier un service</button>
-          <span class="grow"></span>
-          <input type="month" id="svcMonth" class="select select-sm" title="Mois à générer">
-          <input type="text" id="svcTimes" class="input input-sm" placeholder="Horaires : 08:00, 10:30" style="max-width:190px">
-          <button type="button" id="svcMonthBtn" class="btn btn-outline btn-sm">Générer les dimanches</button>
         </div>
-        <div class="gnotice">Les <strong>postes</strong> servent aussi de liste de compétences : indiquez-les sur la fiche de chaque servant (onglet Servants → Modifier) pour que l'attribution propose les personnes formées.</div>
+        <details class="gnotice-details">
+          <summary>Planifier tout un mois + infos sur les postes</summary>
+          <div class="gtoolbar" style="margin-top:10px">
+            <input type="month" id="svcMonth" class="select select-sm" title="Mois à générer">
+            <input type="text" id="svcTimes" class="input input-sm" placeholder="Horaires : 08:00, 10:30">
+            <button type="button" id="svcMonthBtn" class="btn btn-outline btn-sm">Générer les dimanches</button>
+          </div>
+          <div class="gnotice">Les <strong>postes</strong> servent aussi de liste de compétences : indiquez-les sur la fiche de chaque servant (onglet Servants → Modifier) pour que l'attribution propose les personnes formées.</div>
+        </details>
         <form id="posteForm" class="gtoolbar">
           <input type="text" id="posteName" class="input grow" placeholder="Nouveau poste (ex. Maître de cérémonie)" maxlength="40">
           <button type="submit" class="btn btn-outline btn-sm">Ajouter le poste</button>
