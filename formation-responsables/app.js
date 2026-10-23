@@ -279,6 +279,7 @@
       });
       localStorage.setItem(WRITE_Q_KEY, JSON.stringify(q));
     } catch (e) {}
+    updateSyncBadge();
   }
 
   function flushWriteQueue() {
@@ -293,8 +294,31 @@
       p.catch(function () { queueWrites([w]); });
     });
     showToast(replayed + ' modification(s) synchronisée(s).');
+    updateSyncBadge();
   }
   window.addEventListener('online', flushWriteQueue);
+  window.addEventListener('online', updateSyncBadge);
+  window.addEventListener('offline', updateSyncBadge);
+
+  // Indicateur de synchronisation : visible dans l'Espace Gestion
+  function updateSyncBadge() {
+    var b = $('syncBadge');
+    if (!b) return;
+    if (!isAdmin) { b.hidden = true; return; }
+    var q = [];
+    try { q = JSON.parse(localStorage.getItem(WRITE_Q_KEY) || '[]'); } catch (e) {}
+    b.hidden = false;
+    if (navigator.onLine === false) {
+      b.className = 'sync-badge sync-off';
+      b.textContent = '📴 Hors connexion' + (q.length ? ' — ' + q.length + ' modification(s) en attente' : '');
+    } else if (q.length) {
+      b.className = 'sync-badge sync-wait';
+      b.textContent = '⏳ ' + q.length + ' modification(s) en attente de synchronisation';
+    } else {
+      b.className = 'sync-badge sync-ok';
+      b.textContent = '✓ Synchronisé';
+    }
+  }
 
   // Écriture tolérante au réseau : essaie Firestore, sinon met en file
   function fbWrite(col, id, data) {
@@ -330,6 +354,7 @@
   var correspondances = [];     // courrier arrivé/départ du secrétaire
   var caisseMois = '';          // filtre mois du journal
   var cotisDate = '';           // samedi des cotisations affiché
+  var cotRepMois = '';          // mois du rapport de cotisations
   var actOpen = null;           // activité ouverte pour le pointage
   var reunionOuverte = null;    // brouillon de réunion en cours
 
@@ -595,6 +620,11 @@
       }).join('') + '</div>' +
       '<div class="role-row" style="margin-top:10px;"><button type="button" id="cotSave" class="btn btn-dark btn-sm">Enregistrer les cotisations</button></div>';
     }
+    if (!cotRepMois) cotRepMois = caisseMois;
+    h += '<div class="role-row" style="margin-top:10px;justify-content:space-between;">' +
+      '<input type="month" id="cotRepMois" class="input" value="' + cotRepMois + '" style="max-width:150px;" title="Mois du rapport">' +
+      '<button type="button" id="cotPdf" class="btn btn-outline btn-sm">📄 Rapport du mois</button>' +
+      '<button type="button" id="cotRelance" class="btn btn-outline btn-sm">📱 Relancer les impayés du samedi</button></div>';
     h += '</div>';
 
     // Activités de financement : le trésorier crée une activité et pointe les payeurs
@@ -667,6 +697,50 @@
     });
   }
 
+  // Rapport mensuel des cotisations (PDF) — samedis du mois, payés par servant
+  function printCotisationsMois() {
+    var mois = cotRepMois;
+    var samedis = Object.keys(cotisations).filter(function (d) { return d.indexOf(mois) === 0; }).sort();
+    if (!samedis.length) { showToast('Aucune cotisation enregistrée ce mois-ci.'); return; }
+    var actifs = servants.filter(function (sv) { return sv.actif !== false; }).sort(sortByName);
+    var fmt = function (n) { return Number(n).toLocaleString('fr-FR') + ' F'; };
+    var label = parseDateLocal(mois + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    var totalMois = 0;
+    var rows = actifs.map(function (sv, i) {
+      var nb = samedis.filter(function (d) { return (cotisations[d] || {})[sv.id]; }).length;
+      var mt = samedis.reduce(function (s, d) { return s + ((cotisations[d] || {})[sv.id] ? +cotisations[d][sv.id].montant || 0 : 0); }, 0);
+      totalMois += mt;
+      return [i + 1, escapeHtml(sv.nom), nb + ' / ' + samedis.length, fmt(mt)];
+    });
+    printDocument({
+      subtitle: 'Rapport des cotisations — ' + capitalizeFirst(label),
+      date: samedis.length + ' samedi(s) • Total collecté : ' + fmt(totalMois),
+      cols: [['N°', 6], ['Servant', 54], ['Samedis payés', 20], ['Montant', 20]],
+      rows: rows,
+      foot: '<div>Le Trésorier : ' + escapeHtml(signerName()) + '</div><div><strong>Visa :</strong> ______________________</div>'
+    });
+  }
+
+  // Relance WhatsApp des servants qui n'ont pas payé le samedi choisi
+  function relanceCotisations() {
+    var recs = cotisations[cotisDate] || {};
+    var impayes = servants.filter(function (sv) { return sv.actif !== false && !recs[sv.id]; }).sort(sortByName);
+    if (!impayes.length) { showToast('Tout le monde a payé ce samedi-là. 👏'); return; }
+    var d = parseDateLocal(cotisDate);
+    var dateTxt = capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }));
+    var msg = '🔔 *Rappel cotisation — ' + dateTxt + '*\n\n' +
+      'Les servants suivants n\'ont pas encore réglé leur cotisation de *100 F* :\n\n' +
+      impayes.map(function (sv, i) { return (i + 1) + '. ' + sv.nom; }).join('\n') +
+      '\n\nMerci de régulariser dès que possible. — Trésorerie du groupe';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(msg)
+        .then(function () { showToast(impayes.length + ' impayé(s) — message copié, collez-le dans WhatsApp.'); })
+        .catch(function () { prompt('Copiez ce message :', msg); });
+    } else {
+      prompt('Copiez ce message :', msg);
+    }
+  }
+
   function applyRoleView() {
     var section = $('gestion-section');
     if (!section || !roleView) return;
@@ -693,6 +767,7 @@
     if ($('alertes')) $('alertes').style.display = roleView === 'super' ? '' : 'none';
     // Données des modules à charger pour les rôles concernés (ou supervision)
     if ((roleView === 'secretaire' || roleView === 'tresorier') && !roleLoaded) fetchRoleData();
+    updateSyncBadge();
     // Onglet de départ : Accueil
     var first = section.querySelector('.gtab[data-tab="accueil"]');
     if (first) switchGtab(first);
@@ -734,9 +809,13 @@
         .sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0];
       if (next) {
         var d = parseDateLocal(next.date);
-        h += '<div class="acc-card"><strong>Votre prochaine séance :</strong><br>' +
+        var days = Math.round((d - parseDateLocal(today)) / 86400000);
+        var quand = days <= 0 ? 'aujourd\'hui' : days === 1 ? 'demain' : 'samedi prochain';
+        h += '<div class="acc-card' + (days <= 7 ? ' acc-soon' : '') + '">' +
+          (days <= 7 ? '🔔 <strong>Vous enseignez ' + quand + '</strong>' : '<strong>Votre prochaine séance</strong>') + '<br>' +
           escapeHtml(capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }))) +
-          ' — ' + escapeHtml(next.level) + ' — ' + escapeHtml(next.topic) + '</div>';
+          ' — ' + escapeHtml(next.level) + ' — ' + escapeHtml(next.topic) +
+          (days <= 7 ? '<div class="acc-tip">Pensez à préparer votre séance.</div>' : '') + '</div>';
       }
     }
     var goBtns = (ROLE_TABS[roleView] || []).filter(function (k) { return k !== 'accueil'; })
@@ -2212,6 +2291,10 @@
           showToast('Écriture enregistrée.');
         } else if (t.id === 'caPrint') {
           printCaisseMonth();
+        } else if (t.id === 'cotPdf') {
+          printCotisationsMois();
+        } else if (t.id === 'cotRelance') {
+          relanceCotisations();
         } else if (t.id === 'actAdd') {
           var nom = $('actNom').value.trim();
           var mt = +$('actMontant').value;
@@ -2272,6 +2355,7 @@
       rolePanel.addEventListener('change', function (e) {
         if (e.target.id === 'caMois') { caisseMois = e.target.value; renderRolePanel(); }
         if (e.target.id === 'cotDate') { cotisDate = e.target.value; renderRolePanel(); }
+        if (e.target.id === 'cotRepMois') { cotRepMois = e.target.value; }
       });
       rolePanel.addEventListener('input', function (e) {
         if (e.target.id === 'reCR' && reunionOuverte) reunionOuverte.cr = e.target.value;
