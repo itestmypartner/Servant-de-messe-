@@ -308,6 +308,318 @@
     });
   }
 
+  function fbDelete(col, id) {
+    if (navigator.onLine === false) {
+      queueWrites([{ col: col, id: id, del: true }]);
+      return Promise.resolve();
+    }
+    return FB.del(col, id).catch(function () {
+      queueWrites([{ col: col, id: id, del: true }]);
+      showToast('Hors connexion — suppression synchronisée au retour du réseau.');
+    });
+  }
+
+  // ==================== MODULES PAR RÔLE (Secrétariat / Trésorerie) ====================
+  var roleView = null;          // 'secretaire' | 'tresorier' | null
+  var roleLoaded = false;
+  var reunions = [];
+  var caisse = [];
+  var cotisations = {};         // { 'YYYY-MM': { svId: { montant, date } } }
+  var inscriptions = [];
+  var caisseMois = '';          // filtre mois du journal
+  var cotisMois = '';           // mois des cotisations affiché
+  var reunionOuverte = null;    // brouillon de réunion en cours
+
+  var BUREAU_MEMBRES = [
+    'KONATÉ Thierry', 'ABOGNI Claude',
+    'ODI Angba Anselme', 'IREMINKE Koplé Axel', 'DAN David Axel',
+    'SIEZA Tovo Alain', 'CHATIGRE Emmanuel', 'DJEBLE Haniel',
+    'DION Donesse', 'OWEL Franck', 'GUEYE Chancel', 'DAFFOU David'
+  ];
+
+  var ROLE_KEY = 'smsb_role_data';
+
+  function myRole() {
+    var me = myTrainerEmail();
+    if (me === 'sieza.alain@smsb.ci') return 'secretaire';
+    if (me === 'chatigre.emmanuel@smsb.ci') return 'tresorier';
+    return null;
+  }
+
+  function isSuper() { return myTrainerEmail() === 'djeble.haniel@gmail.com'; }
+
+  function saveLocalRole() {
+    try {
+      localStorage.setItem(ROLE_KEY, JSON.stringify({
+        reunions: reunions, caisse: caisse, cotisations: cotisations, inscriptions: inscriptions
+      }));
+    } catch (e) {}
+  }
+
+  function loadLocalRole() {
+    try {
+      var d = JSON.parse(localStorage.getItem(ROLE_KEY) || 'null');
+      if (d) {
+        reunions = d.reunions || [];
+        caisse = d.caisse || [];
+        cotisations = d.cotisations || {};
+        inscriptions = d.inscriptions || [];
+      }
+    } catch (e) {}
+  }
+
+  function fetchRoleData(cb) {
+    Promise.all([FB.get('reunions'), FB.get('caisse'), FB.get('cotisations'), FB.get('inscriptions')])
+      .then(function (r) {
+        reunions = r[0] || [];
+        caisse = r[1] || [];
+        cotisations = {};
+        (r[2] || []).forEach(function (d) { if (d && d.id) cotisations[d.id] = d.records || {}; });
+        inscriptions = r[3] || [];
+        roleLoaded = true;
+        saveLocalRole();
+        renderRolePanel();
+        if (cb) cb();
+      })
+      .catch(function () {
+        loadLocalRole();
+        roleLoaded = true;
+        renderRolePanel();
+        if (cb) cb();
+      });
+  }
+
+  function renderRolePanel(forceTab) {
+    var rp = $('rolePanel');
+    if (!rp) return;
+    var mode = forceTab || roleView || (activeTab === 'caisse' ? 'caisse' : 'reunions');
+    rp.innerHTML = mode === 'caisse' || mode === 'tresorier' ? tresorierHtml() : secretaireHtml();
+  }
+
+  // ---------- Secrétariat ----------
+  function secretaireHtml() {
+    var past = reunions.slice().sort(function (a, b) { return (b.date || '') < (a.date || '') ? -1 : 1; });
+    var draft = reunionOuverte;
+    var h = '<div class="role-mod"><h3 class="role-title">📋 Secrétariat — Réunions du bureau</h3>';
+
+    // Nouvelle réunion
+    h += '<div class="role-card"><h4>Nouvelle réunion</h4>' +
+      '<div class="role-row">' +
+      '<input type="date" id="reDate" class="input" value="' + (draft ? draft.date : toISODate(new Date())) + '">' +
+      '<input type="text" id="reObjet" class="input" placeholder="Objet de la réunion" value="' + (draft ? escapeHtml(draft.objet) : '') + '" style="flex:2;min-width:180px;">' +
+      '</div>';
+    if (draft) {
+      h += '<div class="re-att">' + BUREAU_MEMBRES.map(function (m) {
+        var st = draft.presents[m] || 'P';
+        return '<div class="re-line"><span class="re-name">' + escapeHtml(m) + '</span><span class="re-opts">' +
+          ['P', 'A', 'E'].map(function (k) {
+            return '<label class="re-opt' + (st === k ? ' on' : '') + '" data-m="' + escapeHtml(m) + '" data-k="' + k + '">' + k + '</label>';
+          }).join('') + '</span></div>';
+      }).join('') + '</div>' +
+      '<div class="field" style="margin-top:10px;"><label class="label" for="reCR">Compte-rendu</label>' +
+      '<textarea id="reCR" class="input" rows="5" placeholder="Décisions, points abordés…">' + escapeHtml(draft.cr || '') + '</textarea></div>' +
+      '<div class="role-row"><button type="button" id="reSave" class="btn btn-dark btn-sm">Enregistrer la réunion</button>' +
+      '<button type="button" id="reCancel" class="btn btn-outline btn-sm">Annuler</button></div>';
+    } else {
+      h += '<div class="role-row"><button type="button" id="reOpen" class="btn btn-gold btn-sm">Ouvrir l\'appel des membres</button></div>';
+    }
+    h += '</div>';
+
+    // Réunions passées
+    h += '<div class="role-card"><h4>Réunions enregistrées (' + past.length + ')</h4>';
+    if (!past.length) h += '<p class="gempty">Aucune réunion enregistrée.</p>';
+    h += past.map(function (r) {
+      var np = Object.keys(r.presents || {}).filter(function (m) { return r.presents[m] === 'P'; }).length;
+      return '<div class="re-item" data-id="' + r.id + '">' +
+        '<div class="re-head"><strong>' + escapeHtml(parseDateLocal(r.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + '</strong>' +
+        '<span class="g-tag">' + np + ' présent(s)</span></div>' +
+        '<div class="g-sub">' + escapeHtml(r.objet || '') + '</div>' +
+        (r.compteRendu ? '<div class="re-cr">' + escapeHtml(r.compteRendu).replace(/\n/g, '<br>') + '</div>' : '') +
+        '<div class="g-acts" style="margin-top:6px;">' +
+        '<button type="button" class="btn btn-outline btn-icon" data-ract="print" data-id="' + r.id + '">Imprimer CR</button>' +
+        '<button type="button" class="btn btn-outline btn-icon txt-danger" data-ract="del" data-id="' + r.id + '">Supprimer</button>' +
+        '</div></div>';
+    }).join('');
+    h += '</div>';
+
+    // Inscriptions reçues
+    var insc = inscriptions.slice().sort(function (a, b) { return (b.createdAt || '') < (a.createdAt || '') ? -1 : 1; });
+    h += '<div class="role-card"><h4>📥 Inscriptions reçues (' + insc.filter(function (i) { return !i.traite; }).length + ' à traiter)</h4>';
+    if (!insc.length) h += '<p class="gempty">Aucune inscription pour le moment.</p>';
+    else {
+      h += '<div class="gw"><table class="gtable"><thead><tr><th>Nom</th><th>Âge</th><th class="hide-sm">Tél</th><th class="hide-sm">Message</th><th>Statut</th><th></th></tr></thead><tbody>' +
+        insc.map(function (i) {
+          return '<tr>' +
+            '<td><div class="g-name">' + escapeHtml((i.nom || '') + ' ' + (i.prenom || '')) + '</div><div class="g-sub">' + escapeHtml(i.date || '') + '</div></td>' +
+            '<td>' + (i.age || '—') + '</td>' +
+            '<td class="hide-sm">' + escapeHtml(i.tel || '—') + '</td>' +
+            '<td class="hide-sm"><div class="g-sub">' + escapeHtml(i.description || '').slice(0, 80) + '</div></td>' +
+            '<td>' + (i.traite ? '<span class="g-tag">Traitée</span>' : '<span class="g-tag g-tag-warn">À traiter</span>') + '</td>' +
+            '<td class="t-right"><div class="g-acts">' +
+            (!i.traite ? '<button type="button" class="btn btn-outline btn-icon" data-iact="done" data-id="' + i.id + '">Traiter</button>' : '') +
+            '<button type="button" class="btn btn-outline btn-icon txt-danger" data-iact="del" data-id="' + i.id + '">Suppr.</button>' +
+            '</div></td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    h += '</div></div>';
+    return h;
+  }
+
+  // ---------- Trésorerie ----------
+  function tresorierHtml() {
+    if (!caisseMois) caisseMois = toISODate(new Date()).slice(0, 7);
+    if (!cotisMois) cotisMois = caisseMois;
+    var moisEntries = caisse.filter(function (e) { return (e.date || '').indexOf(caisseMois) === 0; })
+      .sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+    var all = caisse.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+    var soldeMois = moisEntries.reduce(function (s, e) { return s + (e.sens === 'recette' ? +e.montant : -+e.montant); }, 0);
+    var soldeTotal = all.reduce(function (s, e) { return s + (e.sens === 'recette' ? +e.montant : -+e.montant); }, 0);
+    var rec = moisEntries.filter(function (e) { return e.sens === 'recette'; }).reduce(function (s, e) { return s + +e.montant; }, 0);
+    var dep = moisEntries.filter(function (e) { return e.sens === 'depense'; }).reduce(function (s, e) { return s + +e.montant; }, 0);
+    var fmt = function (n) { return Number(n).toLocaleString('fr-FR') + ' F'; };
+
+    var h = '<div class="role-mod"><h3 class="role-title">💰 Trésorerie du groupe</h3>' +
+      '<div class="stats-mini">' +
+      '<div class="stat-mini"><strong>' + fmt(soldeTotal) + '</strong><span>solde total</span></div>' +
+      '<div class="stat-mini"><strong>' + fmt(rec) + '</strong><span>recettes du mois</span></div>' +
+      '<div class="stat-mini"><strong>' + fmt(dep) + '</strong><span>dépenses du mois</span></div>' +
+      '<div class="stat-mini"><strong>' + fmt(soldeMois) + '</strong><span>solde du mois</span></div>' +
+      '</div>';
+
+    // Nouvelle entrée
+    h += '<div class="role-card"><h4>Nouvelle écriture</h4><div class="role-row">' +
+      '<input type="date" id="caDate" class="input" value="' + toISODate(new Date()) + '">' +
+      '<select id="caSens" class="select"><option value="recette">Recette</option><option value="depense">Dépense</option></select>' +
+      '<input type="text" id="caLib" class="input" placeholder="Libellé (ex. cotisations mars, achat aubes)" style="flex:2;min-width:160px;">' +
+      '<input type="number" id="caMontant" class="input" placeholder="Montant" min="1" style="max-width:120px;">' +
+      '<button type="button" id="caAdd" class="btn btn-gold btn-sm">Enregistrer</button></div></div>';
+
+    // Journal
+    h += '<div class="role-card"><div class="role-row" style="justify-content:space-between;"><h4 style="margin:0;">Journal de caisse</h4>' +
+      '<div class="role-row" style="gap:6px;"><input type="month" id="caMois" class="input" value="' + caisseMois + '" style="max-width:150px;">' +
+      '<button type="button" id="caPrint" class="btn btn-outline btn-sm">Imprimer le mois</button></div></div>';
+    if (!moisEntries.length) h += '<p class="gempty">Aucune écriture ce mois-ci.</p>';
+    else {
+      var run = all.filter(function (e) { return (e.date || '') < caisseMois; })
+        .reduce(function (s, e) { return s + (e.sens === 'recette' ? +e.montant : -+e.montant); }, 0);
+      h += '<div class="gw"><table class="gtable"><thead><tr><th>Date</th><th>Libellé</th><th class="t-right">Recette</th><th class="t-right">Dépense</th><th class="t-right">Solde</th><th></th></tr></thead><tbody>' +
+        moisEntries.map(function (e) {
+          run += e.sens === 'recette' ? +e.montant : -+e.montant;
+          return '<tr><td>' + escapeHtml(parseDateLocal(e.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })) + '</td>' +
+            '<td>' + escapeHtml(e.libelle || '') + '</td>' +
+            '<td class="t-right txt-ok">' + (e.sens === 'recette' ? fmt(e.montant) : '') + '</td>' +
+            '<td class="t-right txt-danger">' + (e.sens === 'depense' ? fmt(e.montant) : '') + '</td>' +
+            '<td class="t-right">' + fmt(run) + '</td>' +
+            '<td class="t-right"><button type="button" class="btn btn-outline btn-icon txt-danger" data-cact="del" data-id="' + e.id + '">✕</button></td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    h += '</div>';
+
+    // Cotisations
+    var cotisRecs = cotisations[cotisMois] || {};
+    var actifs = servants.filter(function (sv) { return sv.actif !== false; }).sort(sortByName);
+    var nbPaye = actifs.filter(function (sv) { return cotisRecs[sv.id]; }).length;
+    var totalCotis = actifs.reduce(function (s, sv) { return s + (cotisRecs[sv.id] ? +cotisRecs[sv.id].montant || 0 : 0); }, 0);
+    h += '<div class="role-card"><div class="role-row" style="justify-content:space-between;"><h4 style="margin:0;">Cotisations des servants</h4>' +
+      '<input type="month" id="cotMois" class="input" value="' + cotisMois + '" style="max-width:150px;"></div>' +
+      '<p class="g-sub" style="margin:4px 0 10px;">' + nbPaye + '/' + actifs.length + ' payé • ' + fmt(totalCotis) + ' collectés</p>';
+    if (!actifs.length) h += '<p class="gempty">Liste des servants non chargée.</p>';
+    else {
+      h += '<div class="cot-list">' + actifs.map(function (sv) {
+        var c = cotisRecs[sv.id];
+        return '<div class="cot-line' + (c ? ' paid' : '') + '" data-sv="' + sv.id + '">' +
+          '<span class="cot-check">' + (c ? '✓' : '') + '</span>' +
+          '<span class="cot-name">' + escapeHtml(sv.nom) + '</span>' +
+          '<input type="number" class="input cot-mt" data-sv="' + sv.id + '" value="' + (c ? c.montant : 500) + '" min="0" ' + (c ? '' : 'disabled') + '>' +
+          '</div>';
+      }).join('') + '</div>' +
+      '<div class="role-row" style="margin-top:10px;"><button type="button" id="cotSave" class="btn btn-dark btn-sm">Enregistrer les cotisations</button></div>';
+    }
+    h += '</div></div>';
+    return h;
+  }
+
+  // ---------- Impressions des modules ----------
+  function printReunion(id) {
+    var r = reunions.find(function (x) { return x.id === id; });
+    if (!r) return;
+    var STATUTS = { P: 'Présent', A: 'Absent', E: 'Excusé' };
+    printDocument({
+      subtitle: 'Compte-rendu de réunion du Bureau',
+      date: capitalizeFirst(parseDateLocal(r.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })) + ' — ' + (r.objet || ''),
+      cols: [['Membre', 50], ['Poste / Statut', 25], ['Présence', 25]],
+      rows: BUREAU_MEMBRES.map(function (m) { return [escapeHtml(m), '', STATUTS[r.presents[m]] || '—']; }),
+      meta: '<tr><td><strong>Compte-rendu :</strong><br>' + escapeHtml(r.compteRendu || '—').replace(/\n/g, '<br>') + '</td></tr>',
+      foot: '<div>Le Secrétaire Général : SIEZA Tovo Alain</div><div><strong>Visa :</strong> ______________________</div>'
+    });
+  }
+
+  function printCaisseMonth() {
+    var moisEntries = caisse.filter(function (e) { return (e.date || '').indexOf(caisseMois) === 0; })
+      .sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+    var fmt = function (n) { return Number(n).toLocaleString('fr-FR') + ' F'; };
+    var run = caisse.filter(function (e) { return (e.date || '') < caisseMois; })
+      .reduce(function (s, e) { return s + (e.sens === 'recette' ? +e.montant : -+e.montant); }, 0);
+    var label = parseDateLocal(caisseMois + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    printDocument({
+      subtitle: 'Journal de caisse — ' + capitalizeFirst(label),
+      date: moisEntries.length + ' écriture(s) • Solde de départ : ' + fmt(run),
+      cols: [['Date', 14], ['Libellé', 46], ['Recette', 14], ['Dépense', 13], ['Solde', 13]],
+      rows: moisEntries.map(function (e) {
+        run += e.sens === 'recette' ? +e.montant : -+e.montant;
+        return [escapeHtml(parseDateLocal(e.date).toLocaleDateString('fr-FR')), escapeHtml(e.libelle || ''),
+          e.sens === 'recette' ? fmt(e.montant) : '', e.sens === 'depense' ? fmt(e.montant) : '', fmt(run)];
+      }),
+      foot: '<div>Le Trésorier : CHATIGRE Emmanuel</div><div><strong>Visa :</strong> ______________________</div>'
+    });
+  }
+
+  function applyRoleView() {
+    var rp = $('rolePanel');
+    var tabs = document.querySelector('#gestion-section .gtabs');
+    if (!rp || !tabs) return;
+    var isRole = roleView === 'secretaire' || roleView === 'tresorier';
+    tabs.style.display = isRole ? 'none' : '';
+    if (isRole) {
+      ['tabServants', 'tabResponsables', 'tabAppel', 'tabServices', 'tabStats'].forEach(function (id) { if ($(id)) $(id).hidden = true; });
+      rp.hidden = false;
+      if (!roleLoaded) fetchRoleData(); else renderRolePanel();
+    } else {
+      rp.hidden = true;
+      // Supervision : onglets Réunions + Caisse pour l'admin principal uniquement
+      if (!isSuper()) {
+        document.querySelectorAll('.gtab[data-tab="reunions"], .gtab[data-tab="caisse"]').forEach(function (t) { t.remove(); });
+      } else if (!document.querySelector('.gtab[data-tab="reunions"]')) {
+        var b1 = document.createElement('button');
+        b1.type = 'button'; b1.className = 'gtab'; b1.setAttribute('data-tab', 'reunions'); b1.textContent = 'Réunions';
+        var b2 = document.createElement('button');
+        b2.type = 'button'; b2.className = 'gtab'; b2.setAttribute('data-tab', 'caisse'); b2.textContent = 'Caisse';
+        tabs.appendChild(b1); tabs.appendChild(b2);
+        b1.addEventListener('click', function () { switchGtab(b1); });
+        b2.addEventListener('click', function () { switchGtab(b2); });
+      }
+    }
+  }
+
+  function switchGtab(tab) {
+    var section = $('gestion-section');
+    activeTab = tab.getAttribute('data-tab');
+    section.querySelectorAll('.gtab').forEach(function (t) { t.classList.toggle('active', t === tab); });
+    var isRoleTab = activeTab === 'reunions' || activeTab === 'caisse';
+    $('tabServants').hidden = activeTab !== 'servants';
+    $('tabResponsables').hidden = activeTab !== 'responsables';
+    $('tabAppel').hidden = activeTab !== 'appel';
+    $('tabServices').hidden = activeTab !== 'services';
+    $('tabStats').hidden = activeTab !== 'stats';
+    $('rolePanel').hidden = !isRoleTab;
+    if (isRoleTab) {
+      if (!roleLoaded) fetchRoleData(function () { renderRolePanel(activeTab); });
+      else renderRolePanel(activeTab);
+      return;
+    }
+    renderGestion();
+  }
+
   function saveAll() {
     saveLocal();
     if (!isAdmin) return;
@@ -380,6 +692,9 @@
     if (gestion) gestion.style.display = isAdmin ? '' : 'none';
     if (isAdmin && !membresLoaded) { fetchMembres(); fetchServices(); }
     if (isAdmin) flushWriteQueue();
+    roleView = isAdmin ? myRole() : null;
+    if (!isAdmin) { roleLoaded = false; reunions = []; caisse = []; cotisations = {}; inscriptions = []; }
+    applyRoleView();
     if (!isAdmin) { servants = []; presences = {}; membresLoaded = false; }
   }
 
@@ -1588,17 +1903,107 @@
     if (!section) return;
 
     section.querySelectorAll('.gtab').forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        activeTab = tab.getAttribute('data-tab');
-        section.querySelectorAll('.gtab').forEach(function (t) { t.classList.toggle('active', t === tab); });
-        $('tabServants').hidden = activeTab !== 'servants';
-        $('tabResponsables').hidden = activeTab !== 'responsables';
-        $('tabAppel').hidden = activeTab !== 'appel';
-        $('tabServices').hidden = activeTab !== 'services';
-        $('tabStats').hidden = activeTab !== 'stats';
-        renderGestion();
-      });
+      tab.addEventListener('click', function () { switchGtab(tab); });
     });
+
+    // --- Modules par rôle : délégation d'événements dans #rolePanel ---
+    var rolePanel = $('rolePanel');
+    if (rolePanel) {
+      rolePanel.addEventListener('click', function (e) {
+        var t = e.target;
+        // Appel des membres du bureau
+        var opt = t.closest('.re-opt');
+        if (opt && reunionOuverte) {
+          reunionOuverte.presents[opt.getAttribute('data-m')] = opt.getAttribute('data-k');
+          opt.parentElement.querySelectorAll('.re-opt').forEach(function (o) { o.classList.toggle('on', o === opt); });
+          return;
+        }
+        // Ligne cotisation : bascule payé / non payé
+        var cotLine = t.closest('.cot-line');
+        if (cotLine && !t.classList.contains('cot-mt')) {
+          var svId = cotLine.getAttribute('data-sv');
+          var recs = cotisations[cotisMois] = cotisations[cotisMois] || {};
+          if (recs[svId]) delete recs[svId];
+          else recs[svId] = { montant: +cotLine.querySelector('.cot-mt').value || 500, date: toISODate(new Date()) };
+          saveLocalRole();
+          renderRolePanel();
+          return;
+        }
+        if (t.id === 'reOpen') {
+          reunionOuverte = {
+            date: $('reDate').value || toISODate(new Date()),
+            objet: $('reObjet').value.trim(),
+            presents: {}, cr: ''
+          };
+          BUREAU_MEMBRES.forEach(function (m) { reunionOuverte.presents[m] = 'P'; });
+          renderRolePanel();
+        } else if (t.id === 'reCancel') {
+          reunionOuverte = null;
+          renderRolePanel();
+        } else if (t.id === 'reSave' && reunionOuverte) {
+          reunionOuverte.cr = $('reCR').value;
+          var r = {
+            id: 're-' + Date.now(),
+            date: reunionOuverte.date,
+            objet: reunionOuverte.objet || 'Réunion du bureau',
+            presents: reunionOuverte.presents,
+            compteRendu: reunionOuverte.cr
+          };
+          reunions.push(r);
+          reunionOuverte = null;
+          saveLocalRole();
+          fbWrite('reunions', r.id, r);
+          renderRolePanel();
+          showToast('Réunion enregistrée.');
+        } else if (t.id === 'caAdd') {
+          var montant = +$('caMontant').value;
+          if (!$('caLib').value.trim() || !(montant > 0)) { showToast('Libellé et montant requis.'); return; }
+          var en = { id: 'ca-' + Date.now(), date: $('caDate').value || toISODate(new Date()), sens: $('caSens').value, libelle: $('caLib').value.trim(), montant: montant };
+          caisse.push(en);
+          saveLocalRole();
+          fbWrite('caisse', en.id, en);
+          renderRolePanel();
+          showToast('Écriture enregistrée.');
+        } else if (t.id === 'caPrint') {
+          printCaisseMonth();
+        } else if (t.id === 'cotSave') {
+          var recs2 = cotisations[cotisMois] || {};
+          rolePanel.querySelectorAll('.cot-line').forEach(function (line) {
+            var id = line.getAttribute('data-sv');
+            if (recs2[id]) recs2[id].montant = +line.querySelector('.cot-mt').value || 0;
+          });
+          saveLocalRole();
+          fbWrite('cotisations', cotisMois, { id: cotisMois, records: recs2 });
+          showToast('Cotisations enregistrées.');
+        } else if (t.getAttribute('data-ract') === 'print') {
+          printReunion(t.getAttribute('data-id'));
+        } else if (t.getAttribute('data-ract') === 'del') {
+          var rid = t.getAttribute('data-id');
+          if (confirm('Supprimer cette réunion ?')) {
+            reunions = reunions.filter(function (x) { return x.id !== rid; });
+            saveLocalRole(); fbDelete('reunions', rid); renderRolePanel();
+          }
+        } else if (t.getAttribute('data-iact') === 'done') {
+          var iid = t.getAttribute('data-id');
+          inscriptions.forEach(function (i) { if (i.id === iid) i.traite = true; });
+          saveLocalRole(); fbWrite('inscriptions', iid, inscriptions.find(function (i) { return i.id === iid; })); renderRolePanel();
+        } else if (t.getAttribute('data-iact') === 'del') {
+          var iid2 = t.getAttribute('data-id');
+          if (confirm('Supprimer cette inscription ?')) {
+            inscriptions = inscriptions.filter(function (x) { return x.id !== iid2; });
+            saveLocalRole(); fbDelete('inscriptions', iid2); renderRolePanel();
+          }
+        }
+      });
+      rolePanel.addEventListener('change', function (e) {
+        if (e.target.id === 'caMois') { caisseMois = e.target.value; renderRolePanel(); }
+        if (e.target.id === 'cotMois') { cotisMois = e.target.value; renderRolePanel(); }
+      });
+      rolePanel.addEventListener('input', function (e) {
+        if (e.target.id === 'reCR' && reunionOuverte) reunionOuverte.cr = e.target.value;
+        if (e.target.id === 'reObjet' && reunionOuverte) reunionOuverte.objet = e.target.value;
+      });
+    }
 
     // --- Servants ---
     $('svSearch').addEventListener('input', renderServants);

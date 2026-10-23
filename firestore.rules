@@ -62,6 +62,21 @@ service cloud.firestore {
       allow read, write: if signedIn();
     }
 
+    // Réunions du bureau (secrétaire) : responsables uniquement
+    match /reunions/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // Journal de caisse du groupe (trésorier) : responsables uniquement
+    match /caisse/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // Cotisations des servants (trésorier) : responsables uniquement
+    match /cotisations/{id} {
+      allow read, write: if signedIn();
+    }
+
     // Annonce officielle : lecture publique (bandeau du site), écriture responsables
     match /config/annonce {
       allow read: if true;
