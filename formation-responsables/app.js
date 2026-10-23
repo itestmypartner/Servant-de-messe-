@@ -1950,6 +1950,7 @@
       '<tr><td><strong>Niveau :</strong></td><td>' + escapeHtml(s.level) + '</td>' +
           '<td><strong>Formateur :</strong></td><td>' + escapeHtml(s.trainer) + '</td></tr>' +
       '<tr><td><strong>Thème :</strong></td><td colspan="3">' + escapeHtml(s.topic) + '</td></tr>' +
+      (s.objectives ? '<tr><td><strong>Objectifs :</strong></td><td colspan="3">' + escapeHtml(s.objectives) + '</td></tr>' : '') +
       '<tr><td><strong>Lieu :</strong></td><td colspan="3">' + escapeHtml(s.location) + '</td></tr>';
 
     function go() {
@@ -2071,15 +2072,55 @@
     var colStyles = {};
     var usable = pageW - 2 * M;
     opt.cols.forEach(function (c, i) { colStyles[i] = { cellWidth: Math.max(9, usable * (c[1] || 10) / 100) }; });
+    // Couleurs exactes de la plateforme (badges de niveaux + statuts)
+    var LEVEL_COLORS = {
+      'Postulant': { text: [5, 150, 105], bg: [236, 253, 245] },
+      'Samuel': { text: [2, 132, 199], bg: [240, 249, 255] },
+      'Tarcisius': { text: [124, 58, 237], bg: [245, 243, 255] },
+      'Augustin': { text: [217, 119, 6], bg: [255, 251, 235] }
+    };
+    var STATUT_COLORS = { P: [5, 150, 105], R: [2, 132, 199], A: [220, 38, 38], E: [124, 58, 237] };
+    var headTexts = opt.cols.map(function (c) { return stripTags(c[0]); });
     doc.autoTable({
       startY: y,
-      head: [opt.cols.map(function (c) { return stripTags(c[0]); })],
+      head: [headTexts],
       body: opt.rows.map(function (r) { return r.map(function (c) { return stripTags(String(c == null ? '' : c)); }); }),
       columnStyles: colStyles,
       styles: { fontSize: 9, cellPadding: 1.6, valign: 'middle' },
-      headStyles: { fillColor: [31, 52, 88], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
+      headStyles: { fillColor: NAVY, textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
       alternateRowStyles: { fillColor: [246, 248, 252] },
-      margin: { left: M, right: M }
+      margin: { left: M, right: M },
+      didParseCell: function (data) {
+        if (data.section !== 'body') return;
+        var raw = String(data.cell.raw == null ? '' : data.cell.raw).trim();
+        // Cellule « Niveau » : badge coloré comme sur la plateforme
+        var lv = LEVEL_COLORS[raw];
+        if (lv) {
+          data.cell.styles.fillColor = lv.bg;
+          data.cell.styles.textColor = lv.text;
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.halign = 'center';
+          return;
+        }
+        // Colonnes de statut P/R/A/E : chiffres colorés
+        var head = headTexts[data.column.index];
+        if (STATUT_COLORS[head] && raw) {
+          data.cell.styles.textColor = STATUT_COLORS[head];
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.halign = 'center';
+        }
+        // Colonne « Taux » : vert/orange/rouge selon performance
+        if (head === 'Taux' && raw) {
+          var p = parseInt(raw, 10);
+          data.cell.styles.textColor = p >= 80 ? [5, 150, 105] : (p >= 50 ? [217, 119, 6] : [220, 38, 38]);
+          data.cell.styles.fontStyle = 'bold';
+        }
+        // Colonne « Présence » de la fiche d'appel : libellés colorés
+        if (head === 'Présence') {
+          var lbl = { 'Présent': [5,150,105], 'Retard': [2,132,199], 'Absent': [220,38,38], 'Excusé': [124,58,237] }[raw];
+          if (lbl) { data.cell.styles.textColor = lbl; data.cell.styles.fontStyle = 'bold'; }
+        }
+      }
     });
     // ---- Pied de page : mentions + signature manuscrite ----
     var footLines = [];
@@ -2154,9 +2195,10 @@
       rows: list.map(function (s) {
         var d = parseDateLocal(s.date);
         return [
-          escapeHtml(d ? d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' }) : s.date),
+          escapeHtml(d ? capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })) : s.date),
           escapeHtml((s.startTime || '') + (s.endTime ? ' - ' + s.endTime : '')),
-          escapeHtml(s.level || ''), escapeHtml(s.topic || ''),
+          escapeHtml(s.level || ''),
+          escapeHtml(s.topic || '') + (s.objectives ? '\nℹ ' + escapeHtml(s.objectives) : ''),
           escapeHtml(s.trainer || ''), escapeHtml(s.location || '')
         ];
       }),
