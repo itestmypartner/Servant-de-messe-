@@ -2236,18 +2236,26 @@
     doc.setFont('times', 'normal'); doc.setFontSize(10.5); doc.setTextColor(INK[0], INK[1], INK[2]);
     doc.text('Mois de ' + stripTags(title) + '  —  ' + list.length + ' séance' + (list.length > 1 ? 's' : '') + ' programmée' + (list.length > 1 ? 's' : ''), W / 2, 50, { align: 'center' });
 
-    var rows = list.map(function (s) {
+    // Chaque séance = une ligne principale + une ligne « Objectifs » sur toute la largeur
+    var rows = [];
+    list.forEach(function (s) {
       var d = parseDateLocal(s.date);
       var dateTxt = d ? capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long' })) + '\n' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : (s.date || '');
-      var obj = (s.objectives || '').trim();
-      return [
+      var obj = (s.objectives || '').replace(/\s+/g, ' ').trim();
+      rows.push([
         dateTxt,
         (s.startTime || '') + (s.endTime ? '\n' + s.endTime : ''),
         s.level || '',
-        (s.topic || '') + (obj ? '\n\nObjectifs : ' + obj : ''),
+        { content: s.topic || '', styles: { fontStyle: 'bold', textColor: NAVY } },
         s.trainer || '',
         s.location || ''
-      ];
+      ]);
+      if (obj) {
+        rows.push([{
+          content: 'Objectifs pédagogiques : ' + obj, colSpan: 6,
+          styles: { halign: 'justify', valign: 'top', fontSize: 8.6, textColor: INK, cellPadding: { top: 2.4, bottom: 3.2, left: 4, right: 4 } }
+        }]);
+      }
     });
     if (!rows.length) rows = [[{ content: 'Aucune séance programmée pour ce mois.', colSpan: 6, styles: { halign: 'center', fontStyle: 'italic', textColor: MUTED } }]];
 
@@ -2255,12 +2263,11 @@
       startY: 56,
       margin: { left: M, right: M, top: 40, bottom: 22 },
       tableWidth: TW,
-      head: [['Date', 'Horaire', 'Niveau', 'Thème et objectifs', 'Formateur', 'Lieu']],
+      head: [['Date', 'Horaire', 'Niveau', 'Thème', 'Formateur', 'Lieu']],
       body: rows,
       theme: 'grid',
-      styles: { font: 'helvetica', fontSize: 8.8, textColor: INK, lineColor: LINE, lineWidth: 0.25, cellPadding: 2.4, valign: 'middle', overflow: 'linebreak' },
+      styles: { font: 'helvetica', fontSize: 9, textColor: INK, fillColor: [255, 255, 255], lineColor: LINE, lineWidth: 0.25, cellPadding: 2.6, valign: 'middle', overflow: 'linebreak' },
       headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 9 },
-      alternateRowStyles: { fillColor: [244, 246, 250] },
       columnStyles: {
         0: { cellWidth: 30, halign: 'center' },
         1: { cellWidth: 18, halign: 'center' },
