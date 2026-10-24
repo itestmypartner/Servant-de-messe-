@@ -2213,7 +2213,10 @@
     }
     var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
     var M = 14, TW = W - 2 * M;
-    var NAVY = [22, 40, 74], INK = [30, 30, 30], MUTED = [95, 100, 110], LINE = [22, 40, 74];
+    var NAVY = [22, 40, 74], INK = [30, 30, 30], MUTED = [95, 100, 110], LINE = [205, 212, 226], GOLD = [196, 160, 64];
+    var LV = { Postulant: [16, 150, 100], Samuel: [14, 116, 196], Tarcisius: [124, 58, 237], Augustin: [214, 112, 10] };
+    function tint(c, k) { return c.map(function (v) { return Math.round(v + (255 - v) * k); }); }
+    function lvColor(l) { return LV[l] || NAVY; }
 
     function header() {
       if (assets.logoGroupe) doc.addImage(assets.logoGroupe, 'JPEG', M, 10, 20, 20);
@@ -2225,9 +2228,8 @@
       doc.text('Groupe des Servants de Messe — Commission Formation', W / 2, 21.5, { align: 'center' });
       doc.setFont('times', 'italic'); doc.setFontSize(9); doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
       doc.text('« Servir et non être servi »', W / 2, 26.5, { align: 'center' });
-      doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]);
-      doc.setLineWidth(0.8); doc.line(M, 33, W - M, 33);
-      doc.setLineWidth(0.25); doc.line(M, 34.2, W - M, 34.2);
+      doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.9); doc.line(M, 33, W - M, 33);
+      doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.5); doc.line(M, 34.4, W - M, 34.4);
     }
 
     header();
@@ -2235,9 +2237,20 @@
     doc.text('PLANNING DES FORMATIONS', W / 2, 44, { align: 'center' });
     doc.setFont('times', 'normal'); doc.setFontSize(10.5); doc.setTextColor(INK[0], INK[1], INK[2]);
     doc.text('Mois de ' + stripTags(title) + '  —  ' + list.length + ' séance' + (list.length > 1 ? 's' : '') + ' programmée' + (list.length > 1 ? 's' : ''), W / 2, 50, { align: 'center' });
+    doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.4); doc.line(W / 2 - 30, 46.2, W / 2 + 30, 46.2);
+    // Légende : une pastille par niveau
+    var lgW = 30, lgGap = 4, lgX = W / 2 - (4 * lgW + 3 * lgGap) / 2, lgY = 54;
+    Object.keys(LV).forEach(function (k, i) {
+      var c = LV[k], x = lgX + i * (lgW + lgGap), bg = tint(c, 0.85);
+      doc.setFillColor(bg[0], bg[1], bg[2]); doc.setDrawColor(c[0], c[1], c[2]); doc.setLineWidth(0.3);
+      doc.roundedRect(x, lgY, lgW, 5.6, 2.8, 2.8, 'FD');
+      doc.setFillColor(c[0], c[1], c[2]); doc.circle(x + 4, lgY + 2.8, 1.2, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(c[0], c[1], c[2]);
+      doc.text(k, x + lgW / 2 + 2, lgY + 3.9, { align: 'center' });
+    });
 
     // Chaque séance = une ligne principale + une ligne « Objectifs » sur toute la largeur
-    var rows = [];
+    var rows = [], rowLv = [], rowKind = [];
     list.forEach(function (s) {
       var d = parseDateLocal(s.date);
       var dateTxt = d ? capitalizeFirst(d.toLocaleDateString('fr-FR', { weekday: 'long' })) + '\n' + d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : (s.date || '');
@@ -2250,7 +2263,9 @@
         s.trainer || '',
         s.location || ''
       ]);
+      rowLv.push(s.level); rowKind.push('main');
       if (obj) {
+        rowLv.push(s.level); rowKind.push('obj');
         rows.push([{
           content: 'Objectifs pédagogiques : ' + obj, colSpan: 6,
           styles: { halign: 'justify', valign: 'top', fontSize: 8.6, textColor: INK, cellPadding: { top: 2.4, bottom: 3.2, left: 4, right: 4 } }
@@ -2260,7 +2275,7 @@
     if (!rows.length) rows = [[{ content: 'Aucune séance programmée pour ce mois.', colSpan: 6, styles: { halign: 'center', fontStyle: 'italic', textColor: MUTED } }]];
 
     doc.autoTable({
-      startY: 56,
+      startY: 64,
       margin: { left: M, right: M, top: 40, bottom: 22 },
       tableWidth: TW,
       head: [['Date', 'Horaire', 'Niveau', 'Thème', 'Formateur', 'Lieu']],
@@ -2276,8 +2291,27 @@
         4: { cellWidth: 32 },
         5: { cellWidth: 24, halign: 'center' }
       },
-      tableLineColor: NAVY, tableLineWidth: 0.6,
+      tableLineColor: NAVY, tableLineWidth: 0.7,
       rowPageBreak: 'avoid',
+      didParseCell: function (data) {
+        if (data.section !== 'body' || !rowKind.length) return;
+        var c = lvColor(rowLv[data.row.index]), st = data.cell.styles;
+        if (rowKind[data.row.index] === 'obj') {
+          st.fillColor = tint(c, 0.93);
+          return;
+        }
+        st.fillColor = tint(c, 0.97);
+        if (data.column.index === 0) { st.fillColor = tint(c, 0.86); st.textColor = c; st.fontStyle = 'bold'; }
+        if (data.column.index === 2) { st.fillColor = c; st.textColor = [255, 255, 255]; }
+        if (data.column.index === 1) st.textColor = NAVY;
+      },
+      didDrawCell: function (data) {
+        // Barre verticale de la couleur du niveau, à gauche de chaque séance
+        if (data.section !== 'body' || !rowKind.length || data.column.index !== 0) return;
+        var c = lvColor(rowLv[data.row.index]);
+        doc.setFillColor(c[0], c[1], c[2]);
+        doc.rect(data.cell.x, data.cell.y, 1.4, data.cell.height, 'F');
+      },
       willDrawPage: function (data) { if (data.pageNumber > 1) header(); }
     });
 
@@ -2294,14 +2328,14 @@
     var signer = signerName();
     var sw = doc.getTextWidth(signer);
     doc.text(signer, sx - Math.max(0, (60 - sw) / 2), fy + 19, { align: 'right' });
-    doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.3);
+    doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.5);
     doc.line(sx - Math.max(60, sw), fy + 21.5, sx, fy + 21.5);
 
     // Pied de page
     var n = doc.internal.getNumberOfPages();
     for (var p = 1; p <= n; p++) {
       doc.setPage(p);
-      doc.setDrawColor(NAVY[0], NAVY[1], NAVY[2]); doc.setLineWidth(0.25); doc.line(M, H - 14, W - M, H - 14);
+      doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.4); doc.line(M, H - 14, W - M, H - 14);
       doc.setFont('times', 'normal'); doc.setFontSize(8); doc.setTextColor(MUTED[0], MUTED[1], MUTED[2]);
       doc.text('Servants de Messe — Paroisse Saint-Bernard d\'Adiopodoumé', M, H - 9.5);
       doc.text('Page ' + p + ' / ' + n, W - M, H - 9.5, { align: 'right' });
